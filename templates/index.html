@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBR Challenger Card Digital Assistant</title>
+  <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBR) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
+  <meta name="theme-color" content="#080d17" id="meta-theme-color">
+  <!-- PWA Manifest & iOS Support -->
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CBR Challenger">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}">
+</head>
+<body>
+  <!-- Mobile Sidebar Overlay -->
+  <div class="mobile-sidebar-overlay" id="mobile-sidebar-overlay"></div>
+
+  <!-- Professional Dashboard Topbar -->
+  <header id="main-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo-badge">CBR</div>
+        <div class="brand-title">
+          <h1>Challenger Card</h1>
+          <p>Bible Reading Dashboard</p>
+        </div>
+      </div>
+      <div class="header-center">
+        <div class="header-stat-pill" id="header-pill-score">📊 Score: <strong id="header-score-val">—</strong></div>
+        <div class="header-stat-pill" id="header-pill-days">📅 Days: <strong id="header-days-val">—</strong></div>
+        <div class="header-stat-pill danger" id="header-pill-laxity">⚡ Laxity: <strong id="header-laxity-val">—</strong></div>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn-icon" title="Toggle Theme">☀️</button>
+        <button class="hamburger" id="hamburger-btn" aria-label="Open sidebar">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Subtle grid background pattern -->
+  <div class="dashboard-bg-grid"></div>
+
+  <div class="container page-wrapper">
+    <!-- Historical View Exit Banner -->
+    <div id="historical-banner" class="historical-banner" style="display: none;">
+      <span>⚠️ You are currently viewing an archived Challenger Card. Setup panels and logs are in read-only mode.</span>
+      <button id="btn-exit-history">Back to Active Card</button>
+    </div>
+
+    
+    <!-- Main Panel & Sidebar Grid -->
+    <main class="main-layout">
+      <!-- Left Panel: Main Content Area -->
+      <div class="left-column">
+<!-- Dashboard tab contents -->
+        <div class="tab-content active" id="tab-dashboard">
+<!-- Collapsible Profile & Card Setup -->
+    <details class="glass-panel profile-card setup-accordion" id="profile-section" style="margin-bottom: 1.5rem;">
+      <summary class="setup-summary">
+        <div class="summary-title">
+          <span style="font-size: 1.2rem;">⚙️</span>
+          <span style="font-weight: 700; font-size: 0.95rem;">Trainee Setup & Card Configuration</span>
+        </div>
+        <div class="summary-subtitle" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 2rem;">Tap to expand and edit your weaknesses or personal details.</div>
+      </summary>
+      <div class="setup-content" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--panel-border); display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem;">
+        
+        <!-- Left Column: Profile Fields -->
+        <div class="setup-left-col" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <div style="border: 1px solid var(--panel-border); background: var(--panel-hover); border-radius: var(--radius-md); padding: 1.25rem;">
+            <h4 style="font-size: 0.8rem; color: var(--primary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Personal Information</h4>
+            <div class="profile-fields-grid">
+              <div class="profile-field">
+                <label for="username">Trainee Name</label>
+                <input type="text" id="username" placeholder="Enter your name">
+              </div>
+              <div class="profile-field">
+                <label for="contact">Contact Information</label>
+                <input type="text" id="contact" placeholder="Phone or email">
+              </div>
+              <div class="profile-field" style="grid-column: 1 / -1;">
+                <label for="church">Church / CU affiliation</label>
+                <input type="text" id="church" placeholder="Your church/Christian Union">
+              </div>
+            </div>
+          </div>
+
+          <div style="border: 1px solid var(--panel-border); background: var(--panel-hover); border-radius: var(--radius-md); padding: 1.25rem;">
+            <h4 style="font-size: 0.8rem; color: var(--primary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Program Settings</h4>
+            <div class="profile-fields-grid">
+              <div class="profile-field">
+                <label for="commencing-date">Commencing Date</label>
+                <input type="date" id="commencing-date">
+              </div>
+              <div class="profile-field">
+                <label for="card-selector">Active Card Round</label>
+                <select id="card-selector">
+                  <option value="1">Card 1 (1 Ch, 5:45 AM Target)</option>
+                  <option value="2">Card 2 (2 Ch, 5:30 AM Target)</option>
+                  <option value="3">Card 3 (3 Ch, 5:15 AM Target)</option>
+                  <option value="4">Card 4 (4 Ch, 5:00 AM Target)</option>
+                  <option value="5">Card 5 (5 Ch, 4:45 AM Target)</option>
+                  <option value="6">Card 6 (6 Ch, 4:30 AM Target)</option>
+                  <option value="7">Card 7 (7 Ch, 4:00 AM Target)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Character weaknesses setup -->
+        <div class="weaknesses-setup-box" style="margin: 0; height: 100%; display: flex; flex-direction: column;">
+          <h4 style="font-size: 0.8rem; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Most Urgent Character Weaknesses</h4>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1.25rem;">Identify up to three obvious character weaknesses you want to overcome through Scripture.</p>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem; flex-grow: 1; justify-content: center;">
+            <div class="weakness-row-inputs" style="margin-bottom: 0;">
+              <input type="text" id="weakness-1-name" placeholder="Character Weakness i (e.g., Sloth)">
+              <input type="text" id="weakness-1-action" placeholder="What I am doing to produce change (practical resolve)">
+            </div>
+            <div class="weakness-row-inputs" style="margin-bottom: 0;">
+              <input type="text" id="weakness-2-name" placeholder="Character Weakness ii">
+              <input type="text" id="weakness-2-action" placeholder="What I am doing to produce change">
+            </div>
+            <div class="weakness-row-inputs" style="margin-bottom: 0;">
+              <input type="text" id="weakness-3-name" placeholder="Character Weakness iii">
+              <input type="text" id="weakness-3-action" placeholder="What I am doing to produce change">
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- KPI Row -->
+    <section class="kpi-row" id="kpis-section">
+      <div class="glass-panel kpi-card success">
+        <span class="kpi-label">Weekly Growth Score</span>
+        <span class="kpi-val" id="kpi-total-points">0 pts</span>
+        <span class="kpi-sub">Target: 10 pts per week (Max 40/card)</span>
+      </div>
+      <div class="glass-panel kpi-card danger">
+        <span class="kpi-label">Laxity Points Lost</span>
+        <span class="kpi-val" id="kpi-laxity-points">0 pts</span>
+        <span class="kpi-sub">Target: 0 Laxity points</span>
+      </div>
+      <div class="glass-panel kpi-card info">
+        <span class="kpi-label">Days Logged</span>
+        <span class="kpi-val" id="kpi-completed-days">0 / 28</span>
+        <span class="kpi-sub">Current 4-week card cycle</span>
+      </div>
+      <div class="glass-panel kpi-card">
+        <span class="kpi-label">Current Card Target</span>
+        <span class="kpi-val" id="kpi-target-chapters">1 Ch / 5:45 AM</span>
+        <span class="kpi-sub">Set chapters and waking time threshold</span>
+      </div>
+    </section>
+
+        <!-- Weeks Grid (The Challenger Card Calendar) -->
+ (The Challenger Card Calendar) -->
+        <section class="glass-panel grid-section" id="calendar-section">
+          <div class="section-title">
+            <h2>Challenger Card Grid</h2>
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+              <button id="btn-print-card" class="btn btn-secondary btn-small">🖨️ Print / Save PDF Card</button>
+              <button id="btn-archive-card" class="btn btn-success btn-small">📁 Archive Card to Library</button>
+            </div>
+          </div>
+          
+          <div id="weeks-grid-container" class="weeks-grid-container">
+            <!-- Weeks 1-4 loaded dynamically -->
+          </div>
+        </section>
+        </div>
+
+<!-- Syllabus tab contents -->
+        <div class="tab-content" id="tab-syllabus">
+          <h3>CBR Sessions & Objectives</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Complete these activities over your 7-month training journey:</p>
+          <div id="syllabus-list">
+            <!-- Loaded dynamically -->
+          </div>
+          
+          <!-- Direct PDF Download Manuals -->
+          <div style="margin-top: 1.5rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
+            <h4 style="font-size:0.85rem; color:var(--primary); margin-bottom:0.5rem;">CBR Training Files</h4>
+            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+              <a href="Version 19 Filling and Evaluating Challenger Card_260512_110909.pdf" download class="btn btn-secondary btn-small" style="text-align:left; justify-content:flex-start;">📄 Challenger Card Guide PDF</a>
+              <a href="1778574256897_Reference Card May 2025ge (Printing _260512_112434.pdf" download class="btn btn-secondary btn-small" style="text-align:left; justify-content:flex-start;">📄 Course Reference Card PDF</a>
+              <a href="STUDY QUESTIONS 2025ge (R) (1)_260512_111358.pdf" download class="btn btn-secondary btn-small" style="text-align:left; justify-content:flex-start;">📄 Lesson Study Questions PDF</a>
+              <a href="Understanding PEGs_260512_111801.pdf" download class="btn btn-secondary btn-small" style="text-align:left; justify-content:flex-start;">📄 Understanding PEGs PDF</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barriers tab contents -->
+        <div class="tab-content" id="tab-barriers">
+          <h3>Consistency Barriers (CB)</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Mark the barrier number on your card and form a godly conviction principle to overcome it:</p>
+          <div id="barriers-list">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Study Questions tab contents -->
+        <div class="tab-content" id="tab-questions">
+          <h3>Lesson Study Questions</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Discuss these weekly lessons with your Personal Encouragers (PE):</p>
+          <div id="questions-list">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Bible Study Methods tab -->
+        <div class="tab-content" id="tab-persons">
+          <h3>Bible Study Methods</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">The three devotional and character study methods used throughout the CBR programme.</p>
+
+          <!-- FID Method -->
+          <div style="border:1px solid var(--panel-border); border-radius:var(--radius-md); padding:1rem; margin-bottom:1rem; background:rgba(var(--primary-rgb),0.03);">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+              <span style="font-size:1rem;">✍️</span>
+              <h4 style="font-size:0.85rem; color:var(--primary); text-transform:uppercase; letter-spacing:0.06em; font-weight:700;">F.I.D — Daily Devotional Journal (Cards 1–3)</h4>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem;">Write brief FID journal notes each day after your CBR reading. Earn 1 Meditation point per week when done daily.</p>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.8rem; color:var(--text-secondary);">
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--primary); font-size:1rem; min-width:1.2rem;">F</span>
+                <span><strong>Focus</strong> — Write the key verse or subject reference from your reading today.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--primary); font-size:1rem; min-width:1.2rem;">I</span>
+                <span><strong>Insight</strong> — Record the key spiritual insight or observation the Holy Spirit revealed to you.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--primary); font-size:1rem; min-width:1.2rem;">D</span>
+                <span><strong>Doing</strong> — Describe the specific practical action or obedience conviction you are prompted to do today.</span>
+              </div>
+            </div>
+            <p style="font-size:0.72rem; color:var(--text-muted); margin-top:0.75rem; border-top:1px solid var(--panel-border); padding-top:0.5rem;">📌 Share your FID with your PE group at least once per week to earn the <strong>1 Accountability point</strong>.</p>
+          </div>
+
+          <!-- OPEN Method -->
+          <div style="border:1px solid var(--panel-border); border-radius:var(--radius-md); padding:1rem; margin-bottom:1rem; background:rgba(var(--success-rgb),0.03);">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+              <span style="font-size:1rem;">📖</span>
+              <h4 style="font-size:0.85rem; color:var(--success); text-transform:uppercase; letter-spacing:0.06em; font-weight:700;">O.P.E.N — Bible Study Method (Cards 4–7)</h4>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem;">A deeper 4-step method replacing FID from Card 4 onwards. Study Scripture systematically using these steps:</p>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.8rem; color:var(--text-secondary);">
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--success); font-size:1rem; min-width:1.2rem;">O</span>
+                <span><strong>Observations</strong> — Gather accurate biblical information: facts, names, events, principles, parables, and intriguing details. <em>What does this signify?</em></span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--success); font-size:1rem; min-width:1.2rem;">P</span>
+                <span><strong>Principles</strong> — Discover godly principles by: looking for direct statements of blessing/consequence; investigating why God blessed or cursed individuals; comparing Scripture with Scripture.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--success); font-size:1rem; min-width:1.2rem;">E</span>
+                <span><strong>Experience</strong> — Reflect prayerfully on the facts and principles to discern what God is saying about your current circumstances.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--success); font-size:1rem; min-width:1.2rem;">N</span>
+                <span><strong>Need</strong> — Apply the truth or conviction God has impressed on you. Write down what God has prompted you to do today in response to this study (Jos 1:8; John 13:17; James 1:25).</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PERSONS Method -->
+          <div style="border:1px solid var(--panel-border); border-radius:var(--radius-md); padding:1rem; background:rgba(var(--info-rgb),0.03);">
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+              <span style="font-size:1rem;">🔍</span>
+              <h4 style="font-size:0.85rem; color:var(--info); text-transform:uppercase; letter-spacing:0.06em; font-weight:700;">P.E.R.S.O.N.S — Character Quality Study (Cards 4–7)</h4>
+            </div>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.75rem;">A 7-step method to examine and transform character qualities through Scripture. Study at least 5 of the 9 suggested qualities.</p>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.8rem; color:var(--text-secondary);">
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">P</span>
+                <span><strong>Personal perspective</strong> — Self-assessment: what does this quality mean to you and what do others say about it?</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">E</span>
+                <span><strong>English meaning</strong> — Look up the definition of this quality in a dictionary or online.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">R</span>
+                <span><strong>References from the Bible</strong> — Study provided Scriptures carefully to gain a spiritual understanding of the quality.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">S</span>
+                <span><strong>Satan's opposing qualities</strong> — Identify negative attributes that counteract the quality you are examining.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">O</span>
+                <span><strong>Obedience</strong> — Describe practical ways this trait can be demonstrated in the life of a Christian.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">N</span>
+                <span><strong>Note</strong> — Identify ways to apply insights about this quality specifically to maintain CBR discipline for life.</span>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <span style="font-weight:800; color:var(--info); font-size:1rem; min-width:1.2rem;">S</span>
+                <span><strong>Stirring others</strong> — Which Bible reading friends would you testify to about this quality to help them keep CBR?</span>
+              </div>
+            </div>
+            <div style="margin-top:0.75rem; border-top:1px solid var(--panel-border); padding-top:0.75rem;">
+              <p style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.4rem;">9 Suggested Character Qualities to Study:</p>
+              <ul style="padding-left:1.2rem; display:grid; grid-template-columns:1fr 1fr; gap:0.2rem; font-size:0.78rem; font-weight:500; color:var(--text-secondary);">
+                <li>Accountability</li><li>Commitment</li>
+                <li>Diligence</li><li>Faithfulness</li>
+                <li>Honesty</li><li>New Self</li>
+                <li>Perseverance</li><li>Reliability</li>
+                <li>Watchfulness</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Praying Back Psalm 119 -->
+          <div style="padding:0.75rem; background:rgba(var(--primary-rgb),0.05); border:1px solid var(--panel-border); border-radius:12px; font-size:0.75rem; margin-top:1rem; color:var(--text-secondary);">
+            <strong style="color:var(--primary);">📿 Praying Back Psalm 119:</strong><br>
+            This is the longest chapter in the Bible (176 verses, 22 sections of 8 verses each). Week 1: pray back 1 verse/day. Increase by 1 verse each week. Completing this Psalm earns <strong>50 BONUS points</strong>.
+          </div>
+        </div>
+
+        <!-- History tab contents -->
+        <div class="tab-content" id="tab-history">
+          <h3>Card History &amp; Progress</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Auto-saved completed and switched cards. View, review, or delete past records.</p>
+          <div id="history-progress-bar-container" style="margin-bottom:1rem;"></div>
+          <div style="overflow-x:auto;">
+            <table class="library-table" style="font-size:0.75rem;">
+              <thead>
+                <tr>
+                  <th>Card</th>
+                  <th>Dates</th>
+                  <th>Weeks</th>
+                  <th class="text-center">Score</th>
+                  <th class="text-center">Laxity</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="library-table-body">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <p id="history-empty-msg" style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:1.5rem 0; display:none;">No archived cards yet. Complete or switch a card round to begin building history.</p>
+        </div>
+<!-- Chart tab contents -->
+        <div class="tab-content" id="tab-chart">
+<!-- Waking Time Early Riser Chart -->
+        <section class="glass-panel charts-section" id="charts-section">
+          <div class="section-title">
+            <h2>Early-Riser Chart</h2>
+            <div>
+              <label for="week-select-chart" style="font-size:0.8rem; color:var(--text-secondary); margin-right:0.5rem;">View Week:</label>
+              <select id="week-select-chart" style="background:var(--panel-bg); color:var(--text-primary); border:1px solid var(--panel-border); border-radius:6px; padding:0.2rem 0.5rem; font-family:inherit;">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+          </div>
+          
+          <div class="chart-wrapper" id="chart-container">
+            <!-- Chart SVG rendered dynamically -->
+          </div>
+          
+          <div class="chart-legend">
+            <div class="legend-item">
+              <span class="legend-color" style="background:var(--primary);"></span>
+              <span>Waking Time curve</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background:var(--danger); border-top:1.5px dashed var(--danger); height:0px; width:15px; display:inline-block; vertical-align:middle;"></span>
+              <span>Target Waking Limit</span>
+            </div>
+          </div>
+        </section>
+        </div>
+
+        <!-- Settings tab contents -->
+        <div class="tab-content" id="tab-settings">
+<!-- Data Management Panel -->
+    <section class="glass-panel" style="margin-top:1.5rem;" id="data-management-section">
+      <div class="section-title" style="margin-bottom:0.5rem;">
+        <h3>Settings & Master Backups</h3>
+      </div>
+      <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem;">All settings, current logs, and archived history are stored in browser memory. Download a backup to protect your records.</p>
+      
+      <div class="backup-section">
+        <button id="btn-export" class="btn btn-secondary">💾 Export Master Backup (JSON)</button>
+        
+        <div class="file-input-wrapper">
+          <button class="btn btn-secondary">📁 Import Master Backup (JSON)</button>
+          <input type="file" id="btn-import-file" accept=".json">
+        </div>
+        
+        <button id="btn-reset" class="btn btn-secondary" style="border-color:rgba(var(--danger-rgb),0.3); color:var(--danger); margin-left:auto;">🚨 Reset Active Card</button>
+      </div>
+    </section>
+        </div>
+
+        <!-- Scoring tab contents -->
+        <div class="tab-content" id="tab-scoring">
+<!-- Scoring Table Matrix -->
+        <section class="glass-panel scoring-section" id="scoring-section">
+          <div class="section-title">
+            <h2>Weekly Growth Point Analysis</h2>
+          </div>
+          
+          <div class="table-wrapper">
+            <table class="score-table">
+              <thead>
+                <tr id="score-table-header-row">
+                  <!-- Dynamically populated based on timeline length -->
+                </tr>
+              </thead>
+              <tbody id="scoring-table-body">
+                <!-- Scores computed dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+        </div>
+
+
+      </div>
+
+      <!-- Right Panel: References Sidebar (becomes a mobile drawer) -->
+      <aside class="right-column glass-panel sidebar-panel" id="sidebar-section">
+        <!-- Vertical nav tabs -->
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="tab-dashboard">🏠 Dashboard</button>
+          <button class="tab-btn" data-tab="tab-syllabus">📚 CBR Syllabus</button>
+          <button class="tab-btn" data-tab="tab-barriers">🚧 Barriers (CB)</button>
+          <button class="tab-btn" data-tab="tab-questions">❓ Study Questions</button>
+          <button class="tab-btn" data-tab="tab-persons">📖 Study Methods</button>
+          <button class="tab-btn" data-tab="tab-history">📁 Card History</button>
+          <button class="tab-btn" data-tab="tab-chart">📈 Early-Riser Chart</button>
+          <button class="tab-btn" data-tab="tab-scoring">📊 Point Analysis</button>
+          <button class="tab-btn" data-tab="tab-settings">⚙️ Settings & Backups</button>
+        </div>
+
+              </aside>
+    </main>
+
+    <!-- Library section moved into History tab in sidebar -->
+
+      </div>
+
+  <!-- ================================================== -->
+  <!-- PRINT WRAPPER: The faithful Challenger Card replica -->
+  <!-- Populated by card-generator.js before window.print() -->
+  <!-- ================================================== -->
+  <div class="challenger-card-replica" id="card-print-wrapper">
+    <!-- Dynamically generated by buildChallengerCardHTML() in card-generator.js -->
+    <!-- Dummy IDs below exist only for backward-compat references in app.js -->
+    <span id="print-name" style="display:none;"></span>
+    <span id="print-contact" style="display:none;"></span>
+    <span id="print-church" style="display:none;"></span>
+    <span id="print-card-round" style="display:none;"></span>
+    <span id="print-commence" style="display:none;"></span>
+    <span id="print-eval-score" style="display:none;"></span>
+    <span id="print-weaknesses-tbody" style="display:none;"></span>
+    <span id="print-speed-table" style="display:none;"></span>
+    <span id="print-chart-container" style="display:none;"></span>
+    <span id="print-disciplines-table" style="display:none;"></span>
+    <span id="print-score-tbody" style="display:none;"></span>
+  </div>
+
+  <!-- Logger Form Modal -->
+  <div class="modal-overlay" id="day-modal">
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <div class="modal-title">
+          <h3 id="day-modal-title">Log Progress</h3>
+          <p id="day-modal-sub">Day Details</p>
+        </div>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      
+      <form id="day-form">
+        <!-- Time & Book Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="waking-time">Waking Time (ERT)</label>
+            <input type="time" id="waking-time">
+          </div>
+          <div class="form-group">
+            <label for="bible-book">Bible Book Read</label>
+            <select id="bible-book">
+              <!-- Loaded dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Chapters selector Row -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="start-chapter">Start Chapter</label>
+            <select id="start-chapter">
+              <option value="0">-- Start --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="end-chapter">End Chapter</label>
+            <select id="end-chapter">
+              <option value="0">-- End --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Morning / Evening speed Split -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="morning-chapters">Morning Chapters Read (Speed)</label>
+            <input type="number" id="morning-chapters" min="0" default="0">
+          </div>
+          <div class="form-group">
+            <label for="later-chapters">Later Chapters Read (Speed)</label>
+            <input type="number" id="later-chapters" min="0" default="0">
+          </div>
+        </div>
+
+        <!-- Checklist of daily disciplines -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label>Daily Spiritual Disciplines Done</label>
+          <div class="disciplines-checklist">
+            <label class="check-item">
+              <input type="checkbox" id="recited-memory">
+              <span>Recited Memory Scripture (Scripture Recitation)</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="fid-journaling">
+              <span id="label-fid-checkbox">Wrote FID Journal Notes (Focus, Insight, Doing Meditation)</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="prayer-10mins">
+              <span>Prayed for 10+ Minutes after CBR</span>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" id="pe-meeting">
+              <span>Sharing / PE Meeting (Check if had meeting this week)</span>
+            </label>
+            <label class="check-item valid-discipline" style="cursor: not-allowed; opacity: 0.85;" title="Automatically ticks when logged on the correct calendar day">
+              <input type="checkbox" id="data-validity" disabled>
+              <span>Data Validity (Checked when logged on the same calendar day)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Expanded Devotional notes input fields -->
+        <div class="form-group" style="margin-bottom: 1rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
+          <label id="label-devotion-header">Daily Devotion & FID Journal Notes</label>
+          <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+            <div class="form-group">
+              <label id="label-method-part1" for="fid-focus" style="font-size:0.7rem; color:var(--text-muted);">F - Focus (Key Verse / Subject Reference)</label>
+              <input type="text" id="fid-focus" placeholder="e.g. Genesis 1:1 - God created...">
+            </div>
+            <div class="form-group">
+              <label id="label-method-part2" for="fid-insight" style="font-size:0.7rem; color:var(--text-muted);">I - Insights (Observations & Spiritual Lessons)</label>
+              <textarea id="fid-insight" rows="2" placeholder="What key insights did the Holy Spirit reveal to you?"></textarea>
+            </div>
+            <div class="form-group">
+              <label id="label-method-part3" for="fid-doing" style="font-size:0.7rem; color:var(--text-muted);">D - Doing (Obedience Conviction / Application)</label>
+              <textarea id="fid-doing" rows="2" placeholder="Describe the specific action you are convicted to do today."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scripture memorized & prayer topic inputs -->
+        <div class="form-row" style="margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label for="scripture-memorized">Memory Scripture Recited Today</label>
+            <input type="text" id="scripture-memorized" placeholder="e.g. Heb 12:11">
+          </div>
+          <div class="form-group">
+            <label for="prayer-topic">Daily Prayer Request / Topic</label>
+            <input type="text" id="prayer-topic" placeholder="e.g. Grace to keep waking early">
+          </div>
+        </div>
+
+        <!-- Consistency Barrier redemption section -->
+        <div class="cb-trigger-box" id="cb-trigger-box">
+          <h4>⚠️ Targets Missed: Log Consistency Barrier</h4>
+          <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem;">You woke up later than the set ERT limit. Log and resolve a Consistency Barrier (CB) to redeem points.</p>
+          
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label for="cb-id">Barrier ID & Name</label>
+            <select id="cb-id">
+              <!-- Loaded dynamically -->
+            </select>
+          </div>
+          
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label for="cb-solution">Practical Solution (Common Sense)</label>
+            <input type="text" id="cb-solution" placeholder="What practical action will you take next time?">
+          </div>
+
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label for="cb-scripture">Biblical Foundation (Supporting Scripture)</label>
+            <input type="text" id="cb-scripture" placeholder="e.g. Psalm 119:18 or Proverbs 6:9">
+          </div>
+
+          <label class="check-item" style="color:var(--danger); font-weight:600; margin-top:0.5rem;">
+            <input type="checkbox" id="cb-resolved">
+            <span>I have prayed this truth back and resolved this barrier (Redeems lost Perseverance points)</span>
+          </label>
+        </div>
+
+        <!-- Form Buttons -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button type="submit" id="btn-save-day" class="btn btn-primary">Save Daily Log</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bind reference databases and application runner -->
+  <script src="{{ url_for('static', filename='js/data.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script>
+    // Mobile sidebar hamburger toggle
+    const hamburger = document.getElementById('hamburger-btn');
+    const sidebar = document.getElementById('sidebar-section');
+    const overlay = document.getElementById('mobile-sidebar-overlay');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+      hamburger.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+      hamburger.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    // Sync theme toggle with meta-theme-color for mobile browsers
+    const metaTheme = document.getElementById('meta-theme-color');
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    themeToggleBtn.addEventListener('click', () => {
+      const isLight = document.body.classList.contains('light-mode');
+      metaTheme.setAttribute('content', isLight ? '#f0f4f8' : '#080d17');
+    });
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+    // ── Sync header stat pills from KPI cards ──────────────────
+    (function syncHeaderStats() {
+      const map = [
+        ['kpi-total-points',   'header-score-val'],
+        ['kpi-completed-days', 'header-days-val'],
+        ['kpi-laxity-points',  'header-laxity-val'],
+      ];
+      function copy() {
+        map.forEach(([src, dst]) => {
+          const s = document.getElementById(src);
+          const d = document.getElementById(dst);
+          if (s && d) d.textContent = s.textContent;
+        });
+      }
+      copy(); // initial
+      const targets = map.map(([id]) => document.getElementById(id)).filter(Boolean);
+      if (targets.length) {
+        const obs = new MutationObserver(copy);
+        targets.forEach(t => obs.observe(t, { childList: true, subtree: true, characterData: true }));
+      }
+    })();
+  </script>
+</body>
+</html>
