@@ -51,7 +51,19 @@ def get_state():
             "cbSolution": d.cb_solution,
             "cbScripture": d.cb_scripture,
             "cbResolved": d.cb_resolved,
-            "logTimestamp": d.log_timestamp
+            "logTimestamp": d.log_timestamp,
+            "studyMethod": d.study_method,
+            "openObservation": d.open_observation,
+            "openPrinciples": d.open_principles,
+            "openExperience": d.open_experience,
+            "openNeed": d.open_need,
+            "personsPersonal": d.persons_personal,
+            "personsEnglish": d.persons_english,
+            "personsReferences": d.persons_references,
+            "personsSatan": d.persons_satan,
+            "personsObedience": d.persons_obedience,
+            "personsNote": d.persons_note,
+            "personsStirring": d.persons_stirring
         })
     state["days"].sort(key=lambda x: x["dayNumber"])
     
@@ -118,7 +130,19 @@ def save_state():
             cb_solution=d_data.get("cbSolution"),
             cb_scripture=d_data.get("cbScripture"),
             cb_resolved=d_data.get("cbResolved", False),
-            log_timestamp=d_data.get("logTimestamp")
+            log_timestamp=d_data.get("logTimestamp"),
+            study_method=d_data.get("studyMethod", "FID"),
+            open_observation=d_data.get("openObservation"),
+            open_principles=d_data.get("openPrinciples"),
+            open_experience=d_data.get("openExperience"),
+            open_need=d_data.get("openNeed"),
+            persons_personal=d_data.get("personsPersonal"),
+            persons_english=d_data.get("personsEnglish"),
+            persons_references=d_data.get("personsReferences"),
+            persons_satan=d_data.get("personsSatan"),
+            persons_obedience=d_data.get("personsObedience"),
+            persons_note=d_data.get("personsNote"),
+            persons_stirring=d_data.get("personsStirring")
         )
         db.session.add(d)
         

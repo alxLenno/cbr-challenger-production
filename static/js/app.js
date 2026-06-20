@@ -60,9 +60,24 @@ const elements = {
   inputDataValidity: document.getElementById('data-validity'),
   
   // Devotional Inputs
+  inputStudyMethod: document.getElementById('study-method'),
+  fidFields: document.getElementById('fid-fields'),
+  openFields: document.getElementById('open-fields'),
+  personsFields: document.getElementById('persons-fields'),
   inputFidFocus: document.getElementById('fid-focus'),
   inputFidInsight: document.getElementById('fid-insight'),
   inputFidDoing: document.getElementById('fid-doing'),
+  inputOpenObservation: document.getElementById('open-observation'),
+  inputOpenPrinciples: document.getElementById('open-principles'),
+  inputOpenExperience: document.getElementById('open-experience'),
+  inputOpenNeed: document.getElementById('open-need'),
+  inputPersonsPersonal: document.getElementById('persons-personal'),
+  inputPersonsEnglish: document.getElementById('persons-english'),
+  inputPersonsReferences: document.getElementById('persons-references'),
+  inputPersonsSatan: document.getElementById('persons-satan'),
+  inputPersonsObedience: document.getElementById('persons-obedience'),
+  inputPersonsNote: document.getElementById('persons-note'),
+  inputPersonsStirring: document.getElementById('persons-stirring'),
   inputScriptureMemorized: document.getElementById('scripture-memorized'),
   inputPrayerTopic: document.getElementById('prayer-topic'),
   
@@ -231,6 +246,18 @@ async function loadState() {
         ];
       }
       appState.days.forEach(d => {
+        if (d.studyMethod === undefined) d.studyMethod = "FID";
+        if (d.openObservation === undefined) d.openObservation = "";
+        if (d.openPrinciples === undefined) d.openPrinciples = "";
+        if (d.openExperience === undefined) d.openExperience = "";
+        if (d.openNeed === undefined) d.openNeed = "";
+        if (d.personsPersonal === undefined) d.personsPersonal = "";
+        if (d.personsEnglish === undefined) d.personsEnglish = "";
+        if (d.personsReferences === undefined) d.personsReferences = "";
+        if (d.personsSatan === undefined) d.personsSatan = "";
+        if (d.personsObedience === undefined) d.personsObedience = "";
+        if (d.personsNote === undefined) d.personsNote = "";
+        if (d.personsStirring === undefined) d.personsStirring = "";
         if (d.fidFocus === undefined) d.fidFocus = "";
         if (d.fidInsight === undefined) d.fidInsight = "";
         if (d.fidDoing === undefined) d.fidDoing = "";
@@ -272,8 +299,10 @@ function resizeStateForNewTimeline(newStartDateStr) {
       dayNumber: appState.days.length + 1,
       wakingTime: "", morningChapters: 0, laterChapters: 0, bibleBook: "",
       startChapter: 0, endChapter: 0, recitedMemory: false, fidJournaling: false,
-      prayer10mins: false, dataValidity: false, fidFocus: "", fidInsight: "",
-      fidDoing: "", scriptureMemorized: "", prayerTopic: "", cbId: "", cbSolution: "",
+      prayer10mins: false, dataValidity: false, studyMethod: "FID", fidFocus: "", fidInsight: "",
+      fidDoing: "", openObservation: "", openPrinciples: "", openExperience: "", openNeed: "",
+      personsPersonal: "", personsEnglish: "", personsReferences: "", personsSatan: "",
+      personsObedience: "", personsNote: "", personsStirring: "", scriptureMemorized: "", prayerTopic: "", cbId: "", cbSolution: "",
       cbScripture: "", cbResolved: false, logTimestamp: null
     });
   }
@@ -565,6 +594,16 @@ function setupEventListeners() {
     calculateReadingSpeeds();
   });
 
+  // Study method toggle handler
+  if (elements.inputStudyMethod) {
+    elements.inputStudyMethod.addEventListener('change', () => {
+      const method = elements.inputStudyMethod.value;
+      if (elements.fidFields) elements.fidFields.style.display = method === 'FID' ? 'flex' : 'none';
+      if (elements.openFields) elements.openFields.style.display = method === 'OPEN' ? 'flex' : 'none';
+      if (elements.personsFields) elements.personsFields.style.display = method === 'PERSONS' ? 'flex' : 'none';
+    });
+  }
+
   // Check form inputs to show CB block and adjust morning/later speed columns
   elements.inputWakingTime.addEventListener('input', () => {
     adjustChaptersBasedOnWakingTime();
@@ -793,9 +832,31 @@ function openDayModal(dayNum) {
   elements.inputDataValidity.checked = dayData.dataValidity || false;
   
   // Devotion inputs
+  elements.inputStudyMethod.value = dayData.studyMethod || "FID";
+  
+  // Update UI for study method
+  const method = elements.inputStudyMethod.value;
+  if (elements.fidFields) elements.fidFields.style.display = method === 'FID' ? 'flex' : 'none';
+  if (elements.openFields) elements.openFields.style.display = method === 'OPEN' ? 'flex' : 'none';
+  if (elements.personsFields) elements.personsFields.style.display = method === 'PERSONS' ? 'flex' : 'none';
+  
   elements.inputFidFocus.value = dayData.fidFocus || "";
   elements.inputFidInsight.value = dayData.fidInsight || "";
   elements.inputFidDoing.value = dayData.fidDoing || "";
+  
+  if (elements.inputOpenObservation) elements.inputOpenObservation.value = dayData.openObservation || "";
+  if (elements.inputOpenPrinciples) elements.inputOpenPrinciples.value = dayData.openPrinciples || "";
+  if (elements.inputOpenExperience) elements.inputOpenExperience.value = dayData.openExperience || "";
+  if (elements.inputOpenNeed) elements.inputOpenNeed.value = dayData.openNeed || "";
+  
+  if (elements.inputPersonsPersonal) elements.inputPersonsPersonal.value = dayData.personsPersonal || "";
+  if (elements.inputPersonsEnglish) elements.inputPersonsEnglish.value = dayData.personsEnglish || "";
+  if (elements.inputPersonsReferences) elements.inputPersonsReferences.value = dayData.personsReferences || "";
+  if (elements.inputPersonsSatan) elements.inputPersonsSatan.value = dayData.personsSatan || "";
+  if (elements.inputPersonsObedience) elements.inputPersonsObedience.value = dayData.personsObedience || "";
+  if (elements.inputPersonsNote) elements.inputPersonsNote.value = dayData.personsNote || "";
+  if (elements.inputPersonsStirring) elements.inputPersonsStirring.value = dayData.personsStirring || "";
+  
   elements.inputScriptureMemorized.value = dayData.scriptureMemorized || "";
   elements.inputPrayerTopic.value = dayData.prayerTopic || "";
   
@@ -814,37 +875,6 @@ function openDayModal(dayNum) {
   } else {
     elements.btnSaveDay.style.display = 'inline-flex';
     setFormDisabledState(false);
-  }
-  
-  // Dynamic labels for Devotional Method based on card
-  let method = "FID";
-  if (card.cardId === 2 || card.cardId === 3) method = "OPEN";
-  if (card.cardId >= 4) method = "PERSONS";
-
-  const lblCheckbox = document.getElementById('label-fid-checkbox');
-  const lblHeader = document.getElementById('label-devotion-header');
-  const lblP1 = document.getElementById('label-method-part1');
-  const lblP2 = document.getElementById('label-method-part2');
-  const lblP3 = document.getElementById('label-method-part3');
-
-  if (method === "FID") {
-    if (lblCheckbox) lblCheckbox.innerText = "Wrote FID Journal Notes (Focus, Insight, Doing Meditation)";
-    if (lblHeader) lblHeader.innerText = "Daily Devotion & FID Journal Notes";
-    if (lblP1) lblP1.innerText = "F - Focus (Key Verse / Subject Reference)";
-    if (lblP2) lblP2.innerText = "I - Insights (Observations & Spiritual Lessons)";
-    if (lblP3) lblP3.innerText = "D - Doing (Obedience Conviction / Application)";
-  } else if (method === "OPEN") {
-    if (lblCheckbox) lblCheckbox.innerText = "Wrote OPEN Journal Notes";
-    if (lblHeader) lblHeader.innerText = "Daily Devotion & OPEN Journal Notes";
-    if (lblP1) lblP1.innerText = "O - Observation / Focus";
-    if (lblP2) lblP2.innerText = "P - Prayer / Insights";
-    if (lblP3) lblP3.innerText = "E, N - Evaluation & Notes / Application";
-  } else if (method === "PERSONS") {
-    if (lblCheckbox) lblCheckbox.innerText = "Wrote PERSONS Journal Notes";
-    if (lblHeader) lblHeader.innerText = "Daily Devotion & PERSONS Journal Notes";
-    if (lblP1) lblP1.innerText = "P, E, R - Personal, English, References";
-    if (lblP2) lblP2.innerText = "S, O - Satan's Opposing, Obedience";
-    if (lblP3) lblP3.innerText = "N, S - Note, Stirring Others";
   }
 
   // Load PE Meeting Checkbox for this week
@@ -893,9 +923,24 @@ function saveDayLog() {
   dayData.dataValidity = (todayStr === dayDate);
   
   // Devotion fields
+  dayData.studyMethod = elements.inputStudyMethod.value;
   dayData.fidFocus = elements.inputFidFocus.value;
   dayData.fidInsight = elements.inputFidInsight.value;
   dayData.fidDoing = elements.inputFidDoing.value;
+  
+  dayData.openObservation = elements.inputOpenObservation ? elements.inputOpenObservation.value : "";
+  dayData.openPrinciples = elements.inputOpenPrinciples ? elements.inputOpenPrinciples.value : "";
+  dayData.openExperience = elements.inputOpenExperience ? elements.inputOpenExperience.value : "";
+  dayData.openNeed = elements.inputOpenNeed ? elements.inputOpenNeed.value : "";
+  
+  dayData.personsPersonal = elements.inputPersonsPersonal ? elements.inputPersonsPersonal.value : "";
+  dayData.personsEnglish = elements.inputPersonsEnglish ? elements.inputPersonsEnglish.value : "";
+  dayData.personsReferences = elements.inputPersonsReferences ? elements.inputPersonsReferences.value : "";
+  dayData.personsSatan = elements.inputPersonsSatan ? elements.inputPersonsSatan.value : "";
+  dayData.personsObedience = elements.inputPersonsObedience ? elements.inputPersonsObedience.value : "";
+  dayData.personsNote = elements.inputPersonsNote ? elements.inputPersonsNote.value : "";
+  dayData.personsStirring = elements.inputPersonsStirring ? elements.inputPersonsStirring.value : "";
+  
   dayData.scriptureMemorized = elements.inputScriptureMemorized.value;
   dayData.prayerTopic = elements.inputPrayerTopic.value;
   

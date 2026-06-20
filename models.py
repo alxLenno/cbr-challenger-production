@@ -68,6 +68,20 @@ class DailyLog(db.Model):
     cb_scripture = db.Column(db.String(255), nullable=True)
     cb_resolved = db.Column(db.Boolean, default=False)
     log_timestamp = db.Column(db.String(30), nullable=True)
+    
+    # Study Method Fields
+    study_method = db.Column(db.String(20), default='FID')
+    open_observation = db.Column(db.Text, nullable=True)
+    open_principles = db.Column(db.Text, nullable=True)
+    open_experience = db.Column(db.Text, nullable=True)
+    open_need = db.Column(db.Text, nullable=True)
+    persons_personal = db.Column(db.Text, nullable=True)
+    persons_english = db.Column(db.Text, nullable=True)
+    persons_references = db.Column(db.Text, nullable=True)
+    persons_satan = db.Column(db.Text, nullable=True)
+    persons_obedience = db.Column(db.Text, nullable=True)
+    persons_note = db.Column(db.Text, nullable=True)
+    persons_stirring = db.Column(db.Text, nullable=True)
 
 class ArchivedCard(db.Model):
     __tablename__ = 'archived_cards'

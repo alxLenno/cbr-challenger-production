@@ -556,8 +556,17 @@
 
         <!-- Expanded Devotional notes input fields -->
         <div class="form-group" style="margin-bottom: 1rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
-          <label id="label-devotion-header">Daily Devotion & FID Journal Notes</label>
-          <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+          <label id="label-devotion-header">Daily Devotion & Study Method</label>
+          <div style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+            <select id="study-method" style="width: 100%; padding: 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--panel-border); background: var(--panel-bg); color: var(--text-primary);">
+              <option value="FID">F.I.D. Method (Cards 1-3)</option>
+              <option value="OPEN">O.P.E.N. Method (Cards 4-7)</option>
+              <option value="PERSONS">P.E.R.S.O.N.S. Method (Cards 4-7)</option>
+            </select>
+          </div>
+
+          <!-- FID Fields -->
+          <div id="fid-fields" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
             <div class="form-group">
               <label id="label-method-part1" for="fid-focus" style="font-size:0.7rem; color:var(--text-muted);">F - Focus (Key Verse / Subject Reference)</label>
               <input type="text" id="fid-focus" placeholder="e.g. Genesis 1:1 - God created...">
@@ -569,6 +578,58 @@
             <div class="form-group">
               <label id="label-method-part3" for="fid-doing" style="font-size:0.7rem; color:var(--text-muted);">D - Doing (Obedience Conviction / Application)</label>
               <textarea id="fid-doing" rows="2" placeholder="Describe the specific action you are convicted to do today."></textarea>
+            </div>
+          </div>
+
+          <!-- OPEN Fields -->
+          <div id="open-fields" style="display:none; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+            <div class="form-group">
+              <label for="open-observation" style="font-size:0.7rem; color:var(--text-muted);">O - Observations (Facts, details, events)</label>
+              <textarea id="open-observation" rows="2" placeholder="What does this signify?"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="open-principles" style="font-size:0.7rem; color:var(--text-muted);">P - Principles (Godly principles discovered)</label>
+              <textarea id="open-principles" rows="2" placeholder="What principles are here?"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="open-experience" style="font-size:0.7rem; color:var(--text-muted);">E - Experience (Reflection on circumstances)</label>
+              <textarea id="open-experience" rows="2" placeholder="What is God saying about your circumstances?"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="open-need" style="font-size:0.7rem; color:var(--text-muted);">N - Need (Application / Action)</label>
+              <textarea id="open-need" rows="2" placeholder="What has God prompted you to do today?"></textarea>
+            </div>
+          </div>
+
+          <!-- PERSONS Fields -->
+          <div id="persons-fields" style="display:none; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
+            <div class="form-group">
+              <label for="persons-personal" style="font-size:0.7rem; color:var(--text-muted);">P - Personal perspective</label>
+              <input type="text" id="persons-personal" placeholder="What does this mean to you?">
+            </div>
+            <div class="form-group">
+              <label for="persons-english" style="font-size:0.7rem; color:var(--text-muted);">E - English meaning</label>
+              <input type="text" id="persons-english" placeholder="Dictionary definition">
+            </div>
+            <div class="form-group">
+              <label for="persons-references" style="font-size:0.7rem; color:var(--text-muted);">R - References from the Bible</label>
+              <textarea id="persons-references" rows="1" placeholder="Scriptures studied"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="persons-satan" style="font-size:0.7rem; color:var(--text-muted);">S - Satan's opposing qualities</label>
+              <input type="text" id="persons-satan" placeholder="Negative attributes">
+            </div>
+            <div class="form-group">
+              <label for="persons-obedience" style="font-size:0.7rem; color:var(--text-muted);">O - Obedience</label>
+              <textarea id="persons-obedience" rows="1" placeholder="Practical ways to demonstrate"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="persons-note" style="font-size:0.7rem; color:var(--text-muted);">N - Note</label>
+              <textarea id="persons-note" rows="1" placeholder="Application for CBR discipline"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="persons-stirring" style="font-size:0.7rem; color:var(--text-muted);">S - Stirring others</label>
+              <input type="text" id="persons-stirring" placeholder="Who will you testify to?">
             </div>
           </div>
         </div>
