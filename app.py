@@ -51,8 +51,41 @@ def serve_login():
         return redirect(url_for('serve_app'))
     return render_template('login.html')
 
+def run_migrations():
+    """Safely add new columns to existing tables without losing data."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    existing_cols = [col['name'] for col in inspector.get_columns('daily_logs')]
+    
+    new_columns = {
+        'study_method': "VARCHAR(20) DEFAULT 'FID'",
+        'open_observation': 'TEXT',
+        'open_principles': 'TEXT',
+        'open_experience': 'TEXT',
+        'open_need': 'TEXT',
+        'persons_personal': 'TEXT',
+        'persons_english': 'TEXT',
+        'persons_references': 'TEXT',
+        'persons_satan': 'TEXT',
+        'persons_obedience': 'TEXT',
+        'persons_note': 'TEXT',
+        'persons_stirring': 'TEXT',
+    }
+    
+    for col_name, col_type in new_columns.items():
+        if col_name not in existing_cols:
+            db.session.execute(text(f'ALTER TABLE daily_logs ADD COLUMN {col_name} {col_type}'))
+            print(f'  ✅ Added column: {col_name}')
+    
+    db.session.commit()
+
 with app.app_context():
     db.create_all()
+    try:
+        run_migrations()
+        print('Database migrations complete.')
+    except Exception as e:
+        print(f'Migration note: {e}')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
