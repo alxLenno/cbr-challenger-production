@@ -9,7 +9,8 @@
 // Week separator on day 7 of each week
 
 function buildChallengerCardHTML(data) {
-  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
+  if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
+  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
   const stats = calculateScoresForData(data);
 
   // Get calendar dates for the 28 days
@@ -231,16 +232,26 @@ function buildChallengerCardHTML(data) {
     rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBR<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
     rows += `</tr>`;
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    function isPastOrCurrent(dayIdx) {
+      const d = dayDate(dayIdx);
+      const dStr = d.toISOString().split('T')[0];
+      return dStr <= todayStr;
+    }
+
     // Discipline rows
     disciplines.forEach(disc => {
       rows += `<tr><td class="row-label">${disc.label}</td>`;
       for (let w = 0; w < 4; w++) {
         for (let d = 0; d < 7; d++) {
           const dayIdx = w * 7 + d;
-          const day = data.days[dayIdx];
+          const day = data.days[dayIdx] || {};
           const isSep = (d === 0 && w > 0);
           const done = day[disc.key];
-          rows += `<td class="${isSep ? 'week-sep ' : ''}${done ? 'ticked' : ''}">${done ? '✓' : ''}</td>`;
+          const past = isPastOrCurrent(dayIdx);
+          const cellClass = `${isSep ? 'week-sep ' : ''}${done ? 'ticked' : (past ? 'unticked' : '')}`;
+          const cellContent = done ? '✓' : (past ? '✕' : '');
+          rows += `<td class="${cellClass}">${cellContent}</td>`;
         }
       }
       rows += `</tr>`;
@@ -250,10 +261,14 @@ function buildChallengerCardHTML(data) {
     rows += `<tr><td class="row-label">F.I.D Sharing / PE Meeting</td>`;
     for (let w = 0; w < 4; w++) {
       for (let d = 0; d < 7; d++) {
+        const dayIdx = w * 7 + d;
         const isSep = (d === 0 && w > 0);
         const isLastDay = (d === 6);
-        const done = isLastDay && data.weeks[w].sharedFid;
-        rows += `<td class="${isSep ? 'week-sep ' : ''}${done ? 'ticked' : ''}">${done ? '✓' : ''}</td>`;
+        const done = isLastDay && data.weeks[w] && data.weeks[w].sharedFid;
+        const past = isPastOrCurrent(dayIdx);
+        const cellClass = `${isSep ? 'week-sep ' : ''}${isLastDay ? (done ? 'ticked' : (past ? 'unticked' : '')) : ''}`;
+        const cellContent = isLastDay ? (done ? '✓' : (past ? '✕' : '')) : '';
+        rows += `<td class="${cellClass}">${cellContent}</td>`;
       }
     }
     rows += `</tr>`;
@@ -450,7 +465,8 @@ function buildChallengerCardHTML(data) {
 
 // Helper: calculate scores using a given data object (handles both active & historical cards)
 function calculateScoresForData(data) {
-  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
+  if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
   const targetChapters = card.chaptersTarget;
   const targetERT = timeStringToDecimal(card.ertTarget);
 

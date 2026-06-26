@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CBR Challenger">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=4">
 </head>
 <body>
   <!-- Mobile Sidebar Overlay -->
@@ -36,6 +36,11 @@
         <div class="header-stat-pill danger" id="header-pill-laxity">⚡ Laxity: <strong id="header-laxity-val">—</strong></div>
       </div>
       <div class="header-actions">
+        <button id="topbar-profile-btn" class="header-profile-pill" title="User Profile">
+          <img src="" id="topbar-avatar-img" alt="" class="topbar-avatar" style="display:none;">
+          <span id="topbar-avatar-icon">👤</span>
+          <span id="topbar-username">Profile</span>
+        </button>
         <button id="theme-toggle" class="btn-icon" title="Toggle Theme">☀️</button>
         <button class="hamburger" id="hamburger-btn" aria-label="Open sidebar">
           <span></span><span></span><span></span>
@@ -59,8 +64,112 @@
     <main class="main-layout">
       <!-- Left Panel: Main Content Area -->
       <div class="left-column">
+        <!-- CONSOLIDATED TODAY'S AT-A-GLANCE TAB -->
+        <div class="tab-content active" id="tab-today">
+          <div class="today-hero-banner glass-panel">
+            <div class="today-hero-glow"></div>
+            <div class="today-hero-header">
+              <div>
+                <span class="today-badge">☀️ Today's Mission</span>
+                <h2 id="today-date-heading">Today's Journey</h2>
+                <p id="today-cycle-sub" class="today-sub">Day 1 of 28 • Active Card #1</p>
+              </div>
+              <div class="today-action-area">
+                <button id="btn-today-log" class="btn-today-primary">⚡ Log Today's Entry</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today's Activities Grid -->
+          <div class="today-activities-grid">
+            <!-- Activity 1: Scripture Reading -->
+            <div class="today-act-card glass-panel" id="today-card-reading">
+              <div class="act-card-header">
+                <div class="act-icon reading-bg">📖</div>
+                <div>
+                  <h4>1. Scripture Reading</h4>
+                  <span class="act-sub" id="today-reading-target">Target: 1 Chapter</span>
+                </div>
+                <span class="act-status pending" id="today-status-reading">⏳ Pending</span>
+              </div>
+              <p class="act-desc">Read your scheduled Old or New Testament chapters early in the morning before starting your daily tasks.</p>
+              <div class="today-filled-details" id="today-details-reading" style="display:none;"></div>
+            </div>
+
+            <!-- Activity 2: Devotional Journaling -->
+            <div class="today-act-card glass-panel" id="today-card-journal">
+              <div class="act-card-header">
+                <div class="act-icon journal-bg">✍️</div>
+                <div>
+                  <h4 id="today-journal-method-title">2. Devotional Journaling (FID)</h4>
+                  <span class="act-sub">Focus • Insight • Doing</span>
+                </div>
+                <span class="act-status pending" id="today-status-journal">⏳ Pending</span>
+              </div>
+              <p class="act-desc">Record key verses, spiritual insights revealed by the Holy Spirit, and practical action commitments.</p>
+              <div class="today-filled-details" id="today-details-journal" style="display:none;"></div>
+            </div>
+
+            <!-- Activity 3: Waking Time & Sleep -->
+            <div class="today-act-card glass-panel" id="today-card-waking">
+              <div class="act-card-header">
+                <div class="act-icon sleep-bg">⏰</div>
+                <div>
+                  <h4>3. Early-Riser Discipline</h4>
+                  <span class="act-sub" id="today-waking-target">Limit: 5:45 AM</span>
+                </div>
+                <span class="act-status pending" id="today-status-waking">⏳ Not Logged</span>
+              </div>
+              <p class="act-desc">Rise before your card target time. Log your actual waking time and sleeping time for accurate curve analysis.</p>
+              <div class="today-filled-details" id="today-details-waking" style="display:none;"></div>
+            </div>
+
+            <!-- Activity 4: Consistency Barriers -->
+            <div class="today-act-card glass-panel" id="today-card-barriers">
+              <div class="act-card-header">
+                <div class="act-icon barrier-bg">🚧</div>
+                <div>
+                  <h4>4. Consistency Barriers (CB)</h4>
+                  <span class="act-sub">Overcome Weaknesses</span>
+                </div>
+                <span class="act-status clear" id="today-status-barriers">🟢 Clear</span>
+              </div>
+              <p class="act-desc">If you face any obstacle or weakness today (e.g., fatigue, distraction), record the barrier code to track patterns.</p>
+              <div class="today-filled-details" id="today-details-barriers" style="display:none;"></div>
+            </div>
+
+            <!-- Activity 5: Praying Back Psalm 119 -->
+            <div class="today-act-card glass-panel" id="today-card-psalm">
+              <div class="act-card-header">
+                <div class="act-icon psalm-bg">📿</div>
+                <div>
+                  <h4>5. Praying Back Psalm 119</h4>
+                  <span class="act-sub" id="today-psalm-verse">Assigned Verse</span>
+                </div>
+                <span class="act-status bonus">✨ Bonus (+50)</span>
+              </div>
+              <p class="act-desc">Pray back 1 verse per day during Week 1 (increasing by 1 verse each subsequent week) to complete the chapter.</p>
+              <div class="today-filled-details" id="today-details-psalm" style="display:none;"></div>
+            </div>
+
+            <!-- Activity 6: Fellowship & PE Group -->
+            <div class="today-act-card glass-panel" id="today-card-pe">
+              <div class="act-card-header">
+                <div class="act-icon fellowship-bg">👥</div>
+                <div>
+                  <h4>6. Accountability & Sharing</h4>
+                  <span class="act-sub">Weekly PE Meeting</span>
+                </div>
+                <span class="act-status reminder">📌 Reminder</span>
+              </div>
+              <p class="act-desc">Share your devotional entries with your Personal Encouragers (PE) group at least once a week for 1 Accountability point.</p>
+              <div class="today-filled-details" id="today-details-pe" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+
 <!-- Dashboard tab contents -->
-        <div class="tab-content active" id="tab-dashboard">
+        <div class="tab-content" id="tab-dashboard">
 <!-- Collapsible Profile & Card Setup -->
     <details class="glass-panel profile-card setup-accordion" id="profile-section" style="margin-bottom: 1.5rem;">
       <summary class="setup-summary">
@@ -178,8 +287,17 @@
         </section>
         </div>
 
-<!-- Syllabus tab contents -->
-        <div class="tab-content" id="tab-syllabus">
+<!-- CONSOLIDATED REFERENCE GUIDES TAB -->
+        <div class="tab-content" id="tab-reference">
+          <div class="subnav-header glass-panel">
+            <button class="subnav-btn active" data-subtab="tab-syllabus">📚 CBR Syllabus</button>
+            <button class="subnav-btn" data-subtab="tab-barriers">🚧 Barriers (CB)</button>
+            <button class="subnav-btn" data-subtab="tab-questions">❓ Study Questions</button>
+            <button class="subnav-btn" data-subtab="tab-persons">📖 Study Methods</button>
+          </div>
+          <div class="subnav-body">
+            <!-- Syllabus tab contents -->
+            <div class="subtab-content active" id="tab-syllabus">
           <h3>CBR Sessions & Objectives</h3>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Complete these activities over your 7-month training journey:</p>
           <div id="syllabus-list">
@@ -196,28 +314,25 @@
               <a href="Understanding PEGs_260512_111801.pdf" download class="btn btn-secondary btn-small" style="text-align:left; justify-content:flex-start;">📄 Understanding PEGs PDF</a>
             </div>
           </div>
-        </div>
-
-        <!-- Barriers tab contents -->
-        <div class="tab-content" id="tab-barriers">
+            </div>
+            <!-- Barriers tab contents -->
+            <div class="subtab-content" id="tab-barriers">
           <h3>Consistency Barriers (CB)</h3>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Mark the barrier number on your card and form a godly conviction principle to overcome it:</p>
           <div id="barriers-list">
             <!-- Loaded dynamically -->
           </div>
-        </div>
-
-        <!-- Study Questions tab contents -->
-        <div class="tab-content" id="tab-questions">
+            </div>
+            <!-- Study Questions tab contents -->
+            <div class="subtab-content" id="tab-questions">
           <h3>Lesson Study Questions</h3>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Discuss these weekly lessons with your Personal Encouragers (PE):</p>
           <div id="questions-list">
             <!-- Loaded dynamically -->
           </div>
-        </div>
-
-        <!-- Bible Study Methods tab -->
-        <div class="tab-content" id="tab-persons">
+            </div>
+            <!-- Bible Study Methods tab -->
+            <div class="subtab-content" id="tab-persons">
           <h3>Bible Study Methods</h3>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">The three devotional and character study methods used throughout the CBR programme.</p>
 
@@ -326,6 +441,8 @@
             <strong style="color:var(--primary);">📿 Praying Back Psalm 119:</strong><br>
             This is the longest chapter in the Bible (176 verses, 22 sections of 8 verses each). Week 1: pray back 1 verse/day. Increase by 1 verse each week. Completing this Psalm earns <strong>50 BONUS points</strong>.
           </div>
+            </div>
+          </div>
         </div>
 
         <!-- History tab contents -->
@@ -352,80 +469,194 @@
           </div>
           <p id="history-empty-msg" style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:1.5rem 0; display:none;">No archived cards yet. Complete or switch a card round to begin building history.</p>
         </div>
-<!-- Chart tab contents -->
-        <div class="tab-content" id="tab-chart">
-<!-- Waking Time Early Riser Chart -->
-        <section class="glass-panel charts-section" id="charts-section">
-          <div class="section-title">
-            <h2>Early-Riser Chart</h2>
-            <div>
-              <label for="week-select-chart" style="font-size:0.8rem; color:var(--text-secondary); margin-right:0.5rem;">View Week:</label>
-              <select id="week-select-chart" style="background:var(--panel-bg); color:var(--text-primary); border:1px solid var(--panel-border); border-radius:6px; padding:0.2rem 0.5rem; font-family:inherit;">
-                <!-- Dynamically populated -->
-              </select>
+<!-- CONSOLIDATED ANALYTICS & GROWTH TAB -->
+        <div class="tab-content" id="tab-analytics">
+          <div class="subnav-header glass-panel">
+            <button class="subnav-btn active" data-subtab="tab-chart">📈 Early-Riser Chart</button>
+            <button class="subnav-btn" data-subtab="tab-scoring">📊 Point Analysis</button>
+          </div>
+          <div class="subnav-body">
+            <div class="subtab-content active" id="tab-chart">
+              <!-- Waking Time Early Riser Chart -->
+              <section class="glass-panel charts-section" id="charts-section">
+                <div class="section-title">
+                  <h2>Early-Riser Chart</h2>
+                  <div>
+                    <label for="week-select-chart" style="font-size:0.8rem; color:var(--text-secondary); margin-right:0.5rem;">View Week:</label>
+                    <select id="week-select-chart" style="background:var(--panel-bg); color:var(--text-primary); border:1px solid var(--panel-border); border-radius:6px; padding:0.2rem 0.5rem; font-family:inherit;">
+                      <!-- Dynamically populated -->
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="chart-wrapper" id="chart-container">
+                  <!-- Chart SVG rendered dynamically -->
+                </div>
+                
+                <div class="chart-legend">
+                  <div class="legend-item">
+                    <span class="legend-color" style="background:var(--primary);"></span>
+                    <span>Waking Time curve</span>
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-color" style="background:var(--danger); border-top:1.5px dashed var(--danger); height:0px; width:15px; display:inline-block; vertical-align:middle;"></span>
+                    <span>Target Waking Limit</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="subtab-content" id="tab-scoring">
+              <!-- Scoring Table Matrix -->
+              <section class="glass-panel scoring-section" id="scoring-section">
+                <div class="section-title">
+                  <h2>Weekly Growth Point Analysis</h2>
+                </div>
+                
+                <div class="table-wrapper">
+                  <table class="score-table">
+                    <thead>
+                      <tr id="score-table-header-row">
+                        <!-- Dynamically populated based on timeline length -->
+                      </tr>
+                    </thead>
+                    <tbody id="scoring-table-body">
+                      <!-- Scores computed dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </div>
           </div>
-          
-          <div class="chart-wrapper" id="chart-container">
-            <!-- Chart SVG rendered dynamically -->
-          </div>
-          
-          <div class="chart-legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--primary);"></span>
-              <span>Waking Time curve</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background:var(--danger); border-top:1.5px dashed var(--danger); height:0px; width:15px; display:inline-block; vertical-align:middle;"></span>
-              <span>Target Waking Limit</span>
-            </div>
-          </div>
-        </section>
         </div>
 
-        <!-- Settings tab contents -->
-        <div class="tab-content" id="tab-settings">
-<!-- Data Management Panel -->
-    <section class="glass-panel" style="margin-top:1.5rem;" id="data-management-section">
-      <div class="section-title" style="margin-bottom:0.5rem;">
-        <h3>Settings & Master Backups</h3>
-      </div>
-      <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem;">All settings, current logs, and archived history are stored in browser memory. Download a backup to protect your records.</p>
-      
-      <div class="backup-section">
-        <button id="btn-export" class="btn btn-secondary">💾 Export Master Backup (JSON)</button>
-        
-        <div class="file-input-wrapper">
-          <button class="btn btn-secondary">📁 Import Master Backup (JSON)</button>
-          <input type="file" id="btn-import-file" accept=".json">
-        </div>
-        
-        <button id="btn-reset" class="btn btn-secondary" style="border-color:rgba(var(--danger-rgb),0.3); color:var(--danger); margin-left:auto;">🚨 Reset Active Card</button>
-      </div>
-    </section>
-        </div>
+        <!-- CONSOLIDATED ACCOUNT & SETTINGS TAB -->
+        <div class="tab-content" id="tab-account">
+          <div class="subnav-header glass-panel">
+            <button class="subnav-btn active" data-subtab="tab-profile">👤 User Profile</button>
+            <button class="subnav-btn" data-subtab="tab-settings">⚙️ Master Backups</button>
+          </div>
+          <div class="subnav-body">
+            <div class="subtab-content active" id="tab-profile">
+              <div class="profile-page-wrapper">
+                <div class="profile-hero-banner glass-panel">
+                  <div class="profile-banner-glow"></div>
+                  <div class="profile-avatar-container">
+                    <img src="" id="profile-avatar-img" alt="Profile" class="profile-avatar-large" style="display: none;">
+                    <div id="profile-avatar-fallback" class="profile-avatar-fallback">👤</div>
+                    <div class="profile-online-badge" title="Verified Account">✓</div>
+                  </div>
+                  <div class="profile-hero-details">
+                    <h2 id="profile-display-name">Consistent Reader</h2>
+                    <p id="profile-display-email" class="profile-hero-email">trainee@example.com</p>
+                    <div class="profile-hero-pills">
+                      <span class="profile-hero-pill badge-google">☁️ Google Account Connected</span>
+                      <span class="profile-hero-pill badge-active">🟢 Active Challenger Card</span>
+                    </div>
+                  </div>
+                </div>
 
-        <!-- Scoring tab contents -->
-        <div class="tab-content" id="tab-scoring">
-<!-- Scoring Table Matrix -->
-        <section class="glass-panel scoring-section" id="scoring-section">
-          <div class="section-title">
-            <h2>Weekly Growth Point Analysis</h2>
+                <div class="profile-cards-grid">
+                  <!-- Account & Card Configuration -->
+                  <div class="profile-info-card glass-panel">
+                    <div class="profile-card-header">
+                      <h3>⚙️ Trainee Setup & Preferences</h3>
+                    </div>
+                    <div class="profile-form-body">
+                      <div class="profile-form-group">
+                        <label for="profile-input-username">Trainee Name</label>
+                        <input type="text" id="profile-input-username" class="profile-input" placeholder="Your Full Name">
+                      </div>
+                      <div class="profile-form-group">
+                        <label for="profile-input-contact">Phone / WhatsApp Contact</label>
+                        <input type="text" id="profile-input-contact" class="profile-input" placeholder="e.g. +254 700 000 000">
+                      </div>
+                      <div class="profile-form-group">
+                        <label for="profile-input-church">Church / Fellowship</label>
+                        <input type="text" id="profile-input-church" class="profile-input" placeholder="e.g. Grace Chapel">
+                      </div>
+                      <div class="profile-form-row">
+                        <div class="profile-form-group">
+                          <label>Current Card</label>
+                          <div class="profile-static-pill" id="profile-card-num">Card #1</div>
+                        </div>
+                        <div class="profile-form-group">
+                          <label>Commencing Date</label>
+                          <div class="profile-static-pill" id="profile-commence-date">—</div>
+                        </div>
+                      </div>
+                      <button id="btn-profile-save" class="btn-profile-save">💾 Save Profile & Setup</button>
+                      <div id="profile-save-msg" class="profile-save-toast" style="display: none;">✅ Profile updated successfully!</div>
+                    </div>
+                  </div>
+
+                  <!-- Journey Summary & Security -->
+                  <div class="profile-info-card glass-panel">
+                    <div class="profile-card-header">
+                      <h3>📊 Trainee Milestones</h3>
+                    </div>
+                    <div class="milestones-grid">
+                      <div class="milestone-item">
+                        <span class="milestone-icon">🔥</span>
+                        <div class="milestone-data">
+                          <strong id="milestone-days">0</strong>
+                          <span>Days Logged</span>
+                        </div>
+                      </div>
+                      <div class="milestone-item">
+                        <span class="milestone-icon">📈</span>
+                        <div class="milestone-data">
+                          <strong id="milestone-points">0</strong>
+                          <span>Growth Points</span>
+                        </div>
+                      </div>
+                      <div class="milestone-item">
+                        <span class="milestone-icon">📖</span>
+                        <div class="milestone-data">
+                          <strong id="milestone-chapters">0</strong>
+                          <span>Chapters Read</span>
+                        </div>
+                      </div>
+                      <div class="milestone-item">
+                        <span class="milestone-icon">⚡</span>
+                        <div class="milestone-data">
+                          <strong id="milestone-barriers">0</strong>
+                          <span>Barriers Tracked</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="profile-security-section">
+                      <h4>🔐 Account Session</h4>
+                      <p>You are signed in securely via Google Cloud OAuth. Signing out will require re-authentication.</p>
+                      <a href="/logout" class="btn-signout">🚪 Sign Out of Account</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="subtab-content" id="tab-settings">
+              <!-- Data Management Panel -->
+              <section class="glass-panel" style="margin-top:0.5rem;" id="data-management-section">
+                <div class="section-title" style="margin-bottom:0.5rem;">
+                  <h3>Settings & Master Backups</h3>
+                </div>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem;">All settings, current logs, and archived history are stored in browser memory. Download a backup to protect your records.</p>
+                
+                <div class="backup-section">
+                  <button id="btn-export" class="btn btn-secondary">💾 Export Master Backup (JSON)</button>
+                  
+                  <div class="file-input-wrapper">
+                    <button class="btn btn-secondary">📁 Import Master Backup (JSON)</button>
+                    <input type="file" id="btn-import-file" accept=".json">
+                  </div>
+                  
+                  <button id="btn-reset" class="btn btn-secondary" style="border-color:rgba(var(--danger-rgb),0.3); color:var(--danger); margin-left:auto;">🚨 Reset Active Card</button>
+                </div>
+              </section>
+            </div>
           </div>
-          
-          <div class="table-wrapper">
-            <table class="score-table">
-              <thead>
-                <tr id="score-table-header-row">
-                  <!-- Dynamically populated based on timeline length -->
-                </tr>
-              </thead>
-              <tbody id="scoring-table-body">
-                <!-- Scores computed dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </section>
         </div>
 
 
@@ -435,15 +666,12 @@
       <aside class="right-column glass-panel sidebar-panel" id="sidebar-section">
         <!-- Vertical nav tabs -->
         <div class="tabs-header">
-          <button class="tab-btn active" data-tab="tab-dashboard">🏠 Dashboard</button>
-          <button class="tab-btn" data-tab="tab-syllabus">📚 CBR Syllabus</button>
-          <button class="tab-btn" data-tab="tab-barriers">🚧 Barriers (CB)</button>
-          <button class="tab-btn" data-tab="tab-questions">❓ Study Questions</button>
-          <button class="tab-btn" data-tab="tab-persons">📖 Study Methods</button>
-          <button class="tab-btn" data-tab="tab-history">📁 Card History</button>
-          <button class="tab-btn" data-tab="tab-chart">📈 Early-Riser Chart</button>
-          <button class="tab-btn" data-tab="tab-scoring">📊 Point Analysis</button>
-          <button class="tab-btn" data-tab="tab-settings">⚙️ Settings & Backups</button>
+          <button class="tab-btn active" data-tab="tab-today">☀️ Today</button>
+          <button class="tab-btn" data-tab="tab-dashboard">🏠 Dashboard</button>
+          <button class="tab-btn" data-tab="tab-reference">📚 Reference Guides</button>
+          <button class="tab-btn" data-tab="tab-analytics">📈 Analytics & Growth</button>
+          <button class="tab-btn" data-tab="tab-history">📁 Card Archives</button>
+          <button class="tab-btn" data-tab="tab-account">👤 Account & Settings</button>
         </div>
 
               </aside>
@@ -542,10 +770,6 @@
             <label class="check-item">
               <input type="checkbox" id="prayer-10mins">
               <span>Prayed for 10+ Minutes after CBR</span>
-            </label>
-            <label class="check-item">
-              <input type="checkbox" id="pe-meeting">
-              <span>Sharing / PE Meeting (Check if had meeting this week)</span>
             </label>
             <label class="check-item valid-discipline" style="cursor: not-allowed; opacity: 0.85;" title="Automatically ticks when logged on the correct calendar day">
               <input type="checkbox" id="data-validity" disabled>
@@ -683,10 +907,30 @@
     </div>
   </div>
 
+  <!-- Custom Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-confirm-modal">
+    <div class="modal-content glass-panel" style="max-width: 440px; padding: 2rem;">
+      <div class="modal-header" style="margin-bottom: 1rem;">
+        <div class="modal-title">
+          <h3 style="color: var(--danger);">🗑️ Delete Archive?</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">Permanent Action</p>
+        </div>
+        <button class="modal-close" onclick="closeDeleteConfirmModal()">&times;</button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.5rem;">
+        Are you sure you want to permanently delete this archived card from history? This action cannot be undone.
+      </p>
+      <div class="form-actions" style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="confirmDeleteArchivedCard()" style="border-color: rgba(var(--danger-rgb), 0.4); background: rgba(var(--danger-rgb), 0.15); color: var(--danger); font-weight: 600;">Yes, Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bind reference databases and application runner -->
-  <script src="{{ url_for('static', filename='js/data.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/data.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=4"></script>
   <script>
     // Mobile sidebar hamburger toggle
     const hamburger = document.getElementById('hamburger-btn');

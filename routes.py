@@ -16,6 +16,8 @@ def get_state():
 
     state = {
         "username": current_user.name or current_user.email,
+        "email": current_user.email,
+        "profilePic": current_user.profile_pic or "",
         "contact": card_state.contact or "",
         "church": card_state.church or "",
         "currentCardId": card_state.current_card_id,
@@ -75,8 +77,17 @@ def get_state():
     state["weeks"].sort(key=lambda x: x["weekNumber"])
     
     archives = ArchivedCard.query.filter_by(user_id=current_user.id).order_by(ArchivedCard.id.desc()).all()
+    seen_cards = set()
     for arch in archives:
-        state["savedCards"].append(arch.snapshot_data)
+        snap = arch.snapshot_data
+        c_id = snap.get("currentCardId") or snap.get("cardId") or arch.card_id or 1
+        if c_id in seen_cards:
+            continue
+        seen_cards.add(c_id)
+        if "currentCardId" not in snap:
+            snap["currentCardId"] = c_id
+        snap["instanceId"] = f"card_{c_id}"
+        state["savedCards"].append(snap)
         
     return jsonify(state)
 
@@ -90,6 +101,8 @@ def save_state():
         card_state = CardState(user_id=current_user.id)
         db.session.add(card_state)
     
+    if data.get("username"):
+        current_user.name = data.get("username")
     card_state.current_card_id = data.get("currentCardId", 1)
     card_state.commencing_date = data.get("commencingDate")
     card_state.theme = data.get("theme", "dark")
@@ -153,16 +166,48 @@ def save_state():
 @login_required
 def archive_card():
     data = request.json
-    arch = ArchivedCard(
-        user_id=current_user.id,
-        instance_id=data.get("instanceId"),
-        card_id=data.get("cardId"),
-        commencing_date=data.get("commencingDate"),
-        total_score=data.get("totalScore"),
-        total_laxity=data.get("totalLaxity"),
-        saved_at=data.get("savedAt"),
-        snapshot_data=data
-    )
-    db.session.add(arch)
+    c_id = data.get("currentCardId") or data.get("cardId")
+    inst_id = f"card_{c_id}" if c_id else data.get("instanceId")
+    data["instanceId"] = inst_id
+    if c_id:
+        data["currentCardId"] = c_id
+        data["cardId"] = c_id
+        
+    existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id).first() if c_id else None
+    if not existing and inst_id:
+        existing = ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=inst_id).first()
+        
+    if existing:
+        existing.instance_id = inst_id
+        existing.commencing_date = data.get("commencingDate")
+        existing.total_score = data.get("totalScore")
+        existing.total_laxity = data.get("totalLaxity")
+        existing.saved_at = data.get("savedAt")
+        existing.snapshot_data = data
+    else:
+        arch = ArchivedCard(
+            user_id=current_user.id,
+            instance_id=inst_id,
+            card_id=c_id,
+            commencing_date=data.get("commencingDate"),
+            total_score=data.get("totalScore"),
+            total_laxity=data.get("totalLaxity"),
+            saved_at=data.get("savedAt"),
+            snapshot_data=data
+        )
+        db.session.add(arch)
     db.session.commit()
     return jsonify({"status": "success"})
+
+@api_bp.route('/archive/<instance_id>', methods=['DELETE'])
+@login_required
+def delete_archived_card(instance_id):
+    if instance_id.startswith("card_"):
+        parts = instance_id.split("_")
+        if len(parts) >= 2 and parts[1].isdigit():
+            c_id = int(parts[1])
+            ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id).delete()
+    ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=instance_id).delete()
+    db.session.commit()
+    return jsonify({"status": "success"})
+

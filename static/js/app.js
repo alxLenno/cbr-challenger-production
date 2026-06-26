@@ -129,7 +129,30 @@ const elements = {
   // Mobile UI Elements
   hamburgerBtn: document.getElementById('hamburger-btn'),
   sidebarSection: document.getElementById('sidebar-section'),
-  mobileSidebarOverlay: document.getElementById('mobile-sidebar-overlay')
+  mobileSidebarOverlay: document.getElementById('mobile-sidebar-overlay'),
+
+  // Profile Page Elements
+  topbarProfileBtn: document.getElementById('topbar-profile-btn'),
+  topbarAvatarImg: document.getElementById('topbar-avatar-img'),
+  topbarAvatarIcon: document.getElementById('topbar-avatar-icon'),
+  topbarUsername: document.getElementById('topbar-username'),
+  
+  profileAvatarImg: document.getElementById('profile-avatar-img'),
+  profileAvatarFallback: document.getElementById('profile-avatar-fallback'),
+  profileDisplayName: document.getElementById('profile-display-name'),
+  profileDisplayEmail: document.getElementById('profile-display-email'),
+  profileInputUsername: document.getElementById('profile-input-username'),
+  profileInputContact: document.getElementById('profile-input-contact'),
+  profileInputChurch: document.getElementById('profile-input-church'),
+  profileCardNum: document.getElementById('profile-card-num'),
+  profileCommenceDate: document.getElementById('profile-commence-date'),
+  btnProfileSave: document.getElementById('btn-profile-save'),
+  profileSaveMsg: document.getElementById('profile-save-msg'),
+  
+  milestoneDays: document.getElementById('milestone-days'),
+  milestonePoints: document.getElementById('milestone-points'),
+  milestoneChapters: document.getElementById('milestone-chapters'),
+  milestoneBarriers: document.getElementById('milestone-barriers')
 };
 
 // Initialize Application
@@ -271,9 +294,40 @@ async function loadState() {
   }
 }
 
+function syncActiveCardToArchiveIfNeeded() {
+  if (!appState || !appState.savedCards || isViewingHistory) return;
+  const cId = appState.currentCardId;
+  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  if (existingIdx >= 0) {
+    const stats = calculateScores();
+    const syncedArchive = {
+      instanceId: `card_${cId}`,
+      currentCardId: cId,
+      cardId: cId,
+      commencingDate: appState.commencingDate,
+      username: appState.username,
+      contact: appState.contact,
+      church: appState.church,
+      weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
+      days: JSON.parse(JSON.stringify(appState.days)),
+      weeks: JSON.parse(JSON.stringify(appState.weeks)),
+      totalScore: stats.totalScore,
+      totalLaxity: stats.totalLaxity,
+      savedAt: new Date().toISOString()
+    };
+    appState.savedCards[existingIdx] = syncedArchive;
+    fetch('/api/archive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(syncedArchive)
+    }).catch(e => console.error("Failed to sync archive", e));
+  }
+}
+
 // Save state to Backend
 function saveState() {
   if (isViewingHistory) return;
+  syncActiveCardToArchiveIfNeeded();
   fetch('/api/save_state', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -341,7 +395,9 @@ function initDefaultState() {
 
 // Get active data (switches dynamically if viewing historical records)
 function getActiveData() {
-  return isViewingHistory ? historicalCardData : appState;
+  const d = isViewingHistory ? historicalCardData : appState;
+  if (d && !d.currentCardId) d.currentCardId = d.cardId || 1;
+  return d;
 }
 
 // Initialize static UI components like Bible Books drop-downs, sidebar data, etc.
@@ -476,6 +532,33 @@ function initUI() {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  if (elements.topbarProfileBtn) {
+    elements.topbarProfileBtn.addEventListener('click', () => {
+      const accountTabBtn = document.querySelector('.tab-btn[data-tab="tab-account"]');
+      if (accountTabBtn) accountTabBtn.click();
+      const profileSubtabBtn = document.querySelector('.subnav-btn[data-subtab="tab-profile"]');
+      if (profileSubtabBtn) profileSubtabBtn.click();
+    });
+  }
+
+  if (elements.btnProfileSave) {
+    elements.btnProfileSave.addEventListener('click', () => {
+      if (isViewingHistory) return;
+      appState.username = elements.profileInputUsername.value;
+      appState.contact = elements.profileInputContact.value;
+      appState.church = elements.profileInputChurch.value;
+      if (elements.usernameInput) elements.usernameInput.value = appState.username;
+      if (elements.contactInput) elements.contactInput.value = appState.contact;
+      if (elements.churchInput) elements.churchInput.value = appState.church;
+      saveState();
+      renderProfile();
+      if (elements.profileSaveMsg) {
+        elements.profileSaveMsg.style.display = 'block';
+        setTimeout(() => { elements.profileSaveMsg.style.display = 'none'; }, 3000);
+      }
+    });
+  }
+
   // Profile / Settings Change Handlers
   const profileInputs = [elements.usernameInput, elements.contactInput, elements.churchInput];
   profileInputs.forEach(input => {
@@ -556,6 +639,21 @@ function setupEventListeners() {
         elements.sidebarSection.classList.remove('open');
         if (elements.mobileSidebarOverlay) elements.mobileSidebarOverlay.classList.remove('open');
       }
+    });
+  });
+
+  // Subnav Tabs Handler
+  document.querySelectorAll('.subnav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.subtab;
+      const parentTab = btn.closest('.tab-content');
+      if (!parentTab) return;
+      parentTab.querySelectorAll('.subnav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      parentTab.querySelectorAll('.subtab-content').forEach(c => {
+        if (c.id === target) c.classList.add('active');
+        else c.classList.remove('active');
+      });
     });
   });
 
@@ -974,13 +1072,256 @@ function saveDayLog() {
   renderAll();
 }
 
+// RENDER TODAY AT A GLANCE TAB
+function renderToday() {
+  const todayEl = document.getElementById('tab-today');
+  if (!todayEl) return;
+  const data = getActiveData();
+  if (!data) return;
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
+
+  // Calculate today's day number
+  const todayStr = new Date().toISOString().split('T')[0];
+  let dayNum = 1;
+  if (data.commencingDate) {
+    const diffTime = new Date(todayStr) - new Date(data.commencingDate);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0 && diffDays < 28) {
+      dayNum = diffDays + 1;
+    } else if (diffDays >= 28) {
+      dayNum = 28;
+    }
+  }
+
+  const dayData = (data.days || []).find(d => d.dayNumber === dayNum) || {};
+
+  // Update Heading
+  const dateHeading = document.getElementById('today-date-heading');
+  if (dateHeading) {
+    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+    dateHeading.innerText = new Date().toLocaleDateString('en-US', options);
+  }
+
+  const cycleSub = document.getElementById('today-cycle-sub');
+  if (cycleSub) {
+    const weekNum = Math.ceil(dayNum / 7);
+    cycleSub.innerText = `Day ${dayNum} of 28 • Week ${weekNum} • Active Card #${card.cardId}`;
+  }
+
+  // Targets
+  const readingTarget = document.getElementById('today-reading-target');
+  if (readingTarget) readingTarget.innerText = `Target: ${card.chaptersTarget} Chapter${card.chaptersTarget > 1 ? 's' : ''}`;
+
+  const wakingTarget = document.getElementById('today-waking-target');
+  if (wakingTarget) wakingTarget.innerText = `Limit: ${card.ertTarget}`;
+
+  // Journal method
+  const journalTitle = document.getElementById('today-journal-method-title');
+  if (journalTitle) {
+    journalTitle.innerText = card.cardId >= 4 ? '2. Bible Study (OPEN)' : '2. Devotional Journaling (FID)';
+  }
+
+  // Psalm verse
+  const psalmVerse = document.getElementById('today-psalm-verse');
+  if (psalmVerse) {
+    psalmVerse.innerText = `Psalm 119:${dayNum}`;
+  }
+
+  // Statuses
+  const totalChaptersRead = (dayData.morningChapters || 0) + (dayData.daytimeChapters || 0);
+  const statusReading = document.getElementById('today-status-reading');
+  if (statusReading) {
+    if (totalChaptersRead >= card.chaptersTarget) {
+      statusReading.className = 'act-status completed';
+      statusReading.innerText = `✅ Read (${totalChaptersRead} ch)`;
+    } else if (totalChaptersRead > 0) {
+      statusReading.className = 'act-status partial';
+      statusReading.innerText = `🔄 Partial (${totalChaptersRead}/${card.chaptersTarget})`;
+    } else {
+      statusReading.className = 'act-status late';
+      statusReading.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusJournal = document.getElementById('today-status-journal');
+  if (statusJournal) {
+    const hasJournal = (dayData.journalNotes && dayData.journalNotes.trim().length > 0) || dayData.fidFocus || dayData.openObservation;
+    if (hasJournal) {
+      statusJournal.className = 'act-status completed';
+      statusJournal.innerText = '✅ Recorded';
+    } else {
+      statusJournal.className = 'act-status late';
+      statusJournal.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusWaking = document.getElementById('today-status-waking');
+  if (statusWaking) {
+    if (dayData.wakingTime) {
+      const isLate = (dayData.wakingTime > card.ertTarget);
+      statusWaking.className = isLate ? 'act-status late' : 'act-status completed';
+      statusWaking.innerText = isLate ? `⚠️ Late (${dayData.wakingTime})` : `⏰ On Time (${dayData.wakingTime})`;
+    } else {
+      statusWaking.className = 'act-status late';
+      statusWaking.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusBarriers = document.getElementById('today-status-barriers');
+  if (statusBarriers) {
+    if (dayData.cbId) {
+      statusBarriers.className = 'act-status late';
+      statusBarriers.innerText = `⚠️ Recorded (${dayData.cbId})`;
+    } else {
+      statusBarriers.className = 'act-status clear';
+      statusBarriers.innerText = '🟢 Clear';
+    }
+  }
+
+  // Populate Filled Details Box 1: Scripture Reading
+  const detReading = document.getElementById('today-details-reading');
+  if (detReading) {
+    if (dayData.bibleBook && ((dayData.morningChapters || 0) > 0 || (dayData.laterChapters || 0) > 0)) {
+      detReading.style.display = 'block';
+      detReading.innerHTML = `<strong style="color:var(--primary);">📖 Book:</strong> ${dayData.bibleBook} ${dayData.startChapter ? `(Ch ${dayData.startChapter}${dayData.endChapter && dayData.endChapter != dayData.startChapter ? `-${dayData.endChapter}` : ''})` : ''}<br>
+      <strong style="color:#34d399;">☀️ Morning:</strong> ${dayData.morningChapters || 0} ch &nbsp;&bull;&nbsp; <strong style="color:#94a3b8;">🌙 Later:</strong> ${dayData.laterChapters || 0} ch`;
+    } else {
+      detReading.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 2: Devotional Journaling
+  const detJournal = document.getElementById('today-details-journal');
+  if (detJournal) {
+    const hasFid = dayData.fidFocus || dayData.fidInsight || dayData.fidDoing;
+    const hasOpen = dayData.openObservation || dayData.openPrinciples || dayData.openExperience || dayData.openNeed;
+    if (hasFid || hasOpen || (dayData.journalNotes && dayData.journalNotes.trim().length > 0)) {
+      detJournal.style.display = 'block';
+      let html = '';
+      if (hasFid) {
+        if (dayData.fidFocus) html += `<div><strong style="color:#60a5fa;">🎯 Focus:</strong> ${dayData.fidFocus}</div>`;
+        if (dayData.fidInsight) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">💡 Insight:</strong> ${dayData.fidInsight}</div>`;
+        if (dayData.fidDoing) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🏃 Doing:</strong> ${dayData.fidDoing}</div>`;
+      } else if (hasOpen) {
+        if (dayData.openObservation) html += `<div><strong style="color:#60a5fa;">👁️ Observation:</strong> ${dayData.openObservation}</div>`;
+        if (dayData.openPrinciples) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">📜 Principles:</strong> ${dayData.openPrinciples}</div>`;
+        if (dayData.openExperience) html += `<div style="margin-top:0.35rem;"><strong style="color:#c084fc;">⚡ Experience:</strong> ${dayData.openExperience}</div>`;
+        if (dayData.openNeed) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🙏 Need:</strong> ${dayData.openNeed}</div>`;
+      } else if (dayData.journalNotes) {
+        html += `<div><strong style="color:#60a5fa;">📝 Notes:</strong> ${dayData.journalNotes}</div>`;
+      }
+      detJournal.innerHTML = html;
+    } else {
+      detJournal.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 3: Waking Time
+  const detWaking = document.getElementById('today-details-waking');
+  if (detWaking) {
+    if (dayData.wakingTime) {
+      detWaking.style.display = 'block';
+      detWaking.innerHTML = `<div><strong style="color:#60a5fa;">⏰ Logged Waking:</strong> ${dayData.wakingTime}</div>`;
+    } else {
+      detWaking.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 4: Consistency Barriers
+  const detBarriers = document.getElementById('today-details-barriers');
+  if (detBarriers) {
+    if (dayData.cbId) {
+      detBarriers.style.display = 'block';
+      detBarriers.innerHTML = `<div><strong style="color:#f87171;">🚨 Barrier Code:</strong> ${dayData.cbId}</div>
+      ${dayData.cbSolution ? `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">💡 Conviction Principle:</strong> ${dayData.cbSolution}</div>` : ''}
+      ${dayData.cbScripture ? `<div style="margin-top:0.35rem;"><strong style="color:#60a5fa;">📖 Supporting Verse:</strong> ${dayData.cbScripture}</div>` : ''}`;
+    } else {
+      detBarriers.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 5: Psalm / Memorized Verse
+  const detPsalm = document.getElementById('today-details-psalm');
+  if (detPsalm) {
+    if (dayData.scriptureMemorized) {
+      detPsalm.style.display = 'block';
+      detPsalm.innerHTML = `<div><strong style="color:#c084fc;">📜 Memorized Scripture:</strong> ${dayData.scriptureMemorized}</div>`;
+    } else {
+      detPsalm.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 6: Prayer / Fellowship
+  const detPe = document.getElementById('today-details-pe');
+  if (detPe) {
+    if (dayData.prayerTopic) {
+      detPe.style.display = 'block';
+      detPe.innerHTML = `<div><strong style="color:#fbbf24;">🙏 Prayer / Sharing Topic:</strong> ${dayData.prayerTopic}</div>`;
+    } else {
+      detPe.style.display = 'none';
+    }
+  }
+
+  // Log Button Click
+  const btnTodayLog = document.getElementById('btn-today-log');
+  if (btnTodayLog) {
+    btnTodayLog.onclick = () => {
+      openDayModal(dayNum);
+    };
+  }
+}
+
 // RENDER ALL PAGE COMPONENTS
 function renderAll() {
+  renderToday();
   renderHeaderAndKPIs();
   renderCalendarGrid();
   renderChart();
   renderScoringTable();
   renderLibraryList();
+  renderProfile();
+}
+
+function renderProfile() {
+  const data = getActiveData();
+  if (!data) return;
+  const name = data.username || "Trainee";
+  const email = data.email || "";
+  const pic = data.profilePic || "";
+
+  if (elements.topbarUsername) elements.topbarUsername.innerText = name.split(' ')[0];
+  if (pic && elements.topbarAvatarImg) {
+    elements.topbarAvatarImg.src = pic;
+    elements.topbarAvatarImg.style.display = 'inline-block';
+    if (elements.topbarAvatarIcon) elements.topbarAvatarIcon.style.display = 'none';
+  }
+
+  if (elements.profileDisplayName) elements.profileDisplayName.innerText = name;
+  if (elements.profileDisplayEmail) elements.profileDisplayEmail.innerText = email;
+  if (pic && elements.profileAvatarImg) {
+    elements.profileAvatarImg.src = pic;
+    elements.profileAvatarImg.style.display = 'block';
+    if (elements.profileAvatarFallback) elements.profileAvatarFallback.style.display = 'none';
+  } else if (elements.profileAvatarFallback) {
+    elements.profileAvatarFallback.innerText = name ? name[0].toUpperCase() : '👤';
+  }
+
+  if (elements.profileInputUsername) elements.profileInputUsername.value = name;
+  if (elements.profileInputContact) elements.profileInputContact.value = data.contact || "";
+  if (elements.profileInputChurch) elements.profileInputChurch.value = data.church || "";
+  if (elements.profileCardNum) elements.profileCardNum.innerText = `Card #${data.currentCardId || 1}`;
+  if (elements.profileCommenceDate) elements.profileCommenceDate.innerText = data.commencingDate || "—";
+
+  const daysList = data.days || [];
+  const completedDays = daysList.filter(d => d.wakingTime || (d.morningChapters + d.laterChapters) > 0).length;
+  const totalChapters = daysList.reduce((acc, d) => acc + (d.morningChapters || 0) + (d.laterChapters || 0), 0);
+  const resolvedBarriers = daysList.filter(d => d.cbResolved).length;
+  const stats = calculateScores();
+
+  if (elements.milestoneDays) elements.milestoneDays.innerText = completedDays;
+  if (elements.milestonePoints) elements.milestonePoints.innerText = stats ? stats.totalScore : 0;
+  if (elements.milestoneChapters) elements.milestoneChapters.innerText = totalChapters;
+  if (elements.milestoneBarriers) elements.milestoneBarriers.innerText = resolvedBarriers;
 }
 
 // Render Header and KPI Counters
@@ -1145,13 +1486,18 @@ function renderCalendarGrid() {
         { name: 'dataValidity', title: 'Data Validity', isValidity: true }
       ];
       
+      const isPastOrCurrent = (dayDate <= todayStr) || isViewingHistory;
       dots.forEach(dot => {
         const dotSpan = document.createElement('span');
         dotSpan.className = 'disc-dot';
         if (dayData[dot.name]) {
           dotSpan.classList.add(dot.isValidity ? 'valid' : 'checked');
+          dotSpan.innerText = '✓';
+        } else if (isPastOrCurrent) {
+          dotSpan.classList.add('missed');
+          dotSpan.innerText = '✕';
         }
-        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : 'Missed'}`;
+        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : (isPastOrCurrent ? 'Not Ticked (X)' : 'Future')}`;
         disciplinesDiv.appendChild(dotSpan);
       });
       dayBlock.appendChild(disciplinesDiv);
@@ -1631,7 +1977,7 @@ function renderLibraryList() {
     btnPrint.addEventListener('click', () => {
       historicalCardData = card;
       isViewingHistory = true;
-      prepareAndPrintCard();
+      printChallengerCard(card);
       isViewingHistory = false;
       historicalCardData = null;
     });
@@ -1695,9 +2041,11 @@ function archiveActiveCard(silent = false) {
     return false;
   }
   
+  const cId = appState.currentCardId;
   const archiveInstance = {
-    instanceId: `card_${appState.currentCardId}_${new Date().getTime()}`,
-    cardId: appState.currentCardId,
+    instanceId: `card_${cId}`,
+    currentCardId: cId,
+    cardId: cId,
     commencingDate: appState.commencingDate,
     username: appState.username,
     contact: appState.contact,
@@ -1710,7 +2058,12 @@ function archiveActiveCard(silent = false) {
     savedAt: new Date().toISOString()
   };
   
-  appState.savedCards.push(archiveInstance);
+  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  if (existingIdx >= 0) {
+    appState.savedCards[existingIdx] = archiveInstance;
+  } else {
+    appState.savedCards.push(archiveInstance);
+  }
   
   fetch('/api/archive', {
     method: 'POST',
@@ -1800,6 +2153,9 @@ function loadHistoricalView(instanceId) {
   elements.weakness3Name.disabled = true;
   elements.weakness3Action.disabled = true;
   
+  const todayTabBtn = document.querySelector('.tab-btn[data-tab="tab-today"]');
+  if (todayTabBtn) todayTabBtn.click();
+  
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1825,15 +2181,35 @@ function exitHistoricalView() {
   
   initUI();
   renderAll();
+  
+  const historyTabBtn = document.querySelector('.tab-btn[data-tab="tab-history"]');
+  if (historyTabBtn) historyTabBtn.click();
 }
 
 // Delete completed card snapshot from database
+let pendingDeleteInstanceId = null;
+
 function deleteArchivedCard(instanceId) {
-  if (confirm("Are you sure you want to delete this archived card from history? This action is permanent.")) {
-    appState.savedCards = appState.savedCards.filter(c => c.instanceId !== instanceId);
-    saveState();
-    renderLibraryList();
-  }
+  pendingDeleteInstanceId = instanceId;
+  const modal = document.getElementById('delete-confirm-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeDeleteConfirmModal() {
+  pendingDeleteInstanceId = null;
+  const modal = document.getElementById('delete-confirm-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function confirmDeleteArchivedCard() {
+  if (!pendingDeleteInstanceId) return;
+  const instanceId = pendingDeleteInstanceId;
+  appState.savedCards = appState.savedCards.filter(c => c.instanceId !== instanceId);
+  fetch(`/api/archive/${instanceId}`, { method: 'DELETE' })
+    .catch(e => console.error("Failed to delete archive", e));
+  saveState();
+  renderLibraryList();
+  closeDeleteConfirmModal();
 }
 
 // Trigger print process for the current active or loaded history card

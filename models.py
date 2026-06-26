@@ -1,3 +1,4 @@
+from typing import Any
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 
@@ -5,6 +6,9 @@ db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     google_id = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -17,6 +21,9 @@ class User(UserMixin, db.Model):
 
 class CardState(db.Model):
     __tablename__ = 'card_states'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     current_card_id = db.Column(db.Integer, default=1)
@@ -31,6 +38,9 @@ class CardState(db.Model):
 
 class Weakness(db.Model):
     __tablename__ = 'weaknesses'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     card_state_id = db.Column(db.Integer, db.ForeignKey('card_states.id'), nullable=False)
     name = db.Column(db.String(120), nullable=True)
@@ -38,6 +48,9 @@ class Weakness(db.Model):
 
 class WeekLog(db.Model):
     __tablename__ = 'week_logs'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     card_state_id = db.Column(db.Integer, db.ForeignKey('card_states.id'), nullable=False)
     week_number = db.Column(db.Integer, nullable=False)
@@ -45,6 +58,9 @@ class WeekLog(db.Model):
 
 class DailyLog(db.Model):
     __tablename__ = 'daily_logs'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     card_state_id = db.Column(db.Integer, db.ForeignKey('card_states.id'), nullable=False)
     day_number = db.Column(db.Integer, nullable=False)
@@ -85,6 +101,9 @@ class DailyLog(db.Model):
 
 class ArchivedCard(db.Model):
     __tablename__ = 'archived_cards'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     instance_id = db.Column(db.String(100), unique=True, nullable=False)

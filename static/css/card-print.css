@@ -517,6 +517,12 @@
   font-weight: 900;
 }
 
+.cc-cal-table td.unticked {
+  font-size: 7pt;
+  font-weight: 900;
+  color: #dc2626;
+}
+
 /* Right side instructions for section 3 */
 .cc-cal-right {
   padding: 3px 4px;
