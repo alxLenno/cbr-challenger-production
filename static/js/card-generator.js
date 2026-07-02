@@ -9,7 +9,8 @@
 // Week separator on day 7 of each week
 
 function buildChallengerCardHTML(data) {
-  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
+  if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
+  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
   const stats = calculateScoresForData(data);
 
   // Get calendar dates for the 28 days
@@ -84,15 +85,15 @@ function buildChallengerCardHTML(data) {
           rows += `<td class="${cls.trim()}">${content}</td>`;
         }
       }
-      
+
       let visionLabel = '';
       if (speed === 7) visionLabel = '60 TIMES';
       if (speed === 5) visionLabel = '45 TIMES';
       if (speed === 3) visionLabel = '30 TIMES';
       if (speed === 1) visionLabel = '10 TIMES';
-      
+
       rows += `<td style="border:none; background:transparent; font-size:5.5pt; font-weight:900; padding-left:6px; white-space:nowrap; text-align:left; vertical-align:middle;">${visionLabel}</td>`;
-      
+
       rows += `</tr>`;
     }
 
@@ -171,11 +172,11 @@ function buildChallengerCardHTML(data) {
           rows += `<td class="${cls.trim()}" data-day="${dayIdx}">${hasX ? '<span class="x-mark">X</span>' : ''}</td>`;
         }
       }
-      
+
       if (slot.level) {
         rows += `<td rowspan="${slot.rowspan}" style="border:none; background:transparent; font-size:5.5pt; font-weight:900; padding-left:6px; white-space:nowrap; text-align:left; vertical-align:middle;">${slot.level}</td>`;
       }
-      
+
       rows += `</tr>`;
     });
 
@@ -231,16 +232,26 @@ function buildChallengerCardHTML(data) {
     rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBR<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
     rows += `</tr>`;
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    function isPastOrCurrent(dayIdx) {
+      const d = dayDate(dayIdx);
+      const dStr = d.toISOString().split('T')[0];
+      return dStr <= todayStr;
+    }
+
     // Discipline rows
     disciplines.forEach(disc => {
       rows += `<tr><td class="row-label">${disc.label}</td>`;
       for (let w = 0; w < 4; w++) {
         for (let d = 0; d < 7; d++) {
           const dayIdx = w * 7 + d;
-          const day = data.days[dayIdx];
+          const day = data.days[dayIdx] || {};
           const isSep = (d === 0 && w > 0);
           const done = day[disc.key];
-          rows += `<td class="${isSep ? 'week-sep ' : ''}${done ? 'ticked' : ''}">${done ? '✓' : ''}</td>`;
+          const past = isPastOrCurrent(dayIdx);
+          const cellClass = `${isSep ? 'week-sep ' : ''}${done ? 'ticked' : (past ? 'unticked' : '')}`;
+          const cellContent = done ? '✓' : (past ? '✕' : '');
+          rows += `<td class="${cellClass}">${cellContent}</td>`;
         }
       }
       rows += `</tr>`;
@@ -250,10 +261,14 @@ function buildChallengerCardHTML(data) {
     rows += `<tr><td class="row-label">F.I.D Sharing / PE Meeting</td>`;
     for (let w = 0; w < 4; w++) {
       for (let d = 0; d < 7; d++) {
+        const dayIdx = w * 7 + d;
         const isSep = (d === 0 && w > 0);
         const isLastDay = (d === 6);
-        const done = isLastDay && data.weeks[w].sharedFid;
-        rows += `<td class="${isSep ? 'week-sep ' : ''}${done ? 'ticked' : ''}">${done ? '✓' : ''}</td>`;
+        const done = isLastDay && data.weeks[w] && data.weeks[w].sharedFid;
+        const past = isPastOrCurrent(dayIdx);
+        const cellClass = `${isSep ? 'week-sep ' : ''}${isLastDay ? (done ? 'ticked' : (past ? 'unticked' : '')) : ''}`;
+        const cellContent = isLastDay ? (done ? '✓' : (past ? '✕' : '')) : '';
+        rows += `<td class="${cellClass}">${cellContent}</td>`;
       }
     }
     rows += `</tr>`;
@@ -278,7 +293,7 @@ function buildChallengerCardHTML(data) {
     const rows = [
       { disc: 'PERSEVERANCE', desc: 'I Read ALL My Set Chapters Each Day', key: 'perseverance', max: 3 },
       { disc: 'COMMITMENT', desc: 'I Woke Up at My Set ER-Time Each Day', key: 'commitment', max: 2 },
-      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 1 },
+      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 2 },
       { disc: 'SCRIPTURE MEMORY', desc: 'I Recited the Memory Scripture Each Day', key: 'memory', max: 1 },
       { disc: 'MEDITATION', desc: 'I Wrote FID Journal Notes Each Day', key: 'meditation', max: 1 },
       { disc: 'ACCOUNTABILITY', desc: 'I shared FID and Commented Each Week', key: 'accountability', max: 1 },
@@ -450,7 +465,8 @@ function buildChallengerCardHTML(data) {
 
 // Helper: calculate scores using a given data object (handles both active & historical cards)
 function calculateScoresForData(data) {
-  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
+  if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
   const targetChapters = card.chaptersTarget;
   const targetERT = timeStringToDecimal(card.ertTarget);
 
@@ -480,7 +496,7 @@ function calculateScoresForData(data) {
 
     const pPts = p === 7 ? 3 : 0;
     const cPts = c === 7 ? 2 : 0;
-    const prPts = pr === 7 ? 1 : 0;
+    const prPts = pr === 7 ? 2 : 0;
     const smPts = sm === 7 ? 1 : 0;
     const mPts = m === 7 ? 1 : 0;
     const aPts = data.weeks[w].sharedFid ? 1 : 0;
@@ -513,7 +529,7 @@ function drawERTGraph(containerId) {
 
   const wrapper = ertTable.parentElement;
   if (!wrapper) return;
-  
+
   wrapper.style.position = 'relative';
 
   const cells = Array.from(ertTable.querySelectorAll('td.has-x'));
@@ -541,13 +557,13 @@ function drawERTGraph(containerId) {
   cells.forEach(cell => {
     const xMark = cell.querySelector('.x-mark');
     const targetRect = xMark ? xMark.getBoundingClientRect() : cell.getBoundingClientRect();
-    
+
     const cx = targetRect.left - wrapRect.left + targetRect.width / 2;
     const cy = targetRect.top - wrapRect.top + targetRect.height / 2;
-    
+
     const px = (cx / wrapRect.width) * 100;
     const py = (cy / wrapRect.height) * 100;
-    
+
     points += `${px},${py} `;
   });
 
@@ -574,7 +590,7 @@ function renderChallengerCardInto(containerId, data) {
 function printChallengerCard(data) {
   const wrapper = document.getElementById('card-print-wrapper');
   wrapper.innerHTML = buildChallengerCardHTML(data);
-  
+
   // Temporarily show to calculate SVG coordinates correctly
   const originalDisplay = wrapper.style.display;
   wrapper.style.display = 'block';

@@ -1,0 +1,35 @@
+<section class="glass-panel history-section" id="history-section">
+  <div class="history-section-title">
+    <div class="title-text">
+      <h2>Card Archives</h2>
+      <p>Auto-saved completed and switched cards. View, review, or delete past records.</p>
+    </div>
+  </div>
+
+  <div id="history-progress-bar-container" class="history-progress-wrapper"></div>
+  
+  <div class="library-table-wrapper">
+    <table class="library-table" id="history-library-table">
+      <thead>
+        <tr>
+          <th>Card</th>
+          <th>Dates</th>
+          <th>Weeks</th>
+          <th class="text-center">Score</th>
+          <th class="text-center">Laxity</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="library-table-body">
+        <!-- Loaded dynamically -->
+      </tbody>
+    </table>
+  </div>
+  <div class="empty-state-message" id="history-empty-msg" style="display:none;">
+    <div class="empty-state-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>
+    </div>
+    <p>No archived cards yet.</p>
+    <span class="empty-state-sub">Complete or switch a card round to begin building history.</span>
+  </div>
+</section>

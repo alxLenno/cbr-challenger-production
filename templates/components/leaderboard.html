@@ -1,0 +1,39 @@
+<div class="content-header">
+  <div class="title-text">
+    <h2>LEADERBOARD <span class="leaderboard-subtitle">| Active Card Ranking</span></h2>
+    <p>Rankings are based on total Growth Points earned on your current active card.</p>
+  </div>
+</div>
+
+<div class="leaderboard-wrapper">
+  
+  <!-- Loading State -->
+  <div id="leaderboard-loader" class="leaderboard-loader">
+    <div class="spinner"></div>
+    <p>Fetching rankings...</p>
+  </div>
+  
+  <!-- Podium Top 3 -->
+  <div id="leaderboard-podium" class="podium-container" style="display: none;">
+    <!-- Rendered by JS -->
+  </div>
+  
+  <!-- Table Ranking -->
+  <div id="leaderboard-list-wrapper" class="leaderboard-list-wrapper" style="display: none;">
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th class="col-rank">RANK</th>
+          <th class="col-user">USER</th>
+          <th class="col-card">CARD</th>
+          <th class="col-points text-right">POINTS</th>
+          <th class="col-laxity text-center">LAXITY</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-tbody">
+        <!-- Rendered by JS -->
+      </tbody>
+    </table>
+  </div>
+  
+</div>

@@ -1,0 +1,143 @@
+<div class="today-container">
+  <!-- HERO CARD (Card 1) -->
+  <div class="today-hero-card glass-panel">
+    <div class="today-hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-text">
+        <span class="hero-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 5px;">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          DAILY MISSION OVERVIEW
+        </span>
+        <h2 id="today-date-heading">Today's Journey</h2>
+        <p id="today-cycle-sub" class="hero-sub">Day 1 of 28 • Active Card #1</p>
+      </div>
+      <div class="hero-action">
+        <button id="btn-today-log" class="btn-today-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Log Today's Entry
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITIES GRID / MOBILE LIST (Card 2) -->
+  <div class="today-activities-container">
+    
+    <!-- Activity 1: Scripture Reading -->
+    <div class="today-activity-item glass-panel" id="today-card-reading">
+      <div class="activity-header">
+        <div class="activity-icon icon-reading">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-0.5-5.006L20 17"/><path d="M6 8h8"/><path d="M6 12h8"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4>1. Scripture Reading</h4>
+          <span class="activity-target" id="today-reading-target">Target: 1 Chapter</span>
+        </div>
+        <span class="activity-status pending" id="today-status-reading">⏳ Pending</span>
+      </div>
+      <p class="activity-desc">Read your scheduled Old or New Testament chapters early in the morning before starting your daily tasks.</p>
+      <div class="activity-details" id="today-details-reading" style="display:none;"></div>
+    </div>
+
+    <!-- Activity 2: Devotional Journaling -->
+    <div class="today-activity-item glass-panel" id="today-card-journal">
+      <div class="activity-header">
+        <div class="activity-icon icon-journal">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4 id="today-journal-method-title">2. Devotional Journaling</h4>
+          <span class="activity-target">Focus • Insight • Doing</span>
+        </div>
+        <span class="activity-status pending" id="today-status-journal">⏳ Pending</span>
+      </div>
+      <p class="activity-desc">Record key verses, spiritual insights revealed by the Holy Spirit, and practical action commitments.</p>
+      <div class="activity-details" id="today-details-journal" style="display:none;"></div>
+    </div>
+
+    <!-- Activity 3: Waking Time & Sleep -->
+    <div class="today-activity-item glass-panel" id="today-card-waking">
+      <div class="activity-header">
+        <div class="activity-icon icon-waking">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4>3. Early-Riser Discipline</h4>
+          <span class="activity-target" id="today-waking-target">Limit: 5:45 AM</span>
+        </div>
+        <span class="activity-status pending" id="today-status-waking">⏳ Not Logged</span>
+      </div>
+      <p class="activity-desc">Rise before your card target time. Log your actual waking time and sleeping time for accurate curve analysis.</p>
+      <div class="activity-details" id="today-details-waking" style="display:none;"></div>
+    </div>
+
+    <!-- Activity 4: Consistency Barriers -->
+    <div class="today-activity-item glass-panel" id="today-card-barriers">
+      <div class="activity-header">
+        <div class="activity-icon icon-barrier">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4>4. Consistency Barriers</h4>
+          <span class="activity-target">Overcome Weaknesses</span>
+        </div>
+        <span class="activity-status clear" id="today-status-barriers">🟢 Clear</span>
+      </div>
+      <p class="activity-desc">If you face any obstacle or weakness today (e.g., fatigue, distraction), record the barrier code to track patterns.</p>
+      <div class="activity-details" id="today-details-barriers" style="display:none;"></div>
+    </div>
+
+    <!-- Activity 5: Praying Back Psalm 119 -->
+    <div class="today-activity-item glass-panel" id="today-card-psalm">
+      <div class="activity-header">
+        <div class="activity-icon icon-psalm">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/><path d="M12 13v8"/><path d="M8 21h8"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4>5. Praying Back Psalm 119</h4>
+          <span class="activity-target" id="today-psalm-verse">Assigned Verse</span>
+        </div>
+        <span class="activity-status bonus">✨ Bonus (+50)</span>
+      </div>
+      <p class="activity-desc">Pray back 1 verse per day during Week 1 (increasing by 1 verse each subsequent week) to complete the chapter.</p>
+      <div class="activity-details" id="today-details-psalm" style="display:none;"></div>
+    </div>
+
+    <!-- Activity 6: Fellowship & PE Group -->
+    <div class="today-activity-item glass-panel" id="today-card-pe">
+      <div class="activity-header">
+        <div class="activity-icon icon-pe">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="activity-titles">
+          <h4>6. Accountability & Sharing</h4>
+          <span class="activity-target">Weekly PE Meeting</span>
+        </div>
+        <span class="activity-status reminder">📌 Reminder</span>
+      </div>
+      <p class="activity-desc">Share your devotional entries with your Personal Encouragers (PE) group at least once a week for 1 Accountability point.</p>
+      <div class="activity-details" id="today-details-pe" style="display:none;"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer style="margin-top: auto; text-align: center; padding: 1rem 0; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em;">
+  Powered by <span style="color: var(--text-color); font-weight: 700;">AiNT βeta Yet</span>
+</footer>

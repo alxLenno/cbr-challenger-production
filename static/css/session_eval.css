@@ -1,0 +1,427 @@
+/* ====================================================
+   SESSION EVALUATION STYLES — CBR Challenger
+   ==================================================== */
+
+.se-subtitle {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.se-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+}
+
+/* ── SCORING RULES BANNER ── */
+.se-scoring-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: rgba(var(--primary-rgb), 0.06);
+  border: 1px solid rgba(var(--primary-rgb), 0.2);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.se-scoring-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  flex: 1 1 280px;
+}
+
+.se-rule-icon {
+  font-size: 1.1rem;
+}
+
+/* ── GRAND SUMMARY ── */
+.se-grand-summary {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.se-grand-block {
+  flex: 1;
+  padding: 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.se-grand-block.primary {
+  background: rgba(var(--primary-rgb), 0.08);
+  border-left: 2px solid var(--primary);
+}
+
+.se-grand-divider {
+  width: 1px;
+  background: var(--border-color);
+  margin: 0.75rem 0;
+}
+
+.se-grand-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.se-grand-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.se-grand-target {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ── TABLE WRAPPER ── */
+.se-table-wrapper {
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  overflow-x: auto;
+}
+
+.se-eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+/* ── TABLE HEADER ── */
+.se-eval-table thead th {
+  padding: 0.85rem 0.6rem;
+  text-align: center;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border-color);
+  font-weight: 700;
+  background: rgba(255,255,255,0.02);
+  white-space: nowrap;
+}
+
+.se-col-criteria {
+  text-align: left !important;
+  padding-left: 1.25rem !important;
+  width: 35%;
+}
+
+.se-col-session {
+  width: 7%;
+}
+
+.se-col-total {
+  width: 9%;
+  color: var(--primary) !important;
+}
+
+/* Active session header highlight */
+.se-th-active {
+  background: rgba(var(--primary-rgb), 0.1) !important;
+  color: var(--primary) !important;
+  border-bottom: 2px solid var(--primary) !important;
+}
+
+/* ── ROW TYPES ── */
+.se-eval-table tbody td {
+  padding: 0.7rem 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+/* Section header rows */
+.se-section-header td {
+  background: rgba(var(--primary-rgb), 0.07);
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.2);
+  padding: 0.6rem 1.25rem;
+  text-align: left !important;
+}
+
+.se-section-label {
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--primary);
+  margin-right: 1rem;
+}
+
+.se-section-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.se-bonus-header td {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+/* Criteria cell */
+.se-criteria-cell {
+  text-align: left !important;
+  padding-left: 1.25rem !important;
+  line-height: 1.4;
+}
+
+.se-num {
+  color: var(--primary);
+  font-weight: 700;
+  margin-right: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.se-criteria-text {
+  color: var(--text-color);
+  font-size: 0.85rem;
+}
+
+/* Criteria rows hover */
+.se-criteria-row:hover {
+  background: rgba(var(--primary-rgb), 0.03);
+}
+
+/* ── CHECKBOXES ── */
+.se-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-color);
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+  position: relative;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.se-checkbox.checked {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.4);
+}
+
+.se-checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid #000;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.se-check-cell {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.se-check-cell:hover {
+  background: rgba(var(--primary-rgb), 0.06) !important;
+}
+
+/* Locked cell (session not yet reached) */
+.se-check-cell.locked {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.se-check-cell.locked .se-checkbox {
+  cursor: not-allowed;
+}
+
+/* Growth row */
+.se-growth-row {
+  background: rgba(var(--primary-rgb), 0.04);
+}
+
+.se-growth-label {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.se-growth-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 0.15rem;
+}
+
+.se-growth-cell {
+  font-weight: 700;
+  color: var(--success, #22c55e);
+  font-size: 0.95rem;
+}
+
+/* Session totals row */
+.se-session-total-row {
+  background: rgba(255,255,255,0.03);
+  border-top: 2px solid var(--border-color);
+}
+
+.se-session-score {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+
+/* Laxity row */
+.se-laxity-row {
+  background: rgba(220, 38, 38, 0.04);
+}
+
+.se-laxity-cell {
+  color: var(--danger, #ef4444) !important;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.se-laxity-total {
+  font-weight: 700;
+}
+
+/* Row totals */
+.se-row-total {
+  font-weight: 700;
+  color: var(--primary);
+  border-left: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+/* Bonus rows */
+.se-bonus-row {
+  background: rgba(245, 158, 11, 0.02);
+}
+
+.se-bonus-check {
+  text-align: left !important;
+  padding-left: 2rem !important;
+}
+
+.se-bonus-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.se-bonus-cb {
+  cursor: pointer;
+}
+
+.se-bonus-pts {
+  font-size: 0.9rem;
+}
+
+/* Total bonus row */
+.se-total-bonus-row {
+  background: rgba(var(--primary-rgb), 0.06);
+  border-top: 2px solid rgba(var(--primary-rgb), 0.2);
+}
+
+/* Grand total row */
+.se-grand-total-row {
+  background: rgba(var(--primary-rgb), 0.1);
+  border-top: 2px solid var(--primary);
+}
+
+.se-grand-score {
+  font-weight: 800;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.se-primary-total {
+  color: var(--primary) !important;
+  font-size: 1.05rem !important;
+}
+
+/* ── SAVE BAR ── */
+.se-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface-light);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+}
+
+.se-save-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.se-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.se-save-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.se-save-btn:active {
+  transform: translateY(0);
+}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .se-grand-summary {
+    flex-wrap: wrap;
+  }
+
+  .se-grand-block {
+    flex: 1 1 45%;
+  }
+
+  .se-grand-divider {
+    display: none;
+  }
+
+  .se-scoring-banner {
+    flex-direction: column;
+  }
+
+  .se-save-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

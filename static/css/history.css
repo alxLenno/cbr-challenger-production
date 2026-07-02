@@ -1,0 +1,151 @@
+/* =====================================================
+   CARD HISTORY / LIBRARY TAB
+===================================================== */
+
+.history-section {
+  padding: 1.5rem 2rem;
+}
+
+.history-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.history-section-title .title-text h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+}
+
+.history-section-title .title-text p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.history-progress-wrapper {
+  margin-bottom: 2rem;
+}
+
+/* ===================================================
+   LIBRARY TABLE
+=================================================== */
+
+.library-table-wrapper {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  background: var(--surface-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+}
+
+.library-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+}
+
+.library-table th {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--panel-border);
+}
+.light-mode .library-table th {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.library-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: left;
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.library-table tr:last-child td { 
+  border-bottom: none; 
+}
+
+.library-table tbody tr {
+  transition: background var(--transition-fast);
+}
+.library-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.light-mode .library-table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.library-actions { 
+  display: flex; 
+  gap: 0.5rem; 
+  justify-content: flex-end; 
+}
+
+.library-actions .btn-small { 
+  padding: 0.4rem 0.6rem; 
+  font-size: 0.85rem; 
+  border-radius: 8px; 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.library-actions .btn-small:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Empty State */
+.empty-state-message {
+  text-align: center;
+  padding: 3rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.empty-state-icon {
+  font-size: 2.5rem;
+  opacity: 0.6;
+  margin-bottom: 0.5rem;
+}
+.empty-state-message p {
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+.empty-state-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Mobile adjustments */
+@media (max-width: 900px) {
+  .history-section {
+    padding: 1rem;
+  }
+  .library-table-wrapper {
+    max-width: calc(100vw - 2rem);
+  }
+}

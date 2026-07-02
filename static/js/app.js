@@ -38,6 +38,10 @@ const elements = {
   // Chart Elements
   weekSelectChart: document.getElementById('week-select-chart'),
   chartContainer: document.getElementById('chart-container'),
+  cwdTrigger: document.getElementById('cwd-trigger'),
+  cwdLabel: document.getElementById('cwd-label'),
+  cwdList: document.getElementById('cwd-list'),
+  cwdDropdown: document.getElementById('custom-week-dropdown'),
   
   // Modals & Forms
   dayModal: document.getElementById('day-modal'),
@@ -129,7 +133,35 @@ const elements = {
   // Mobile UI Elements
   hamburgerBtn: document.getElementById('hamburger-btn'),
   sidebarSection: document.getElementById('sidebar-section'),
-  mobileSidebarOverlay: document.getElementById('mobile-sidebar-overlay')
+  mobileSidebarOverlay: document.getElementById('mobile-sidebar-overlay'),
+
+  // Profile Page Elements
+  topbarProfileBtn: document.getElementById('topbar-profile-btn'),
+  topbarAvatarImg: document.getElementById('topbar-avatar-img'),
+  topbarAvatarIcon: document.getElementById('topbar-avatar-icon'),
+  topbarUsername: document.getElementById('topbar-username'),
+  
+  profileAvatarImg: document.getElementById('profile-avatar-img'),
+  profileAvatarFallback: document.getElementById('profile-avatar-fallback'),
+  profileDisplayName: document.getElementById('profile-display-name'),
+  profileDisplayEmail: document.getElementById('profile-display-email'),
+  profileInputUsername: document.getElementById('profile-input-username'),
+  profileInputContact: document.getElementById('profile-input-contact'),
+  profileInputChurch: document.getElementById('profile-input-church'),
+  profileCardNum: document.getElementById('profile-card-num'),
+  profileCommenceDate: document.getElementById('profile-commence-date'),
+  btnProfileSave: document.getElementById('btn-profile-save'),
+  profileSaveMsg: document.getElementById('profile-save-msg'),
+  
+  milestoneDays: document.getElementById('milestone-days'),
+  milestonePoints: document.getElementById('milestone-points'),
+  milestoneChapters: document.getElementById('milestone-chapters'),
+  milestoneBarriers: document.getElementById('milestone-barriers'),
+
+  // Sidebar footer
+  sidebarFooterName: document.getElementById('sidebar-footer-name'),
+  sidebarFooterEmail: document.getElementById('sidebar-footer-email'),
+  sidebarFooterAvatar: document.getElementById('sidebar-footer-avatar')
 };
 
 // Initialize Application
@@ -139,6 +171,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUI();
   setupEventListeners();
   renderAll();
+  // Prefetch leaderboard in background so it's instant on tab open
+  prefetchLeaderboard();
 });
 
 function checkAndArchiveCompletedCard() {
@@ -271,9 +305,40 @@ async function loadState() {
   }
 }
 
+function syncActiveCardToArchiveIfNeeded() {
+  if (!appState || !appState.savedCards || isViewingHistory) return;
+  const cId = appState.currentCardId;
+  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  if (existingIdx >= 0) {
+    const stats = calculateScores();
+    const syncedArchive = {
+      instanceId: `card_${cId}`,
+      currentCardId: cId,
+      cardId: cId,
+      commencingDate: appState.commencingDate,
+      username: appState.username,
+      contact: appState.contact,
+      church: appState.church,
+      weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
+      days: JSON.parse(JSON.stringify(appState.days)),
+      weeks: JSON.parse(JSON.stringify(appState.weeks)),
+      totalScore: stats.totalScore,
+      totalLaxity: stats.totalLaxity,
+      savedAt: new Date().toISOString()
+    };
+    appState.savedCards[existingIdx] = syncedArchive;
+    fetch('/api/archive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(syncedArchive)
+    }).catch(e => console.error("Failed to sync archive", e));
+  }
+}
+
 // Save state to Backend
 function saveState() {
   if (isViewingHistory) return;
+  syncActiveCardToArchiveIfNeeded();
   fetch('/api/save_state', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -341,7 +406,9 @@ function initDefaultState() {
 
 // Get active data (switches dynamically if viewing historical records)
 function getActiveData() {
-  return isViewingHistory ? historicalCardData : appState;
+  const d = isViewingHistory ? historicalCardData : appState;
+  if (d && !d.currentCardId) d.currentCardId = d.cardId || 1;
+  return d;
 }
 
 // Initialize static UI components like Bible Books drop-downs, sidebar data, etc.
@@ -476,6 +543,33 @@ function initUI() {
 
 // Event Listeners Setup
 function setupEventListeners() {
+  if (elements.topbarProfileBtn) {
+    elements.topbarProfileBtn.addEventListener('click', () => {
+      const accountTabBtn = document.querySelector('.tab-btn[data-tab="tab-account"]');
+      if (accountTabBtn) accountTabBtn.click();
+      const profileSubtabBtn = document.querySelector('.subnav-btn[data-subtab="tab-profile"]');
+      if (profileSubtabBtn) profileSubtabBtn.click();
+    });
+  }
+
+  if (elements.btnProfileSave) {
+    elements.btnProfileSave.addEventListener('click', () => {
+      if (isViewingHistory) return;
+      appState.username = elements.profileInputUsername.value;
+      appState.contact = elements.profileInputContact.value;
+      appState.church = elements.profileInputChurch.value;
+      if (elements.usernameInput) elements.usernameInput.value = appState.username;
+      if (elements.contactInput) elements.contactInput.value = appState.contact;
+      if (elements.churchInput) elements.churchInput.value = appState.church;
+      saveState();
+      renderProfile();
+      if (elements.profileSaveMsg) {
+        elements.profileSaveMsg.style.display = 'block';
+        setTimeout(() => { elements.profileSaveMsg.style.display = 'none'; }, 3000);
+      }
+    });
+  }
+
   // Profile / Settings Change Handlers
   const profileInputs = [elements.usernameInput, elements.contactInput, elements.churchInput];
   profileInputs.forEach(input => {
@@ -551,26 +645,42 @@ function setupEventListeners() {
         }
       });
       
+      if (target === 'tab-leaderboard') {
+        fetchLeaderboard();
+      }
+      if (target === 'tab-session-eval') {
+        initSessionEval();
+      }
+      
       // On mobile, automatically close sidebar after making a selection
-      if (window.innerWidth <= 900 && elements.sidebarSection && elements.sidebarSection.classList.contains('open')) {
-        elements.sidebarSection.classList.remove('open');
-        if (elements.mobileSidebarOverlay) elements.mobileSidebarOverlay.classList.remove('open');
+      if (window.innerWidth <= 900) {
+        if (typeof window.closeSidebar === 'function') {
+          window.closeSidebar();
+        } else if (elements.sidebarSection && elements.sidebarSection.classList.contains('open')) {
+          elements.sidebarSection.classList.remove('open');
+          if (elements.mobileSidebarOverlay) elements.mobileSidebarOverlay.classList.remove('open');
+          if (elements.hamburgerBtn) elements.hamburgerBtn.classList.remove('open');
+        }
       }
     });
   });
 
-  // Mobile Sidebar Toggle
-  if (elements.hamburgerBtn && elements.sidebarSection && elements.mobileSidebarOverlay) {
-    elements.hamburgerBtn.addEventListener('click', () => {
-      elements.sidebarSection.classList.add('open');
-      elements.mobileSidebarOverlay.classList.add('open');
+  // Subnav Tabs Handler
+  document.querySelectorAll('.subnav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.subtab;
+      const parentTab = btn.closest('.tab-content');
+      if (!parentTab) return;
+      parentTab.querySelectorAll('.subnav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      parentTab.querySelectorAll('.subtab-content').forEach(c => {
+        if (c.id === target) c.classList.add('active');
+        else c.classList.remove('active');
+      });
     });
-    
-    elements.mobileSidebarOverlay.addEventListener('click', () => {
-      elements.sidebarSection.classList.remove('open');
-      elements.mobileSidebarOverlay.classList.remove('open');
-    });
-  }
+  });
+
+  // (Mobile sidebar toggle is handled globally in index.html to prevent duplicate click events)
 
   // Modal Close
   elements.modalClose.addEventListener('click', closeModal);
@@ -622,11 +732,29 @@ function setupEventListeners() {
     saveDayLog();
   });
 
-  // Chart Week selector
-  elements.weekSelectChart.addEventListener('change', () => {
-    currentWeekForChart = parseInt(elements.weekSelectChart.value, 10);
-    renderChart();
-  });
+  // Custom Week Dropdown logic
+  if (elements.cwdTrigger && elements.cwdList) {
+    // Toggle open/close
+    elements.cwdTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = elements.cwdList.classList.toggle('open');
+      elements.cwdTrigger.classList.toggle('open', isOpen);
+      elements.cwdTrigger.setAttribute('aria-expanded', isOpen);
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', () => {
+      elements.cwdList.classList.remove('open');
+      elements.cwdTrigger.classList.remove('open');
+      elements.cwdTrigger.setAttribute('aria-expanded', 'false');
+    });
+
+    // Keep native select in sync for any legacy code referencing it
+    elements.weekSelectChart.addEventListener('change', () => {
+      currentWeekForChart = parseInt(elements.weekSelectChart.value, 10);
+      renderChart();
+    });
+  }
 
   // Master Actions
   elements.btnExport.addEventListener('click', exportData);
@@ -974,13 +1102,272 @@ function saveDayLog() {
   renderAll();
 }
 
+// RENDER TODAY AT A GLANCE TAB
+function renderToday() {
+  const todayEl = document.getElementById('tab-today');
+  if (!todayEl) return;
+  const data = getActiveData();
+  if (!data) return;
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
+
+  // Calculate today's day number
+  const todayStr = new Date().toISOString().split('T')[0];
+  let dayNum = 1;
+  if (data.commencingDate) {
+    const diffTime = new Date(todayStr) - new Date(data.commencingDate);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0 && diffDays < 28) {
+      dayNum = diffDays + 1;
+    } else if (diffDays >= 28) {
+      dayNum = 28;
+    }
+  }
+
+  const dayData = (data.days || []).find(d => d.dayNumber === dayNum) || {};
+
+  // Update Heading
+  const dateHeading = document.getElementById('today-date-heading');
+  if (dateHeading) {
+    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+    dateHeading.innerText = new Date().toLocaleDateString('en-US', options);
+  }
+
+  const cycleSub = document.getElementById('today-cycle-sub');
+  if (cycleSub) {
+    const weekNum = Math.ceil(dayNum / 7);
+    cycleSub.innerText = `Day ${dayNum} of 28 • Week ${weekNum} • Active Card #${card.cardId}`;
+  }
+
+  // Targets
+  const readingTarget = document.getElementById('today-reading-target');
+  if (readingTarget) readingTarget.innerText = `Target: ${card.chaptersTarget} Chapter${card.chaptersTarget > 1 ? 's' : ''}`;
+
+  const wakingTarget = document.getElementById('today-waking-target');
+  if (wakingTarget) wakingTarget.innerText = `Limit: ${card.ertTarget}`;
+
+  // Journal method
+  const journalTitle = document.getElementById('today-journal-method-title');
+  if (journalTitle) {
+    journalTitle.innerText = card.cardId >= 4 ? '2. Bible Study (OPEN)' : '2. Devotional Journaling (FID)';
+  }
+
+  // Psalm verse
+  const psalmVerse = document.getElementById('today-psalm-verse');
+  if (psalmVerse) {
+    psalmVerse.innerText = `Psalm 119:${dayNum}`;
+  }
+
+  // Statuses
+  const totalChaptersRead = (dayData.morningChapters || 0) + (dayData.daytimeChapters || 0);
+  const statusReading = document.getElementById('today-status-reading');
+  if (statusReading) {
+    if (totalChaptersRead >= card.chaptersTarget) {
+      statusReading.className = 'act-status completed';
+      statusReading.innerText = `✅ Read (${totalChaptersRead} ch)`;
+    } else if (totalChaptersRead > 0) {
+      statusReading.className = 'act-status partial';
+      statusReading.innerText = `🔄 Partial (${totalChaptersRead}/${card.chaptersTarget})`;
+    } else {
+      statusReading.className = 'act-status late';
+      statusReading.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusJournal = document.getElementById('today-status-journal');
+  if (statusJournal) {
+    const hasJournal = (dayData.journalNotes && dayData.journalNotes.trim().length > 0) || dayData.fidFocus || dayData.openObservation;
+    if (hasJournal) {
+      statusJournal.className = 'act-status completed';
+      statusJournal.innerText = '✅ Recorded';
+    } else {
+      statusJournal.className = 'act-status late';
+      statusJournal.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusWaking = document.getElementById('today-status-waking');
+  if (statusWaking) {
+    if (dayData.wakingTime) {
+      const isLate = (dayData.wakingTime > card.ertTarget);
+      statusWaking.className = isLate ? 'act-status late' : 'act-status completed';
+      statusWaking.innerText = isLate ? `⚠️ Late (${dayData.wakingTime})` : `⏰ On Time (${dayData.wakingTime})`;
+    } else {
+      statusWaking.className = 'act-status late';
+      statusWaking.innerText = '❌ Not Ticked';
+    }
+  }
+
+  const statusBarriers = document.getElementById('today-status-barriers');
+  if (statusBarriers) {
+    if (dayData.cbId) {
+      statusBarriers.className = 'act-status late';
+      statusBarriers.innerText = `⚠️ Recorded (${dayData.cbId})`;
+    } else {
+      statusBarriers.className = 'act-status clear';
+      statusBarriers.innerText = '🟢 Clear';
+    }
+  }
+
+  // Populate Filled Details Box 1: Scripture Reading
+  const detReading = document.getElementById('today-details-reading');
+  if (detReading) {
+    if (dayData.bibleBook && ((dayData.morningChapters || 0) > 0 || (dayData.laterChapters || 0) > 0)) {
+      detReading.style.display = 'block';
+      detReading.innerHTML = `<strong style="color:var(--primary);">📖 Book:</strong> ${dayData.bibleBook} ${dayData.startChapter ? `(Ch ${dayData.startChapter}${dayData.endChapter && dayData.endChapter != dayData.startChapter ? `-${dayData.endChapter}` : ''})` : ''}<br>
+      <strong style="color:#34d399;">☀️ Morning:</strong> ${dayData.morningChapters || 0} ch &nbsp;&bull;&nbsp; <strong style="color:#94a3b8;">🌙 Later:</strong> ${dayData.laterChapters || 0} ch`;
+    } else {
+      detReading.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 2: Devotional Journaling
+  const detJournal = document.getElementById('today-details-journal');
+  if (detJournal) {
+    const hasFid = dayData.fidFocus || dayData.fidInsight || dayData.fidDoing;
+    const hasOpen = dayData.openObservation || dayData.openPrinciples || dayData.openExperience || dayData.openNeed;
+    if (hasFid || hasOpen || (dayData.journalNotes && dayData.journalNotes.trim().length > 0)) {
+      detJournal.style.display = 'block';
+      let html = '';
+      if (hasFid) {
+        if (dayData.fidFocus) html += `<div><strong style="color:#60a5fa;">🎯 Focus:</strong> ${dayData.fidFocus}</div>`;
+        if (dayData.fidInsight) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">💡 Insight:</strong> ${dayData.fidInsight}</div>`;
+        if (dayData.fidDoing) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🏃 Doing:</strong> ${dayData.fidDoing}</div>`;
+      } else if (hasOpen) {
+        if (dayData.openObservation) html += `<div><strong style="color:#60a5fa;">👁️ Observation:</strong> ${dayData.openObservation}</div>`;
+        if (dayData.openPrinciples) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">📜 Principles:</strong> ${dayData.openPrinciples}</div>`;
+        if (dayData.openExperience) html += `<div style="margin-top:0.35rem;"><strong style="color:#c084fc;">⚡ Experience:</strong> ${dayData.openExperience}</div>`;
+        if (dayData.openNeed) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🙏 Need:</strong> ${dayData.openNeed}</div>`;
+      } else if (dayData.journalNotes) {
+        html += `<div><strong style="color:#60a5fa;">📝 Notes:</strong> ${dayData.journalNotes}</div>`;
+      }
+      detJournal.innerHTML = html;
+    } else {
+      detJournal.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 3: Waking Time
+  const detWaking = document.getElementById('today-details-waking');
+  if (detWaking) {
+    if (dayData.wakingTime) {
+      detWaking.style.display = 'block';
+      detWaking.innerHTML = `<div><strong style="color:#60a5fa;">⏰ Logged Waking:</strong> ${dayData.wakingTime}</div>`;
+    } else {
+      detWaking.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 4: Consistency Barriers
+  const detBarriers = document.getElementById('today-details-barriers');
+  if (detBarriers) {
+    if (dayData.cbId) {
+      detBarriers.style.display = 'block';
+      detBarriers.innerHTML = `<div><strong style="color:#f87171;">🚨 Barrier Code:</strong> ${dayData.cbId}</div>
+      ${dayData.cbSolution ? `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">💡 Conviction Principle:</strong> ${dayData.cbSolution}</div>` : ''}
+      ${dayData.cbScripture ? `<div style="margin-top:0.35rem;"><strong style="color:#60a5fa;">📖 Supporting Verse:</strong> ${dayData.cbScripture}</div>` : ''}`;
+    } else {
+      detBarriers.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 5: Psalm / Memorized Verse
+  const detPsalm = document.getElementById('today-details-psalm');
+  if (detPsalm) {
+    if (dayData.scriptureMemorized) {
+      detPsalm.style.display = 'block';
+      detPsalm.innerHTML = `<div><strong style="color:#c084fc;">📜 Memorized Scripture:</strong> ${dayData.scriptureMemorized}</div>`;
+    } else {
+      detPsalm.style.display = 'none';
+    }
+  }
+
+  // Populate Filled Details Box 6: Prayer / Fellowship
+  const detPe = document.getElementById('today-details-pe');
+  if (detPe) {
+    if (dayData.prayerTopic) {
+      detPe.style.display = 'block';
+      detPe.innerHTML = `<div><strong style="color:#fbbf24;">🙏 Prayer / Sharing Topic:</strong> ${dayData.prayerTopic}</div>`;
+    } else {
+      detPe.style.display = 'none';
+    }
+  }
+
+  // Log Button Click & Label
+  const btnTodayLog = document.getElementById('btn-today-log');
+  if (btnTodayLog) {
+    const hasLogged = ((dayData.morningChapters || 0) + (dayData.daytimeChapters || 0) > 0) ||
+                      (dayData.journalNotes && dayData.journalNotes.trim().length > 0) ||
+                      dayData.fidFocus || dayData.openObservation ||
+                      dayData.wakingTime || dayData.cbId || dayData.prayerTopic;
+    if (hasLogged) {
+      btnTodayLog.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit Today's Entry`;
+    } else {
+      btnTodayLog.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Log Today's Entry`;
+    }
+    btnTodayLog.onclick = () => {
+      openDayModal(dayNum);
+    };
+  }
+}
+
 // RENDER ALL PAGE COMPONENTS
 function renderAll() {
+  renderToday();
   renderHeaderAndKPIs();
   renderCalendarGrid();
   renderChart();
   renderScoringTable();
   renderLibraryList();
+  renderProfile();
+}
+
+function renderProfile() {
+  const data = getActiveData();
+  if (!data) return;
+  const name = data.username || "Trainee";
+  const email = data.email || "";
+  const pic = data.profilePic || "";
+
+  if (elements.topbarUsername) elements.topbarUsername.innerText = name.split(' ')[0];
+  if (pic && elements.topbarAvatarImg) {
+    elements.topbarAvatarImg.src = pic;
+    elements.topbarAvatarImg.style.display = 'inline-block';
+    if (elements.topbarAvatarIcon) elements.topbarAvatarIcon.style.display = 'none';
+  }
+
+  // Sidebar footer
+  if (elements.sidebarFooterName) elements.sidebarFooterName.textContent = name.split(' ')[0] || 'Profile';
+  if (elements.sidebarFooterEmail) elements.sidebarFooterEmail.textContent = email || '—';
+  if (elements.sidebarFooterAvatar && pic) {
+    elements.sidebarFooterAvatar.innerHTML = `<img src="${pic}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  }
+
+  if (elements.profileDisplayName) elements.profileDisplayName.innerText = name;
+  if (elements.profileDisplayEmail) elements.profileDisplayEmail.innerText = email;
+  if (pic && elements.profileAvatarImg) {
+    elements.profileAvatarImg.src = pic;
+    elements.profileAvatarImg.style.display = 'block';
+    if (elements.profileAvatarFallback) elements.profileAvatarFallback.style.display = 'none';
+  } else if (elements.profileAvatarFallback) {
+    elements.profileAvatarFallback.innerText = name ? name[0].toUpperCase() : '👤';
+  }
+
+  if (elements.profileInputUsername) elements.profileInputUsername.value = name;
+  if (elements.profileInputContact) elements.profileInputContact.value = data.contact || "";
+  if (elements.profileInputChurch) elements.profileInputChurch.value = data.church || "";
+  if (elements.profileCardNum) elements.profileCardNum.innerText = `Card #${data.currentCardId || 1}`;
+  if (elements.profileCommenceDate) elements.profileCommenceDate.innerText = data.commencingDate || "—";
+
+  const daysList = data.days || [];
+  const completedDays = daysList.filter(d => d.wakingTime || (d.morningChapters + d.laterChapters) > 0).length;
+  const totalChapters = daysList.reduce((acc, d) => acc + (d.morningChapters || 0) + (d.laterChapters || 0), 0);
+  const resolvedBarriers = daysList.filter(d => d.cbResolved).length;
+  const stats = calculateScores();
+
+  if (elements.milestoneDays) elements.milestoneDays.innerText = completedDays;
+  if (elements.milestonePoints) elements.milestonePoints.innerText = stats ? stats.totalScore : 0;
+  if (elements.milestoneChapters) elements.milestoneChapters.innerText = totalChapters;
+  if (elements.milestoneBarriers) elements.milestoneBarriers.innerText = resolvedBarriers;
 }
 
 // Render Header and KPI Counters
@@ -996,7 +1383,7 @@ function renderHeaderAndKPIs() {
   elements.kpiTotalPoints.innerText = `${stats.totalScore} pts`;
   elements.kpiLaxityPoints.innerText = `${stats.totalLaxity} pts`;
   
-  // Update chart week selector options
+  // Update chart week selector options (native select + custom dropdown)
   const sel = elements.weekSelectChart;
   const prevVal = currentWeekForChart;
   sel.innerHTML = '';
@@ -1010,6 +1397,37 @@ function renderHeaderAndKPIs() {
   if (currentWeekForChart > data.weeks.length) {
     currentWeekForChart = data.weeks.length;
     sel.value = currentWeekForChart;
+  }
+
+  // Populate custom dropdown list
+  if (elements.cwdList && elements.cwdLabel) {
+    elements.cwdList.innerHTML = '';
+    for (let w = 1; w <= data.weeks.length; w++) {
+      const li = document.createElement('li');
+      li.textContent = `Week ${w}`;
+      li.setAttribute('role', 'option');
+      if (w === currentWeekForChart) {
+        li.classList.add('selected');
+        elements.cwdLabel.textContent = `Week ${w}`;
+      }
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Update selection state
+        elements.cwdList.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
+        li.classList.add('selected');
+        currentWeekForChart = w;
+        elements.cwdLabel.textContent = `Week ${w}`;
+        // Sync native select
+        sel.value = w;
+        // Close dropdown
+        elements.cwdList.classList.remove('open');
+        elements.cwdTrigger.classList.remove('open');
+        elements.cwdTrigger.setAttribute('aria-expanded', 'false');
+        // Re-render chart
+        renderChart();
+      });
+      elements.cwdList.appendChild(li);
+    }
   }
 }
 
@@ -1145,13 +1563,18 @@ function renderCalendarGrid() {
         { name: 'dataValidity', title: 'Data Validity', isValidity: true }
       ];
       
+      const isPastOrCurrent = (dayDate <= todayStr) || isViewingHistory;
       dots.forEach(dot => {
         const dotSpan = document.createElement('span');
         dotSpan.className = 'disc-dot';
         if (dayData[dot.name]) {
           dotSpan.classList.add(dot.isValidity ? 'valid' : 'checked');
+          dotSpan.innerText = '✓';
+        } else if (isPastOrCurrent) {
+          dotSpan.classList.add('missed');
+          dotSpan.innerText = '✕';
         }
-        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : 'Missed'}`;
+        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : (isPastOrCurrent ? 'Not Ticked (X)' : 'Future')}`;
         disciplinesDiv.appendChild(dotSpan);
       });
       dayBlock.appendChild(disciplinesDiv);
@@ -1223,7 +1646,7 @@ function calculateScores() {
     
     const perseverancePoints = (perseveranceMetDaysCount === 7) ? 3 : 0;
     const commitmentPoints = (commitmentMetDaysCount === 7) ? 2 : 0;
-    const prayerfulnessPoints = (prayerfulnessMetDaysCount === 7) ? 1 : 0;
+    const prayerfulnessPoints = (prayerfulnessMetDaysCount === 7) ? 2 : 0;
     const scriptureMemoryPoints = (scriptureMemoryMetDaysCount === 7) ? 1 : 0;
     const meditationFidPoints = (meditationFidMetDaysCount === 7) ? 1 : 0;
     
@@ -1272,7 +1695,7 @@ function renderScoringTable() {
   const disciplines = [
     { name: 'Perseverance (Chapters Read)', key: 'perseverance', max: 3, desc: 'Read ALL set chapters each day' },
     { name: 'Commitment (Early Rising)', key: 'commitment', max: 2, desc: 'Woke up at set ERT each day' },
-    { name: 'Prayerfulness (CBR Prayer)', key: 'prayer', max: 1, desc: 'Prayed 10 mins after CBR each day' },
+    { name: 'Prayerfulness (CBR Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBR each day' },
     { name: 'Scripture Memory (Recitations)', key: 'memory', max: 1, desc: 'Recited the memory scripture each day' },
     { name: 'Meditation (Journal Notes)', key: 'meditation', max: 1, desc: 'Wrote method journal notes each day' },
     { name: 'Accountability (Sharing / PE Meeting)', key: 'accountability', max: 1, desc: 'Sharing & PE meeting once a week' }
@@ -1619,19 +2042,19 @@ function renderLibraryList() {
     
     const btnView = document.createElement('button');
     btnView.className = 'btn btn-secondary btn-small';
-    btnView.innerText = '👁️';
+    btnView.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     btnView.title = 'View this card';
     btnView.addEventListener('click', () => loadHistoricalView(card.instanceId));
     tdActions.appendChild(btnView);
     
     const btnPrint = document.createElement('button');
     btnPrint.className = 'btn btn-secondary btn-small';
-    btnPrint.innerText = '🖨️';
+    btnPrint.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
     btnPrint.title = 'Print this card';
     btnPrint.addEventListener('click', () => {
       historicalCardData = card;
       isViewingHistory = true;
-      prepareAndPrintCard();
+      printChallengerCard(card);
       isViewingHistory = false;
       historicalCardData = null;
     });
@@ -1640,7 +2063,7 @@ function renderLibraryList() {
     const btnDel = document.createElement('button');
     btnDel.className = 'btn btn-secondary btn-small';
     btnDel.style.cssText = 'border-color:rgba(var(--danger-rgb),0.3);color:var(--danger);';
-    btnDel.innerText = '🗑️';
+    btnDel.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     btnDel.title = 'Delete this archive';
     btnDel.addEventListener('click', () => deleteArchivedCard(card.instanceId));
     tdActions.appendChild(btnDel);
@@ -1695,9 +2118,11 @@ function archiveActiveCard(silent = false) {
     return false;
   }
   
+  const cId = appState.currentCardId;
   const archiveInstance = {
-    instanceId: `card_${appState.currentCardId}_${new Date().getTime()}`,
-    cardId: appState.currentCardId,
+    instanceId: `card_${cId}`,
+    currentCardId: cId,
+    cardId: cId,
     commencingDate: appState.commencingDate,
     username: appState.username,
     contact: appState.contact,
@@ -1710,7 +2135,12 @@ function archiveActiveCard(silent = false) {
     savedAt: new Date().toISOString()
   };
   
-  appState.savedCards.push(archiveInstance);
+  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  if (existingIdx >= 0) {
+    appState.savedCards[existingIdx] = archiveInstance;
+  } else {
+    appState.savedCards.push(archiveInstance);
+  }
   
   fetch('/api/archive', {
     method: 'POST',
@@ -1800,6 +2230,9 @@ function loadHistoricalView(instanceId) {
   elements.weakness3Name.disabled = true;
   elements.weakness3Action.disabled = true;
   
+  const todayTabBtn = document.querySelector('.tab-btn[data-tab="tab-today"]');
+  if (todayTabBtn) todayTabBtn.click();
+  
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1825,15 +2258,35 @@ function exitHistoricalView() {
   
   initUI();
   renderAll();
+  
+  const historyTabBtn = document.querySelector('.tab-btn[data-tab="tab-history"]');
+  if (historyTabBtn) historyTabBtn.click();
 }
 
 // Delete completed card snapshot from database
+let pendingDeleteInstanceId = null;
+
 function deleteArchivedCard(instanceId) {
-  if (confirm("Are you sure you want to delete this archived card from history? This action is permanent.")) {
-    appState.savedCards = appState.savedCards.filter(c => c.instanceId !== instanceId);
-    saveState();
-    renderLibraryList();
-  }
+  pendingDeleteInstanceId = instanceId;
+  const modal = document.getElementById('delete-confirm-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeDeleteConfirmModal() {
+  pendingDeleteInstanceId = null;
+  const modal = document.getElementById('delete-confirm-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function confirmDeleteArchivedCard() {
+  if (!pendingDeleteInstanceId) return;
+  const instanceId = pendingDeleteInstanceId;
+  appState.savedCards = appState.savedCards.filter(c => c.instanceId !== instanceId);
+  fetch(`/api/archive/${instanceId}`, { method: 'DELETE' })
+    .catch(e => console.error("Failed to delete archive", e));
+  saveState();
+  renderLibraryList();
+  closeDeleteConfirmModal();
 }
 
 // Trigger print process for the current active or loaded history card
@@ -1894,5 +2347,421 @@ function importData(e) {
 function resetCurrentCard() {
   if (confirm("Are you sure you want to reset all log fields for the active card? This action cannot be undone unless you have archived it or exported a JSON backup.")) {
     resetActiveCardLogsOnly();
+  }
+}
+
+// ------------------------------------------------------------------------------
+// LEADERBOARD LOGIC
+// ----------------------------------------------------------------------
+let leaderboardCache = null;   // prefetched data stored here
+let leaderboardFetching = false; // prevent duplicate in-flight requests
+
+async function prefetchLeaderboard() {
+  // Fire-and-forget background fetch
+  try {
+    leaderboardFetching = true;
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    leaderboardCache = data.leaderboard || [];
+  } catch (e) {
+    leaderboardCache = null; // allow retry on tab click
+  } finally {
+    leaderboardFetching = false;
+  }
+}
+
+async function fetchLeaderboard() {
+  const loader = document.getElementById('leaderboard-loader');
+  const podium = document.getElementById('leaderboard-podium');
+  const listWrapper = document.getElementById('leaderboard-list-wrapper');
+  const tbody = document.getElementById('leaderboard-tbody');
+  
+  // If already cached, render instantly — no spinner
+  if (leaderboardCache !== null) {
+    renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
+    return;
+  }
+  
+  // Still loading or first click before prefetch finished — show spinner briefly
+  loader.style.display = 'flex';
+  podium.style.display = 'none';
+  listWrapper.style.display = 'none';
+  
+  // If already fetching in background, poll until done
+  if (leaderboardFetching) {
+    const interval = setInterval(() => {
+      if (!leaderboardFetching) {
+        clearInterval(interval);
+        if (leaderboardCache !== null) {
+          loader.style.display = 'none';
+          renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
+        } else {
+          loader.innerHTML = '<p style="color:var(--danger)">Error loading leaderboard. Please try again.</p>';
+        }
+      }
+    }, 100);
+    return;
+  }
+  
+  // Fallback: fetch on demand
+  try {
+    leaderboardFetching = true;
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    leaderboardCache = data.leaderboard || [];
+    loader.style.display = 'none';
+    renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
+  } catch (err) {
+    loader.innerHTML = '<p style="color:var(--danger)">Error loading leaderboard.</p>';
+  } finally {
+    leaderboardFetching = false;
+  }
+}
+
+function renderLeaderboard(leaderboard, podium, listWrapper, tbody) {
+  const loader = document.getElementById('leaderboard-loader');
+  
+  podium.innerHTML = '';
+  tbody.innerHTML = '';
+  
+  if (!leaderboard || leaderboard.length === 0) {
+    loader.style.display = 'flex';
+    loader.innerHTML = '<p>No leaderboard data available yet.</p>';
+    return;
+  }
+  
+  loader.style.display = 'none';
+  
+  // --- PODIUM: Top 3 ---
+  const top3 = leaderboard.slice(0, 3);
+  // Display order: 2nd left, 1st center, 3rd right
+  const podiumOrder = [top3[1] || null, top3[0] || null, top3[2] || null];
+  
+  podiumOrder.forEach(user => {
+    if (!user) return;
+    const avatarSrc = user.avatar || '';
+    const avatarHtml = avatarSrc
+      ? `<img src="${avatarSrc}" alt="${user.name}" class="podium-avatar">`
+      : `<div class="podium-avatar podium-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
+    
+    const crownHtml = user.rank === 1
+      ? `<div class="podium-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 0 0 0 2h10a1 1 0 0 0 0-2H7z"/></svg></div>`
+      : '';
+    
+    const pItem = document.createElement('div');
+    pItem.className = `podium-item rank-${user.rank}`;
+    pItem.innerHTML = `
+      ${crownHtml}
+      ${avatarHtml}
+      <div class="podium-name" title="${user.name}">${user.name}</div>
+      <div class="podium-points"><strong>${user.points}</strong> PTS</div>
+      <div class="podium-card-label">Card ${user.cardLevel}</div>
+      <div class="podium-rank-badge">${user.rank}</div>
+    `;
+    podium.appendChild(pItem);
+  });
+  podium.style.display = 'flex';
+  
+  // --- TABLE: Rank 4+ ---
+  const rest = leaderboard.slice(3);
+  if (rest.length > 0) {
+    rest.forEach(user => {
+      const avatarSrc = user.avatar || '';
+      const avatarHtml = avatarSrc
+        ? `<img src="${avatarSrc}" alt="${user.name}" class="user-avatar-small">`
+        : `<div class="user-avatar-small user-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-rank">#${user.rank}</td>
+        <td class="col-user">${avatarHtml}<span>${user.name}</span></td>
+        <td class="col-card"><span class="card-badge">Card ${user.cardLevel}</span></td>
+        <td class="col-points text-right">${user.points}</td>
+        <td class="col-laxity text-center">${user.laxity}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    listWrapper.style.display = 'block';
+  }
+}
+
+// ======================================================================
+// SESSION EVALUATION LOGIC
+// ======================================================================
+
+let seData = {};   // { sessionNumber: { diligence:{}, bonus:{}, growthPoints } }
+let seInitialized = false;
+
+async function initSessionEval() {
+  if (seInitialized) {
+    seRenderAll();
+    return;
+  }
+  try {
+    const res = await fetch('/api/session_eval');
+    const json = await res.json();
+    const sessions = json.sessions || {};
+    // Merge fetched data into seData
+    for (const sNum in sessions) {
+      seData[sNum] = sessions[sNum];
+    }
+    
+    // Also pull growth points from saved cards in appState
+    if (appState && appState.savedCards) {
+      appState.savedCards.forEach(card => {
+        const cardId = card.currentCardId || card.cardId;
+        if (cardId && card.totalScore !== undefined) {
+          const sKey = String(cardId);
+          if (!seData[sKey]) seData[sKey] = { diligence: {}, bonus: {}, growthPoints: 0 };
+          // Use archived card's total score as growth points
+          seData[sKey].growthPoints = card.totalScore;
+        }
+      });
+    }
+    
+    seInitialized = true;
+    seRenderAll();
+    seBindCheckboxes();
+  } catch(e) {
+    console.error('Session eval load error', e);
+  }
+}
+
+function seRenderAll() {
+  const currentCard = appState ? appState.currentCardId : 1;
+  
+  // Update checkboxes from data
+  for (let s = 1; s <= 7; s++) {
+    const sData = seData[String(s)] || {};
+    const diligence = sData.diligence || {};
+    const bonus = sData.bonus || {};
+    
+    // Lock future sessions
+    const isCompleted = appState && appState.savedCards &&
+      appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
+    const isActive = (s === currentCard);
+    const isAccessible = isCompleted || isActive;
+    
+    // Session column header
+    const th = document.getElementById(`se-th-${s}`);
+    if (th) {
+      th.classList.toggle('se-th-active', isActive);
+    }
+    
+    // Growth points
+    const gCell = document.getElementById(`se-growth-${s}`);
+    if (gCell) {
+      const gp = sData.growthPoints || 0;
+      gCell.textContent = isAccessible ? gp : '—';
+    }
+    
+    // Diligence checkboxes
+    for (let d = 1; d <= 6; d++) {
+      const cell = document.querySelector(`td[data-session="${s}"][data-key="diligence"][data-num="${d}"]`);
+      if (!cell) continue;
+      const cb = cell.querySelector('.se-checkbox');
+      const checked = diligence[String(d)] || false;
+      if (cb) cb.classList.toggle('checked', checked);
+      cell.classList.toggle('locked', !isAccessible);
+    }
+  }
+  
+  // Bonus checkboxes (not session-specific)
+  const anySession = Object.values(seData).find(s => s.bonus) || {};
+  const bonus = anySession.bonus || {};
+  for (let b = 7; b <= 12; b++) {
+    const cb = document.getElementById(`se-bonus-${b}`);
+    if (cb) cb.classList.toggle('checked', !!(bonus[String(b)]));
+    const pts = document.getElementById(`se-bonus-${b}-pts`);
+    if (pts) pts.textContent = bonus[String(b)] ? '50' : '0';
+  }
+  
+  seRecalcTotals();
+}
+
+function seRecalcTotals() {
+  const currentCard = appState ? appState.currentCardId : 1;
+  let totalDiligence = 0;
+  let totalGrowth = 0;
+  let totalBonus = 0;
+
+  for (let s = 1; s <= 7; s++) {
+    const sData = seData[String(s)] || {};
+    const diligence = sData.diligence || {};
+    const isCompleted = appState && appState.savedCards &&
+      appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
+    const isActive = (s === currentCard);
+    const accessible = isCompleted || isActive;
+    
+    let sessionDiligence = 0;
+    for (let d = 1; d <= 6; d++) {
+      const checked = diligence[String(d)] || false;
+      sessionDiligence += checked ? 10 : 0;
+    }
+    
+    // Update per-row totals
+    for (let d = 1; d <= 6; d++) {
+      // row total across sessions
+    }
+    
+    // Session column diligence score
+    const sessionScoreEl = document.getElementById(`se-session-score-${s}`);
+    if (sessionScoreEl) sessionScoreEl.textContent = accessible ? sessionDiligence : '—';
+    
+    // Grand session total (diligence + growth)
+    const gp = accessible ? (sData.growthPoints || 0) : 0;
+    const grandScoreEl = document.getElementById(`se-grand-s${s}`);
+    if (grandScoreEl) grandScoreEl.textContent = accessible ? (sessionDiligence + gp) : '—';
+    
+    if (accessible) {
+      totalDiligence += sessionDiligence;
+      totalGrowth += gp;
+    }
+  }
+  
+  // Row totals for each diligence criterion
+  for (let d = 1; d <= 6; d++) {
+    let rowTotal = 0;
+    for (let s = 1; s <= 7; s++) {
+      const isCompleted = appState && appState.savedCards &&
+        appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
+      const isActive = (s === currentCard);
+      if (isCompleted || isActive) {
+        const sData = seData[String(s)] || {};
+        rowTotal += (sData.diligence || {})[String(d)] ? 10 : 0;
+      }
+    }
+    const rowTotalEl = document.getElementById(`se-row-d${d}-total`);
+    if (rowTotalEl) rowTotalEl.textContent = rowTotal;
+  }
+  
+  // Growth row total
+  const growthTotalEl = document.getElementById('se-growth-total');
+  if (growthTotalEl) growthTotalEl.textContent = totalGrowth;
+  
+  // Diligence total all
+  const dilTotalEl = document.getElementById('se-diligence-total-all');
+  if (dilTotalEl) dilTotalEl.textContent = totalDiligence;
+
+  // Bonus
+  const anySession = Object.values(seData).find(s => s.bonus) || {};
+  const bonus = anySession.bonus || {};
+  for (let b = 7; b <= 12; b++) {
+    if (bonus[String(b)]) totalBonus += 50;
+  }
+  const bonusTotalEl = document.getElementById('se-bonus-total');
+  if (bonusTotalEl) bonusTotalEl.textContent = totalBonus;
+  
+  const grandTotal = totalDiligence + totalGrowth + totalBonus;
+  
+  // Update summary bar
+  const elD = document.getElementById('se-total-diligence');
+  const elG = document.getElementById('se-total-growth');
+  const elB = document.getElementById('se-total-bonus');
+  const elA = document.getElementById('se-total-all');
+  const elGrand = document.getElementById('se-grand-total');
+  
+  if (elD) elD.textContent = totalDiligence;
+  if (elG) elG.textContent = totalGrowth;
+  if (elB) elB.textContent = totalBonus;
+  if (elA) elA.textContent = grandTotal;
+  if (elGrand) elGrand.textContent = grandTotal;
+  
+  // Color total based on target
+  if (elA) {
+    elA.style.color = grandTotal >= 600 ? 'var(--success)' : 'var(--primary)';
+  }
+}
+
+function seBindCheckboxes() {
+  // Diligence checkboxes
+  document.querySelectorAll('.se-check-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      if (cell.classList.contains('locked')) return;
+      const session = parseInt(cell.dataset.session);
+      const num = cell.dataset.num;
+      if (!seData[session]) seData[session] = { diligence: {}, bonus: {}, growthPoints: 0 };
+      if (!seData[session].diligence) seData[session].diligence = {};
+      seData[session].diligence[num] = !seData[session].diligence[num];
+      const cb = cell.querySelector('.se-checkbox');
+      if (cb) cb.classList.toggle('checked', seData[session].diligence[num]);
+      seRecalcTotals();
+      debounceSeAutoSave(session);
+    });
+  });
+  
+  // Bonus checkboxes
+  for (let b = 7; b <= 12; b++) {
+    const cb = document.getElementById(`se-bonus-${b}`);
+    if (!cb) continue;
+    cb.addEventListener('click', () => {
+      // Store bonus in session 7 by convention (end of course)
+      if (!seData['7']) seData['7'] = { diligence: {}, bonus: {}, growthPoints: 0 };
+      if (!seData['7'].bonus) seData['7'].bonus = {};
+      seData['7'].bonus[String(b)] = !seData['7'].bonus[String(b)];
+      cb.classList.toggle('checked', seData['7'].bonus[String(b)]);
+      const pts = document.getElementById(`se-bonus-${b}-pts`);
+      if (pts) pts.textContent = seData['7'].bonus[String(b)] ? '50' : '0';
+      seRecalcTotals();
+      debounceSeAutoSave(7);
+    });
+  }
+}
+
+let seSaveTimers = {};
+function debounceSeAutoSave(sessionNum) {
+  clearTimeout(seSaveTimers[sessionNum]);
+  seSaveTimers[sessionNum] = setTimeout(() => saveSessionEval(sessionNum), 800);
+}
+
+async function saveSessionEval(sessionNum) {
+  const sData = seData[String(sessionNum)] || {};
+  const diligence = sData.diligence || {};
+  const bonus = sData.bonus || {};
+  
+  // Get growth points for this session from archived cards
+  let growthPoints = sData.growthPoints || 0;
+  if (appState && appState.savedCards) {
+    const archived = appState.savedCards.find(c => (c.currentCardId || c.cardId) === sessionNum);
+    if (archived) growthPoints = archived.totalScore || 0;
+  }
+  if (sessionNum === (appState && appState.currentCardId)) {
+    const stats = calculateScores();
+    growthPoints = stats.totalScore;
+  }
+  
+  try {
+    await fetch('/api/session_eval', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionNumber: sessionNum,
+        diligence,
+        bonus,
+        growthPoints
+      })
+    });
+  } catch(e) {
+    console.error('Session eval save error', e);
+  }
+}
+
+async function saveSessionEvalAll() {
+  const currentCard = appState ? appState.currentCardId : 1;
+  const btn = document.getElementById('se-save-btn');
+  if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+  
+  for (let s = 1; s <= currentCard; s++) {
+    await saveSessionEval(s);
+  }
+  
+  if (btn) {
+    btn.innerHTML = '✅ Saved!';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Evaluation';
+      btn.disabled = false;
+    }, 2000);
   }
 }
