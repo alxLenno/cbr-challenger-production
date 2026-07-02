@@ -1,0 +1,347 @@
+/* =====================================================
+   TODAY TAB - FRESH STYLES
+===================================================== */
+
+/* Stretch the active tab to fill the screen */
+#tab-today.active {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--header-height, 70px) - 3rem);
+}
+
+.today-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex: 1; /* Grow to fill the `#tab-today` container */
+}
+
+/* --- Hero Card (Card 1) --- */
+.today-hero-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem 2rem;
+  border-radius: 20px;
+}
+
+.today-hero-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(var(--primary-rgb), 0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.25rem 0.7rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+body.light-mode .hero-badge { color: #d97706; }
+
+#today-date-heading {
+  font-size: 1.7rem;
+  font-weight: 800;
+  margin: 0 0 0.2rem 0;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+}
+
+.hero-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+.btn-today-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+.btn-today-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+/* --- Activities Container (Desktop: Grid of Cards) --- */
+.today-activities-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* --- Individual Activity Item (Desktop: Glass Card) --- */
+.today-activity-item {
+  padding: 1.5rem;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.today-activity-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+body.light-mode .today-activity-item:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.activity-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.icon-reading { background: rgba(var(--primary-rgb), 0.12); color: var(--primary-hover); border-color: rgba(var(--primary-rgb), 0.25); }
+.icon-journal { background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.25); }
+.icon-waking  { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
+.icon-barrier { background: rgba(244, 63, 94, 0.12);  color: #fb7185; border-color: rgba(244, 63, 94, 0.25); }
+.icon-psalm   { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.25); }
+.icon-pe      { background: rgba(6, 182, 212, 0.12);  color: #22d3ee; border-color: rgba(6, 182, 212, 0.25); }
+
+.activity-titles {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.activity-titles h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1.2;
+}
+
+.activity-target {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.activity-status {
+  margin-left: auto;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.activity-status.pending   { background: rgba(100,116,139,0.2); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+.activity-status.completed { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.4); }
+.activity-status.partial   { background: rgba(var(--primary-rgb),0.15); color: var(--primary-hover); border: 1px solid rgba(var(--primary-rgb),0.4); }
+.activity-status.late      { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.4);  }
+.activity-status.clear     { background: rgba(16,185,129,0.1);  color: #10b981; }
+.activity-status.bonus     { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.4); }
+.activity-status.reminder  { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+.activity-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.activity-details {
+  margin-top: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  line-height: 1.5;
+  color: var(--text-color);
+}
+body.light-mode .activity-details {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+/* =====================================================
+   MOBILE VIEW (<= 768px): SUPER COMPACT TWO-CARD LAYOUT
+===================================================== */
+@media (max-width: 768px) {
+  #tab-today.active {
+    min-height: calc(100dvh - var(--header-height, 70px) - 2rem);
+  }
+
+  .today-container {
+    gap: 0.4rem;
+    margin-bottom: 0;
+  }
+
+  /* Card 1: Hero Card (Super Compact, single row) */
+  .today-hero-card {
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+  }
+  
+  .hero-content {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 0.25rem;
+    align-items: center;
+  }
+  
+  /* Hide extras to save massive vertical space */
+  .hero-badge, .hero-sub {
+    display: none;
+  }
+  
+  #today-date-heading {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  
+  .hero-action {
+    width: auto;
+  }
+  
+  .btn-today-primary {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    border-radius: 8px;
+    width: auto;
+    gap: 0.2rem;
+  }
+  .btn-today-primary svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Card 2: Container morphs into a single glass panel and fills remaining space */
+  .today-activities-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* ← Grow to fill all remaining vertical space */
+    gap: 0;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    box-shadow: var(--shadow-md);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Inside Card 2: Rows share the available height evenly */
+  .today-activity-item {
+    flex: 1; /* ← Each row takes an equal share of the height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centre content vertically within its share */
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0;
+    padding: 0 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    gap: 0.1rem;
+  }
+  body.light-mode .today-activity-item {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  .today-activity-item:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Compact row headers */
+  .activity-header {
+    gap: 0.4rem;
+  }
+  
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .activity-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .activity-titles {
+    gap: 0;
+  }
+  
+  .activity-titles h4 {
+    font-size: 0.88rem;
+  }
+  
+  .activity-target {
+    font-size: 0.68rem;
+  }
+  
+  .activity-status {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  /* Hide lengthy descriptions on mobile to keep the card compact and neat */
+  .activity-desc {
+    display: none;
+  }
+  
+  .activity-details {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    margin-top: 0.1rem;
+  }
+}

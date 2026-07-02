@@ -113,3 +113,37 @@ class ArchivedCard(db.Model):
     total_laxity = db.Column(db.Integer, default=0)
     saved_at = db.Column(db.String(30), nullable=False)
     snapshot_data = db.Column(db.JSON, nullable=False)
+
+class SessionEvaluation(db.Model):
+    __tablename__ = 'session_evaluations'
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    session_number = db.Column(db.Integer, nullable=False)  # 1-7, mirrors card_id
+
+    # Diligence criteria (1-6), each true = 10 pts
+    diligence_1 = db.Column(db.Boolean, default=False)  # Arrived on TIME
+    diligence_2 = db.Column(db.Boolean, default=False)  # Completed ALL session activities
+    diligence_3 = db.Column(db.Boolean, default=False)  # 3 review meetings with PEs
+    diligence_4 = db.Column(db.Boolean, default=False)  # Scripture Memory & Data Validity 25+ days
+    diligence_5 = db.Column(db.Boolean, default=False)  # ORDERLY (mobile off, verses on cards)
+    diligence_6 = db.Column(db.Boolean, default=False)  # Promoted CBR (3 people / loaned book)
+
+    # Growth points auto-pulled from archived card score
+    growth_points = db.Column(db.Integer, default=0)
+
+    # Bonus items (7-12), each true = 50 pts at end of course
+    bonus_7  = db.Column(db.Boolean, default=False)  # Listed 10+ people, brought 5 to next class
+    bonus_8  = db.Column(db.Boolean, default=False)  # Practised CBR beyond 5am and 5 chapters
+    bonus_9  = db.Column(db.Boolean, default=False)  # Prayed back entire Psalm 119
+    bonus_10 = db.Column(db.Boolean, default=False)  # 7 recitation checks on course Scriptures
+    bonus_11 = db.Column(db.Boolean, default=False)  # Completed writing principles for all CBs
+    bonus_12 = db.Column(db.Boolean, default=False)  # Attended ALL training sessions
+
+    submitted_at = db.Column(db.String(30), nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'session_number', name='uq_user_session'),
+    )

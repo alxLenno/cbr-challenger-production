@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, make_response
 from flask_login import LoginManager, current_user
 from models import db, User
 from auth import auth_bp, setup_oauth
@@ -10,7 +10,10 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key")
 
 # Database Configuration (Railway safe)
@@ -20,6 +23,7 @@ if database_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0  # Disable static file caching in dev
 
 # Google OAuth Config
 app.config["GOOGLE_CLIENT_ID"] = os.environ.get("GOOGLE_CLIENT_ID")
@@ -43,7 +47,11 @@ app.register_blueprint(api_bp, url_prefix='/api')
 def serve_app():
     if not current_user.is_authenticated:
         return redirect(url_for('serve_login'))
-    return render_template('index.html')
+    resp = make_response(render_template('index.html'))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 @app.route('/login_page')
 def serve_login():

@@ -1,0 +1,172 @@
+<div class="dash-container">
+
+  <!-- ══ SECTION 1: COMPACT CONFIG ACCORDION ══ -->
+  <details class="dash-config-panel glass-panel" id="profile-section">
+    <summary class="dash-config-summary">
+      <div class="dash-config-summary-left">
+        <div class="dash-config-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></svg>
+        </div>
+        <div>
+          <span class="dash-config-title">Trainee Setup &amp; Card Configuration</span>
+          <span class="dash-config-sub">Tap to expand and edit your profile or weaknesses</span>
+        </div>
+      </div>
+      <div class="dash-config-chevron">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </summary>
+
+    <div class="dash-config-body">
+      <!-- Profile & Settings -->
+      <div class="dash-config-grid">
+        <!-- Personal Info -->
+        <div class="dash-config-section">
+          <h4 class="dash-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Personal Information
+          </h4>
+          <div class="dash-fields">
+            <div class="dash-field">
+              <label for="username">Trainee Name</label>
+              <input type="text" id="username" placeholder="Enter your name">
+            </div>
+            <div class="dash-field">
+              <label for="contact">Contact</label>
+              <input type="text" id="contact" placeholder="Phone or email">
+            </div>
+            <div class="dash-field dash-field-full">
+              <label for="church">Church / CU</label>
+              <input type="text" id="church" placeholder="Your church or Christian Union">
+            </div>
+          </div>
+        </div>
+
+        <!-- Program Settings -->
+        <div class="dash-config-section">
+          <h4 class="dash-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Program Settings
+          </h4>
+          <div class="dash-fields">
+            <div class="dash-field">
+              <label for="commencing-date">Start Date</label>
+              <input type="date" id="commencing-date">
+            </div>
+            <div class="dash-field">
+              <label for="card-selector">Active Card Round</label>
+              <select id="card-selector">
+                <option value="1">Card 1 — 1 Ch · 5:45 AM</option>
+                <option value="2">Card 2 — 2 Ch · 5:30 AM</option>
+                <option value="3">Card 3 — 3 Ch · 5:15 AM</option>
+                <option value="4">Card 4 — 4 Ch · 5:00 AM</option>
+                <option value="5">Card 5 — 5 Ch · 4:45 AM</option>
+                <option value="6">Card 6 — 6 Ch · 4:30 AM</option>
+                <option value="7">Card 7 — 7 Ch · 4:00 AM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weaknesses -->
+        <div class="dash-config-section dash-config-section-wide">
+          <h4 class="dash-section-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Most Urgent Character Weaknesses
+          </h4>
+          <div class="dash-weakness-rows">
+            <div class="dash-weakness-row">
+              <span class="dash-weakness-num">i</span>
+              <input type="text" id="weakness-1-name" placeholder="Character weakness (e.g., Sloth)">
+              <input type="text" id="weakness-1-action" placeholder="Practical resolve / what I am doing to change">
+            </div>
+            <div class="dash-weakness-row">
+              <span class="dash-weakness-num">ii</span>
+              <input type="text" id="weakness-2-name" placeholder="Character weakness">
+              <input type="text" id="weakness-2-action" placeholder="Practical resolve">
+            </div>
+            <div class="dash-weakness-row">
+              <span class="dash-weakness-num">iii</span>
+              <input type="text" id="weakness-3-name" placeholder="Character weakness">
+              <input type="text" id="weakness-3-action" placeholder="Practical resolve">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <!-- ══ SECTION 2: KPI ROW ══ -->
+  <section class="dash-kpi-row" id="kpis-section">
+
+    <div class="dash-kpi-card glass-panel success">
+      <div class="dash-kpi-icon" style="background: rgba(16,185,129,0.12); color: #34d399;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      </div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Growth Score</span>
+        <span class="dash-kpi-val" id="kpi-total-points">0 pts</span>
+        <span class="dash-kpi-sub">Target: 10 pts/wk</span>
+      </div>
+    </div>
+
+    <div class="dash-kpi-card glass-panel danger">
+      <div class="dash-kpi-icon" style="background: rgba(239,68,68,0.12); color: #f87171;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Laxity Points</span>
+        <span class="dash-kpi-val" id="kpi-laxity-points">0 pts</span>
+        <span class="dash-kpi-sub">Target: 0</span>
+      </div>
+    </div>
+
+    <div class="dash-kpi-card glass-panel info">
+      <div class="dash-kpi-icon" style="background: rgba(59,130,246,0.12); color: #60a5fa;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Days Logged</span>
+        <span class="dash-kpi-val" id="kpi-completed-days">0 / 28</span>
+        <span class="dash-kpi-sub">4-week cycle</span>
+      </div>
+    </div>
+
+    <div class="dash-kpi-card glass-panel">
+      <div class="dash-kpi-icon" style="background: rgba(245,158,11,0.12); color: #fbbf24;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Card Target</span>
+        <span class="dash-kpi-val" id="kpi-target-chapters">1 Ch / 5:45</span>
+        <span class="dash-kpi-sub">Chapters · wakeup</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══ SECTION 3: CHALLENGER CARD GRID ══ -->
+  <section class="dash-grid-section glass-panel" id="calendar-section">
+    <div class="dash-grid-header">
+      <div class="dash-grid-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <h2>Challenger Card Grid</h2>
+      </div>
+      <div class="dash-grid-actions">
+        <button id="btn-print-card" class="dash-btn dash-btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / PDF
+        </button>
+        <button id="btn-archive-card" class="dash-btn dash-btn-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          Archive Card
+        </button>
+      </div>
+    </div>
+
+    <div id="weeks-grid-container" class="weeks-grid-container">
+      <!-- Weeks 1-4 loaded dynamically by JS -->
+    </div>
+  </section>
+
+</div>

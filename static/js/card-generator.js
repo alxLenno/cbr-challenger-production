@@ -85,15 +85,15 @@ function buildChallengerCardHTML(data) {
           rows += `<td class="${cls.trim()}">${content}</td>`;
         }
       }
-      
+
       let visionLabel = '';
       if (speed === 7) visionLabel = '60 TIMES';
       if (speed === 5) visionLabel = '45 TIMES';
       if (speed === 3) visionLabel = '30 TIMES';
       if (speed === 1) visionLabel = '10 TIMES';
-      
+
       rows += `<td style="border:none; background:transparent; font-size:5.5pt; font-weight:900; padding-left:6px; white-space:nowrap; text-align:left; vertical-align:middle;">${visionLabel}</td>`;
-      
+
       rows += `</tr>`;
     }
 
@@ -172,11 +172,11 @@ function buildChallengerCardHTML(data) {
           rows += `<td class="${cls.trim()}" data-day="${dayIdx}">${hasX ? '<span class="x-mark">X</span>' : ''}</td>`;
         }
       }
-      
+
       if (slot.level) {
         rows += `<td rowspan="${slot.rowspan}" style="border:none; background:transparent; font-size:5.5pt; font-weight:900; padding-left:6px; white-space:nowrap; text-align:left; vertical-align:middle;">${slot.level}</td>`;
       }
-      
+
       rows += `</tr>`;
     });
 
@@ -293,7 +293,7 @@ function buildChallengerCardHTML(data) {
     const rows = [
       { disc: 'PERSEVERANCE', desc: 'I Read ALL My Set Chapters Each Day', key: 'perseverance', max: 3 },
       { disc: 'COMMITMENT', desc: 'I Woke Up at My Set ER-Time Each Day', key: 'commitment', max: 2 },
-      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 1 },
+      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 2 },
       { disc: 'SCRIPTURE MEMORY', desc: 'I Recited the Memory Scripture Each Day', key: 'memory', max: 1 },
       { disc: 'MEDITATION', desc: 'I Wrote FID Journal Notes Each Day', key: 'meditation', max: 1 },
       { disc: 'ACCOUNTABILITY', desc: 'I shared FID and Commented Each Week', key: 'accountability', max: 1 },
@@ -496,7 +496,7 @@ function calculateScoresForData(data) {
 
     const pPts = p === 7 ? 3 : 0;
     const cPts = c === 7 ? 2 : 0;
-    const prPts = pr === 7 ? 1 : 0;
+    const prPts = pr === 7 ? 2 : 0;
     const smPts = sm === 7 ? 1 : 0;
     const mPts = m === 7 ? 1 : 0;
     const aPts = data.weeks[w].sharedFid ? 1 : 0;
@@ -529,7 +529,7 @@ function drawERTGraph(containerId) {
 
   const wrapper = ertTable.parentElement;
   if (!wrapper) return;
-  
+
   wrapper.style.position = 'relative';
 
   const cells = Array.from(ertTable.querySelectorAll('td.has-x'));
@@ -557,13 +557,13 @@ function drawERTGraph(containerId) {
   cells.forEach(cell => {
     const xMark = cell.querySelector('.x-mark');
     const targetRect = xMark ? xMark.getBoundingClientRect() : cell.getBoundingClientRect();
-    
+
     const cx = targetRect.left - wrapRect.left + targetRect.width / 2;
     const cy = targetRect.top - wrapRect.top + targetRect.height / 2;
-    
+
     const px = (cx / wrapRect.width) * 100;
     const py = (cy / wrapRect.height) * 100;
-    
+
     points += `${px},${py} `;
   });
 
@@ -590,7 +590,7 @@ function renderChallengerCardInto(containerId, data) {
 function printChallengerCard(data) {
   const wrapper = document.getElementById('card-print-wrapper');
   wrapper.innerHTML = buildChallengerCardHTML(data);
-  
+
   // Temporarily show to calculate SVG coordinates correctly
   const originalDisplay = wrapper.style.display;
   wrapper.style.display = 'block';
