@@ -2,7 +2,11 @@
 
   <!-- Sub-Navigation Header -->
   <div class="ref-subnav glass-panel">
-    <button class="ref-subnav-btn subnav-btn active" data-subtab="tab-syllabus">
+    <button class="ref-subnav-btn subnav-btn active" data-subtab="tab-video-guides">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      Video Guides
+    </button>
+    <button class="ref-subnav-btn subnav-btn" data-subtab="tab-syllabus">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
       CBR Syllabus
     </button>
@@ -21,11 +25,44 @@
   </div>
 
   <div class="ref-body">
-    
-    <!-- ════════ SYLLABUS TAB ════════ -->
-    <div class="subtab-content active" id="tab-syllabus">
+
+    <!-- ════════ VIDEO GUIDES TAB ════════ -->
+    <div class="subtab-content active" id="tab-video-guides">
       <div class="ref-section-header">
-        <h3>CBR Sessions & Objectives</h3>
+        <div class="video-header-row">
+          <div>
+            <h3>Video Guides</h3>
+            <p>Watch training videos to help you through the CBR programme:</p>
+          </div>
+          <!-- Admin-only upload button — shown/hidden by JS -->
+          <div id="video-upload-zone" class="video-upload-zone" style="display:none;">
+            <label for="video-file-input" class="btn-upload-video" id="video-upload-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Video
+            </label>
+            <input type="file" id="video-file-input" accept="video/*" style="display:none;">
+            <!-- Progress bar -->
+            <div id="video-upload-progress-wrap" class="video-upload-progress-wrap" style="display:none;">
+              <div id="video-upload-progress-bar" class="video-upload-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video grid — populated by JS -->
+      <div id="video-guides-grid" class="video-guides-grid">
+        <div class="video-guides-empty" id="video-guides-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          <p>No video guides yet.</p>
+          <span id="video-empty-hint" style="display:none;">Upload your first guide using the button above.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ SYLLABUS TAB ════════ -->
+    <div class="subtab-content" id="tab-syllabus">
+      <div class="ref-section-header">
+        <h3>CBR Sessions &amp; Objectives</h3>
         <p>Complete these activities over your 7-month training journey:</p>
       </div>
       
