@@ -1,0 +1,1 @@
+ hello Kahati and I'm doing this lesson and that and that and yes yes yes that's your new. Whatever can you can you can you? Can you hear me? Can you hear me select committing come on girl just like good night email

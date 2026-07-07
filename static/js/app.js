@@ -164,9 +164,131 @@ const elements = {
   sidebarFooterAvatar: document.getElementById('sidebar-footer-avatar')
 };
 
+// ==========================================
+// VECTOR ICONS & CUSTOM UI DIALOG SYSTEM
+// ==========================================
+function refreshIcons(root = document) {
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    try {
+      lucide.createIcons({ root });
+    } catch (e) {
+      console.warn("Lucide icons refresh warning:", e);
+    }
+  }
+}
+
+function showToast(message, type = 'info', duration = 3500) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast-msg toast-${type}`;
+  
+  let iconName = 'info';
+  if (type === 'success') iconName = 'check-circle-2';
+  else if (type === 'error') iconName = 'alert-circle';
+  else if (type === 'warning') iconName = 'alert-triangle';
+
+  toast.innerHTML = `
+    <div class="toast-icon"><i data-lucide="${iconName}"></i></div>
+    <div class="toast-text">${message}</div>
+  `;
+  container.appendChild(toast);
+  refreshIcons(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 400);
+  }, duration);
+}
+
+function showModal({ title, subtitle = '', message, type = 'info', confirmText = 'Confirm', cancelText = 'Cancel', showCancel = true, isDanger = false }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('custom-dialog-modal');
+    if (!modal) {
+      resolve(confirm(message));
+      return;
+    }
+    const titleEl = document.getElementById('custom-dialog-title');
+    const subEl = document.getElementById('custom-dialog-subtitle');
+    const msgEl = document.getElementById('custom-dialog-message');
+    const iconEl = document.getElementById('custom-dialog-icon');
+    const confirmBtn = document.getElementById('custom-dialog-confirm-btn');
+    const cancelBtn = document.getElementById('custom-dialog-cancel-btn');
+    const closeBtn = document.getElementById('custom-dialog-close-btn');
+
+    if (titleEl) titleEl.textContent = title || 'Notification';
+    if (subEl) subEl.textContent = subtitle || '';
+    if (msgEl) msgEl.textContent = message || '';
+
+    let iconName = 'info';
+    let iconBg = 'rgba(59,130,246,0.15)';
+    let iconColor = '#60a5fa';
+    let iconBorder = 'rgba(59,130,246,0.3)';
+
+    if (type === 'success') {
+      iconName = 'check-circle-2';
+      iconBg = 'rgba(16,185,129,0.18)'; iconColor = '#34d399'; iconBorder = 'rgba(16,185,129,0.35)';
+    } else if (type === 'error' || isDanger) {
+      iconName = 'alert-triangle';
+      iconBg = 'rgba(239,68,68,0.18)'; iconColor = '#f87171'; iconBorder = 'rgba(239,68,68,0.35)';
+    } else if (type === 'warning') {
+      iconName = 'alert-triangle';
+      iconBg = 'rgba(245,158,11,0.18)'; iconColor = '#fbbf24'; iconBorder = 'rgba(245,158,11,0.35)';
+    }
+
+    if (iconEl) {
+      iconEl.style.background = iconBg;
+      iconEl.style.color = iconColor;
+      iconEl.style.borderColor = iconBorder;
+      iconEl.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    }
+
+    if (confirmBtn) {
+      confirmBtn.textContent = confirmText;
+      if (isDanger || type === 'error') {
+        confirmBtn.style.background = 'rgba(239, 68, 68, 0.85)';
+        confirmBtn.style.borderColor = 'rgba(239, 68, 68, 1)';
+      } else {
+        confirmBtn.style.background = '';
+        confirmBtn.style.borderColor = '';
+      }
+    }
+
+    if (cancelBtn) {
+      cancelBtn.style.display = showCancel ? 'inline-block' : 'none';
+      cancelBtn.textContent = cancelText;
+    }
+
+    refreshIcons(modal);
+    modal.classList.add('open');
+
+    const cleanup = () => {
+      modal.classList.remove('open');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+    };
+
+    const onConfirm = () => { cleanup(); resolve(true); };
+    const onCancel = () => { cleanup(); resolve(false); };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+  });
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
+  syncAllTimelinesToFirstWeek();
   checkAndArchiveCompletedCard();
   initUI();
   setupEventListeners();
@@ -189,7 +311,16 @@ function checkAndArchiveCompletedCard() {
       const newTimeline = calculateCardTimeline(today);
       resizeStateForNewTimeline(newTimeline.startStr);
       saveState();
-      setTimeout(() => alert("Your previous card timeframe ended and was automatically archived. Welcome to your new card!"), 500);
+      setTimeout(() => {
+        showModal({
+          title: "Card Automatically Archived",
+          subtitle: "New Cycle Started",
+          message: "Your previous card timeframe ended and was automatically archived to history. Welcome to your new card!",
+          type: "info",
+          showCancel: false,
+          confirmText: "Get Started"
+        });
+      }, 500);
     } else {
       const newTimeline = calculateCardTimeline(today);
       resizeStateForNewTimeline(newTimeline.startStr);
@@ -199,12 +330,11 @@ function checkAndArchiveCompletedCard() {
 }
 
 // Date logic helpers for dynamic card timelines
-function getSecondSunday(year, monthIndex) {
+function getFirstSunday(year, monthIndex) {
   let date = new Date(year, monthIndex, 1);
   let dayOfWeek = date.getDay();
   let daysToFirstSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
   date.setDate(1 + daysToFirstSunday);
-  date.setDate(date.getDate() + 7); // Second Sunday
   return date;
 }
 
@@ -218,8 +348,8 @@ function calculateCardTimeline(baseDateStr) {
   let year = d.getFullYear();
   let month = d.getMonth();
 
-  let currentMonth2ndSunday = getSecondSunday(year, month);
-  let startOfCurrentMonthCard = new Date(currentMonth2ndSunday);
+  let currentMonth1stSunday = getFirstSunday(year, month);
+  let startOfCurrentMonthCard = new Date(currentMonth1stSunday);
   startOfCurrentMonthCard.setDate(startOfCurrentMonthCard.getDate() + 1);
 
   let startMonth, startYear;
@@ -230,22 +360,262 @@ function calculateCardTimeline(baseDateStr) {
     startMonth = month; startYear = year;
   }
 
-  const startCard2ndSunday = getSecondSunday(startYear, startMonth);
-  const cardStart = new Date(startCard2ndSunday);
+  const startCard1stSunday = getFirstSunday(startYear, startMonth);
+  const cardStart = new Date(startCard1stSunday);
   cardStart.setDate(cardStart.getDate() + 1);
 
   let endMonth = startMonth === 11 ? 0 : startMonth + 1;
   let endYear = startMonth === 11 ? startYear + 1 : startYear;
-  const cardEnd = getSecondSunday(endYear, endMonth);
+  const cardEnd = getFirstSunday(endYear, endMonth);
 
   const diffTime = Math.abs(cardEnd - cardStart);
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  const startStr = toLocalISOString(cardStart);
+  const dates = [];
+  for (let i = 0; i < diffDays; i++) {
+    dates.push(addDays(startStr, i));
+  }
   return {
-    startStr: toLocalISOString(cardStart),
+    startStr: startStr,
     endStr: toLocalISOString(cardEnd),
     totalDays: diffDays,
-    totalWeeks: diffDays / 7
+    totalWeeks: diffDays / 7,
+    dates: dates
   };
+}
+
+function hasDayData(d) {
+  if (!d) return false;
+  return d.wakingTime || (d.morningChapters + d.laterChapters) > 0 || d.fidJournaling || d.prayer10mins || d.cbResolved || d.openObservation || d.openPrinciples || d.prayerTopic || d.scriptureMemorized;
+}
+
+function syncAllTimelinesToFirstWeek() {
+  const masterLogPool = new Map(); // dateStr => dayObj
+  const cardMetadataByTimeline = new Map(); // timelineStartStr => { cardId, instanceId, ... }
+
+  // Helper to process a card's days and harvest logs
+  function harvestCard(cardObj, isSaved) {
+    if (!cardObj || !cardObj.days || !Array.isArray(cardObj.days)) return;
+    const commDate = cardObj.commencingDate || appState.commencingDate;
+    if (!commDate) return;
+    
+    const cId = cardObj.cardId || cardObj.currentCardId || appState.currentCardId || 1;
+    
+    // Check what the target timeline would be for this commencingDate
+    const targetTimeline = calculateCardTimeline(commDate);
+    if (!cardMetadataByTimeline.has(targetTimeline.startStr)) {
+      cardMetadataByTimeline.set(targetTimeline.startStr, {
+        cardId: cId,
+        instanceId: cardObj.instanceId || `card_${cId}_${targetTimeline.startStr}`,
+        totalScore: cardObj.totalScore || 0,
+        totalLaxity: cardObj.totalLaxity || 0,
+        savedAt: cardObj.savedAt || new Date().toISOString(),
+        weeks: cardObj.weeks || []
+      });
+    }
+
+    cardObj.days.forEach((day, idx) => {
+      // If day doesn't have an explicit calendar date, calculate it from commDate
+      const dayDate = day.date || addDays(commDate, idx);
+      day.date = dayDate; // Stamp it
+      
+      // If this day has logged data, harvest it
+      if (hasDayData(day)) {
+        // If multiple cards have logs for the same date, prefer the one with more reading/data
+        if (!masterLogPool.has(dayDate)) {
+          masterLogPool.set(dayDate, JSON.parse(JSON.stringify(day)));
+        } else {
+          const existing = masterLogPool.get(dayDate);
+          if ((day.morningChapters + day.laterChapters) > (existing.morningChapters + existing.laterChapters)) {
+            masterLogPool.set(dayDate, JSON.parse(JSON.stringify(day)));
+          }
+        }
+      }
+    });
+  }
+
+  // Harvest from saved cards first, then active card (so active card takes precedence if duplicate date)
+  if (appState.savedCards && Array.isArray(appState.savedCards)) {
+    appState.savedCards.forEach(c => harvestCard(c, true));
+  }
+  harvestCard(appState, false);
+
+  // If we found no logs at all, just ensure active card is aligned to first week and return
+  if (masterLogPool.size === 0 && appState.commencingDate) {
+    const activeTimeline = calculateCardTimeline(appState.commencingDate);
+    if (appState.commencingDate !== activeTimeline.startStr) {
+      resizeStateForNewTimeline(activeTimeline.startStr);
+      saveState();
+    }
+    return;
+  }
+
+  // Group harvested logs by their target First-Sunday timeline
+  const timelineGroups = new Map(); // timelineStartStr => { timeline, logs: Map(dateStr => dayObj) }
+
+  masterLogPool.forEach((dayObj, dateStr) => {
+    const timeline = calculateCardTimeline(dateStr);
+    if (!timelineGroups.has(timeline.startStr)) {
+      timelineGroups.set(timeline.startStr, {
+        timeline: timeline,
+        logs: new Map()
+      });
+    }
+    timelineGroups.get(timeline.startStr).logs.set(dateStr, dayObj);
+  });
+
+  // Also make sure we have a group for the currently active card's target timeline even if it has no logs yet
+  if (appState.commencingDate) {
+    const activeTime = calculateCardTimeline(appState.commencingDate);
+    if (!timelineGroups.has(activeTime.startStr)) {
+      timelineGroups.set(activeTime.startStr, {
+        timeline: activeTime,
+        logs: new Map()
+      });
+    }
+  }
+
+  // Sort timeline start dates chronologically
+  const sortedStartStrs = Array.from(timelineGroups.keys()).sort();
+
+  // Assign cardIds sequentially or preserve existing metadata
+  let nextCardId = 1;
+  const newSavedCards = [];
+  let newActiveState = null;
+
+  const currentActiveTarget = appState.commencingDate ? calculateCardTimeline(appState.commencingDate).startStr : null;
+  
+  const savedCardIds = new Set();
+  const savedStartStrs = new Set();
+  if (appState.savedCards && Array.isArray(appState.savedCards)) {
+    appState.savedCards.forEach(c => {
+      if (c.commencingDate) savedStartStrs.add(calculateCardTimeline(c.commencingDate).startStr);
+      if (c.cardId || c.currentCardId) savedCardIds.add(c.cardId || c.currentCardId);
+    });
+  }
+
+  sortedStartStrs.forEach((startStr) => {
+    const group = timelineGroups.get(startStr);
+    const meta = cardMetadataByTimeline.get(startStr) || {};
+    
+    const assignedCardId = meta.cardId || (nextCardId++);
+    if (assignedCardId >= nextCardId) nextCardId = assignedCardId + 1;
+
+    // Build the 28 (or 35) days for this card timeline
+    const totalDays = group.timeline.totalDays || 28;
+    const daysArr = [];
+    for (let i = 0; i < totalDays; i++) {
+      const dStr = addDays(startStr, i);
+      if (group.logs.has(dStr)) {
+        const loggedDay = group.logs.get(dStr);
+        loggedDay.dayNumber = i + 1;
+        loggedDay.date = dStr;
+        daysArr.push(loggedDay);
+      } else {
+        daysArr.push({
+          dayNumber: i + 1,
+          date: dStr,
+          wakingTime: "",
+          studyMethod: "FID",
+          morningChapters: 0,
+          laterChapters: 0,
+          fidFocus: "",
+          fidInsight: "",
+          fidDoing: "",
+          openObservation: "",
+          openPrinciples: "",
+          openExperience: "",
+          openNeed: "",
+          personsPersonal: "",
+          personsEnglish: "",
+          personsReferences: "",
+          personsSatan: "",
+          personsObedience: "",
+          personsNote: "",
+          personsStirring: "",
+          fidJournaling: false,
+          scriptureMemorized: "",
+          prayerTopic: "",
+          prayer10mins: false,
+          cbResolved: false
+        });
+      }
+    }
+
+    // Build weeks array
+    const totalWeeks = totalDays / 7;
+    let weeksArr = meta.weeks ? JSON.parse(JSON.stringify(meta.weeks)) : [];
+    while (weeksArr.length < totalWeeks) {
+      weeksArr.push({
+        weekNumber: weeksArr.length + 1,
+        peMeeting: false,
+        memoryValidity: false,
+        orderly: false,
+        promotedCbr: false
+      });
+    }
+    if (weeksArr.length > totalWeeks) {
+      weeksArr = weeksArr.slice(0, totalWeeks);
+    }
+
+    const cardObj = {
+      instanceId: meta.instanceId || `card_${assignedCardId}_${startStr}`,
+      currentCardId: assignedCardId,
+      cardId: assignedCardId,
+      commencingDate: startStr,
+      username: appState.username,
+      contact: appState.contact,
+      church: appState.church,
+      weaknesses: JSON.parse(JSON.stringify(appState.weaknesses || [{name:"",action:""},{name:"",action:""},{name:"",action:""}])),
+      days: daysArr,
+      weeks: weeksArr,
+      totalScore: meta.totalScore || 0,
+      totalLaxity: meta.totalLaxity || 0,
+      savedAt: meta.savedAt || new Date().toISOString()
+    };
+
+    const stats = calculateScores(cardObj);
+    cardObj.totalScore = stats.totalScore;
+    cardObj.totalLaxity = stats.totalLaxity;
+    
+    // Determine if this should be the active card
+    if (startStr === currentActiveTarget || (assignedCardId === appState.currentCardId && !newActiveState)) {
+      newActiveState = cardObj;
+    }
+    
+    // Determine if this should be in the archives
+    if (savedStartStrs.has(startStr) || savedCardIds.has(assignedCardId) || startStr !== currentActiveTarget || !newActiveState || cardObj !== newActiveState) {
+      newSavedCards.push(cardObj);
+    }
+  });
+
+  if (!newActiveState && newSavedCards.length > 0) {
+    newActiveState = newSavedCards[newSavedCards.length - 1];
+  }
+
+  if (newActiveState) {
+    appState.currentCardId = newActiveState.cardId;
+    appState.activeInstanceId = newActiveState.instanceId;
+    appState.commencingDate = newActiveState.commencingDate;
+    appState.days = newActiveState.days;
+    appState.weeks = newActiveState.weeks;
+    if (newActiveState.weaknesses) appState.weaknesses = newActiveState.weaknesses;
+  }
+
+  appState.savedCards = newSavedCards;
+
+  // Sync all saved cards to backend DB
+  if (appState.savedCards.length > 0) {
+    appState.savedCards.forEach(card => {
+      fetch('/api/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(card)
+      }).catch(e => console.error("Failed to sync dynamic archive to DB", e));
+    });
+  }
+
+  saveState();
 }
 
 // Load state from Backend
@@ -346,35 +716,7 @@ function saveState() {
   }).catch(e => console.error("Failed to save state", e));
 }
 
-function resizeStateForNewTimeline(newStartDateStr) {
-  const timeline = calculateCardTimeline(newStartDateStr);
-  appState.commencingDate = timeline.startStr;
-  
-  // Resize weeks
-  while(appState.weeks.length < timeline.totalWeeks) {
-    appState.weeks.push({ weekNumber: appState.weeks.length + 1, sharedFid: false });
-  }
-  if (appState.weeks.length > timeline.totalWeeks) {
-    appState.weeks.length = timeline.totalWeeks;
-  }
-  
-  // Resize days
-  while(appState.days.length < timeline.totalDays) {
-    appState.days.push({
-      dayNumber: appState.days.length + 1,
-      wakingTime: "", morningChapters: 0, laterChapters: 0, bibleBook: "",
-      startChapter: 0, endChapter: 0, recitedMemory: false, fidJournaling: false,
-      prayer10mins: false, dataValidity: false, studyMethod: "FID", fidFocus: "", fidInsight: "",
-      fidDoing: "", openObservation: "", openPrinciples: "", openExperience: "", openNeed: "",
-      personsPersonal: "", personsEnglish: "", personsReferences: "", personsSatan: "",
-      personsObedience: "", personsNote: "", personsStirring: "", scriptureMemorized: "", prayerTopic: "", cbId: "", cbSolution: "",
-      cbScripture: "", cbResolved: false, logTimestamp: null
-    });
-  }
-  if (appState.days.length > timeline.totalDays) {
-    appState.days.length = timeline.totalDays;
-  }
-}
+// Old duplicate resizeStateForNewTimeline removed (replaced by newer version below)
 
 // Create a blank default state
 function initDefaultState() {
@@ -418,11 +760,12 @@ function initUI() {
   // Theme setup
   if (appState.theme === 'light') {
     document.body.classList.add('light-mode');
-    elements.themeToggle.innerText = '🌙';
+    elements.themeToggle.innerHTML = '<i data-lucide="moon"></i>';
   } else {
     document.body.classList.remove('light-mode');
-    elements.themeToggle.innerText = '☀️';
+    elements.themeToggle.innerHTML = '<i data-lucide="sun"></i>';
   }
+  refreshIcons(elements.themeToggle);
 
   // Populate profile inputs from state
   elements.usernameInput.value = data.username;
@@ -599,16 +942,19 @@ function setupEventListeners() {
     });
   });
 
-  elements.cardSelector.addEventListener('change', () => {
+  elements.cardSelector.addEventListener('change', async () => {
     if (isViewingHistory) return;
     
-    if (autoArchiveIfNeeded()) {
-      const newCardId = parseInt(elements.cardSelector.value, 10);
-      resetActiveBoardForNewCard(newCardId);
-    } else {
-      appState.currentCardId = parseInt(elements.cardSelector.value, 10);
-      saveState();
-    }
+    const newCardId = parseInt(elements.cardSelector.value, 10);
+    const oldCardId = appState.currentCardId;
+    
+    if (newCardId === oldCardId) return;
+
+    // 1. Archive current card if needed (silently saves progress)
+    autoArchiveIfNeeded();
+    
+    // 2. Load existing save for new card OR reset it fresh
+    await loadOrResetBoardForNewCard(newCardId);
     
     renderAll();
   });
@@ -626,7 +972,8 @@ function setupEventListeners() {
     document.body.classList.toggle('light-mode');
     const isLight = document.body.classList.contains('light-mode');
     appState.theme = isLight ? 'light' : 'dark';
-    elements.themeToggle.innerText = isLight ? '🌙' : '☀️';
+    elements.themeToggle.innerHTML = isLight ? '<i data-lucide="moon"></i>' : '<i data-lucide="sun"></i>';
+    refreshIcons(elements.themeToggle);
     saveState();
   });
 
@@ -1168,8 +1515,8 @@ function renderToday() {
       statusReading.className = 'act-status partial';
       statusReading.innerText = `🔄 Partial (${totalChaptersRead}/${card.chaptersTarget})`;
     } else {
-      statusReading.className = 'act-status late';
-      statusReading.innerText = '❌ Not Ticked';
+      statusReading.className = 'act-status pending';
+      statusReading.innerText = '📖 Pending Reading';
     }
   }
 
@@ -1180,8 +1527,8 @@ function renderToday() {
       statusJournal.className = 'act-status completed';
       statusJournal.innerText = '✅ Recorded';
     } else {
-      statusJournal.className = 'act-status late';
-      statusJournal.innerText = '❌ Not Ticked';
+      statusJournal.className = 'act-status pending';
+      statusJournal.innerText = '✍️ No Entry Yet';
     }
   }
 
@@ -1192,8 +1539,8 @@ function renderToday() {
       statusWaking.className = isLate ? 'act-status late' : 'act-status completed';
       statusWaking.innerText = isLate ? `⚠️ Late (${dayData.wakingTime})` : `⏰ On Time (${dayData.wakingTime})`;
     } else {
-      statusWaking.className = 'act-status late';
-      statusWaking.innerText = '❌ Not Ticked';
+      statusWaking.className = 'act-status pending';
+      statusWaking.innerText = '⏰ Time Not Logged';
     }
   }
 
@@ -1319,6 +1666,7 @@ function renderAll() {
   renderScoringTable();
   renderLibraryList();
   renderProfile();
+  refreshIcons();
 }
 
 function renderProfile() {
@@ -1349,7 +1697,7 @@ function renderProfile() {
     elements.profileAvatarImg.style.display = 'block';
     if (elements.profileAvatarFallback) elements.profileAvatarFallback.style.display = 'none';
   } else if (elements.profileAvatarFallback) {
-    elements.profileAvatarFallback.innerText = name ? name[0].toUpperCase() : '👤';
+    elements.profileAvatarFallback.innerHTML = name ? name[0].toUpperCase() : '<i data-lucide="user"></i>';
   }
 
   if (elements.profileInputUsername) elements.profileInputUsername.value = name;
@@ -1510,14 +1858,14 @@ function renderCalendarGrid() {
       const timeDiv = document.createElement('div');
       timeDiv.className = 'day-waking-time';
       
-      let timeIcon = '⏰';
+      let timeIcon = '<i data-lucide="clock" style="display:inline-block;vertical-align:middle;width:14px;height:14px;"></i>';
       if (decTime !== null) {
         if (decTime <= targetERT) {
           timeDiv.style.color = 'var(--success)';
-          timeIcon = '☀️';
+          timeIcon = '<i data-lucide="sun" style="display:inline-block;vertical-align:middle;width:14px;height:14px;"></i>';
         } else {
           timeDiv.style.color = 'var(--danger)';
-          timeIcon = '💤';
+          timeIcon = '<i data-lucide="moon" style="display:inline-block;vertical-align:middle;width:14px;height:14px;"></i>';
         }
       }
       timeDiv.innerHTML = `${timeIcon} ${timeVal}`;
@@ -1574,7 +1922,13 @@ function renderCalendarGrid() {
           dotSpan.classList.add('missed');
           dotSpan.innerText = '✕';
         }
-        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : (isPastOrCurrent ? 'Not Ticked (X)' : 'Future')}`;
+        let notDoneText = 'Incomplete';
+        if (dot.name === 'recitedMemory') notDoneText = 'Not Recited (✕)';
+        else if (dot.name === 'fidJournaling') notDoneText = 'No Journal Entry (✕)';
+        else if (dot.name === 'prayer10mins') notDoneText = 'Prayer Not Logged (✕)';
+        else if (dot.name === 'dataValidity') notDoneText = 'Not Validated (✕)';
+        
+        dotSpan.title = `${dot.title}: ${dayData[dot.name] ? 'Completed' : (isPastOrCurrent ? notDoneText : 'Future')}`;
         disciplinesDiv.appendChild(dotSpan);
       });
       dayBlock.appendChild(disciplinesDiv);
@@ -1599,9 +1953,9 @@ function renderCalendarGrid() {
 }
 
 // Generate weekly points and laxity values
-function calculateScores() {
-  const data = getActiveData();
-  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
+function calculateScores(cardState = null) {
+  const data = cardState || getActiveData();
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
   const targetChapters = card.chaptersTarget;
   const targetERT = timeStringToDecimal(card.ertTarget);
   
@@ -1956,6 +2310,8 @@ function renderLibraryList() {
   const emptyMsg = document.getElementById('history-empty-msg');
   const progressContainer = document.getElementById('history-progress-bar-container');
   
+  renderSavedCardsCarousel();
+  
   if (!appState.savedCards || appState.savedCards.length === 0) {
     elements.libraryTableBody.innerHTML = '';
     if (emptyMsg) emptyMsg.style.display = 'block';
@@ -2073,12 +2429,220 @@ function renderLibraryList() {
   });
 }
 
+function renderSavedCardsCarousel() {
+  const sliderSection = document.getElementById('saved-cards-slider-section');
+  const carousel = document.getElementById('saved-cards-carousel');
+  if (!sliderSection || !carousel) return;
+
+  if (!appState.savedCards || appState.savedCards.length === 0) {
+    sliderSection.style.display = 'none';
+    carousel.innerHTML = '';
+    return;
+  }
+
+  sliderSection.style.display = 'block';
+  carousel.innerHTML = '';
+
+  // Sort newest first
+  const sorted = [...appState.savedCards].reverse();
+
+  sorted.forEach(card => {
+    const totalWeeks = card.weeks ? card.weeks.length : 4;
+    const maxScore = totalWeeks * 10;
+    const pct = Math.round((card.totalScore / maxScore) * 100);
+    const scoreColor = pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--warning, #f59e0b)' : 'var(--danger)';
+    
+    const cardId = card.cardId || card.currentCardId || 1;
+    const isActive = (cardId === appState.currentCardId && !isViewingHistory);
+
+    const tile = document.createElement('div');
+    tile.className = `saved-card-tile${isActive ? ' is-active-card' : ''}`;
+    tile.innerHTML = `
+      <div>
+        <div class="saved-card-tile-top">
+          <span class="saved-card-level">Card ${cardId}</span>
+          <span class="saved-card-badge">${isActive ? 'Active Now' : 'Restore'}</span>
+        </div>
+        <div class="saved-card-date">Started: ${card.commencingDate || '—'}</div>
+      </div>
+      <div>
+        <div class="saved-card-stats">
+          <span>Score: <strong style="color:${scoreColor};">${card.totalScore}</strong>/${maxScore}</span>
+          <span>Laxity: <strong style="color:var(--danger);">${card.totalLaxity}</strong></span>
+        </div>
+        <div class="saved-card-action-hint">
+          <span>${isActive ? 'Currently Active' : 'Click to Resume'}</span>
+          ${isActive ? '' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>'}
+        </div>
+      </div>
+    `;
+
+    tile.addEventListener('click', () => restoreArchivedToActive(card.instanceId));
+    carousel.appendChild(tile);
+  });
+}
+
+async function restoreArchivedToActive(instanceId) {
+  const targetCard = appState.savedCards.find(c => c.instanceId === instanceId);
+  if (!targetCard) return;
+
+  const cardId = targetCard.cardId || targetCard.currentCardId || 1;
+
+  if (cardId === appState.currentCardId && !isViewingHistory) {
+    showToast(`Card ${cardId} is already your currently active card!`, "warning");
+    return;
+  }
+
+  const confirmed = await showModal({
+    title: `Restore Card ${cardId}?`,
+    subtitle: targetCard.commencingDate || '',
+    message: `Would you like to restore Card ${cardId} (${targetCard.commencingDate || ''}) as your ACTIVE card? Any unarchived progress on your current board will be safely saved to history first.`,
+    type: "info",
+    confirmText: "Restore as Active",
+    cancelText: "Cancel"
+  });
+
+  if (confirmed) {
+    if (isViewingHistory) {
+      isViewingHistory = false;
+      historicalCardData = null;
+      if (elements.historicalBanner) elements.historicalBanner.style.display = 'none';
+      if (elements.usernameInput) elements.usernameInput.disabled = false;
+      if (elements.contactInput) elements.contactInput.disabled = false;
+      if (elements.churchInput) elements.churchInput.disabled = false;
+      if (elements.cardSelector) elements.cardSelector.disabled = false;
+      if (elements.commencingDateInput) elements.commencingDateInput.disabled = false;
+    } else {
+      autoArchiveIfNeeded();
+    }
+
+    appState.currentCardId = cardId;
+    appState.activeInstanceId = targetCard.instanceId;
+    appState.commencingDate = targetCard.commencingDate;
+    appState.days = JSON.parse(JSON.stringify(targetCard.days || []));
+    appState.weeks = JSON.parse(JSON.stringify(targetCard.weeks || []));
+    if (targetCard.weaknesses) {
+      appState.weaknesses = JSON.parse(JSON.stringify(targetCard.weaknesses));
+    }
+
+    if (elements.cardSelector) elements.cardSelector.value = appState.currentCardId;
+    if (elements.commencingDateInput) elements.commencingDateInput.value = appState.commencingDate;
+
+    syncAllTimelinesToFirstWeek();
+    saveState();
+    initUI();
+    renderAll();
+
+    const todayTabBtn = document.querySelector('.tab-btn[data-tab="tab-today"]');
+    if (todayTabBtn) todayTabBtn.click();
+    
+    showToast(`Card ${cardId} restored and active!`, "success");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
 function hasAnyDataLogged() {
   if (!appState || !appState.days) return false;
   return appState.days.some(d => d.wakingTime || (d.morningChapters + d.laterChapters) > 0 || d.fidJournaling || d.prayer10mins || d.cbResolved);
 }
 
+// ------------------------------------------------------------------------------
+// RESIZING STATE FOR TIMELINE SHIFTS
+// ------------------------------------------------------------------------------
+function createEmptyDay(dayNum, dateStr) {
+  return {
+    dayNumber: dayNum,
+    date: dateStr,
+    wakingTime: "",
+    studyMethod: "FID",
+    morningChapters: 0,
+    laterChapters: 0,
+    fidFocus: "",
+    fidInsight: "",
+    fidDoing: "",
+    openObservation: "",
+    openPrinciples: "",
+    openExperience: "",
+    openNeed: "",
+    personsPersonal: "",
+    personsEnglish: "",
+    personsReferences: "",
+    personsSatan: "",
+    personsObedience: "",
+    personsNote: "",
+    personsStirring: "",
+    fidJournaling: false,
+    scriptureMemorized: "",
+    prayerTopic: "",
+    prayer10mins: false,
+    cbResolved: false
+  };
+}
+
+function createEmptyWeek(weekNum) {
+  return {
+    weekNumber: weekNum,
+    peMeeting: false,
+    memoryValidity: false,
+    orderly: false,
+    promotedCbr: false
+  };
+}
+
+function resizeStateForNewTimeline(newStartStr) {
+  const newTimeline = calculateCardTimeline(newStartStr);
+  const oldDays = appState.days || [];
+  const newDays = [];
+  
+  for (let i = 0; i < newTimeline.dates.length; i++) {
+    const dStr = newTimeline.dates[i];
+    const existing = oldDays.find(d => d.date === dStr);
+    if (existing) {
+      const copy = JSON.parse(JSON.stringify(existing));
+      copy.dayNumber = i + 1;
+      newDays.push(copy);
+    } else {
+      newDays.push(createEmptyDay(i + 1, dStr));
+    }
+  }
+  appState.days = newDays;
+  
+  const newWeeksCount = Math.ceil(newTimeline.dates.length / 7);
+  const oldWeeks = appState.weeks || [];
+  const newWeeks = [];
+  for (let w = 1; w <= newWeeksCount; w++) {
+    const exW = oldWeeks.find(wk => (wk.weekNumber || wk.weekNum) === w);
+    if (exW) {
+      const copyW = JSON.parse(JSON.stringify(exW));
+      copyW.weekNumber = w;
+      newWeeks.push(copyW);
+    } else {
+      newWeeks.push(createEmptyWeek(w));
+    }
+  }
+  appState.weeks = newWeeks;
+  appState.commencingDate = newStartStr;
+}
+
 function resetActiveBoardForNewCard(newCardId) {
+  const today = new Date().toISOString().split('T')[0];
+  const timeline = calculateCardTimeline(today);
+  
+  appState.currentCardId = newCardId;
+  appState.activeInstanceId = `card_${newCardId}_${today}_${Date.now()}`;
+  appState.commencingDate = timeline.startStr;
+  appState.days = [];
+  appState.weeks = [];
+  
+  for (let i = 0; i < timeline.dates.length; i++) {
+    appState.days.push(createEmptyDay(i + 1, timeline.dates[i]));
+  }
+  
+  const totalWeeks = Math.ceil(timeline.dates.length / 7);
+  for (let w = 1; w <= totalWeeks; w++) {
+    appState.weeks.push(createEmptyWeek(w));
+  }
+  
   const preserved = {
     username: appState.username,
     contact: appState.contact,
@@ -2088,18 +2652,43 @@ function resetActiveBoardForNewCard(newCardId) {
     theme: appState.theme
   };
   
-  const today = new Date().toISOString().split('T')[0];
-  const timeline = calculateCardTimeline(today);
-  
-  appState.currentCardId = newCardId;
-  appState.commencingDate = timeline.startStr;
-  appState.days = [];
-  appState.weeks = [];
-  
   resizeStateForNewTimeline(timeline.startStr);
   
   Object.assign(appState, preserved);
   saveState();
+}
+
+async function loadOrResetBoardForNewCard(newCardId) {
+  // Check if we have a saved version of this card in history (most recent first)
+  const existingSave = [...appState.savedCards].reverse().find(c => (c.currentCardId || c.cardId) === newCardId);
+  
+  if (existingSave) {
+    const resume = await showModal({
+      title: `Resume Card ${newCardId}?`,
+      subtitle: "Previously Saved Session Found",
+      message: `You have a previously saved session for Card ${newCardId}. Would you like to resume it? (Click Cancel to start a fresh Card ${newCardId})`,
+      type: "info",
+      confirmText: "Resume Saved Session",
+      cancelText: "Start Fresh"
+    });
+    if (resume) {
+      // Resume the saved state
+      appState.currentCardId = newCardId;
+      appState.activeInstanceId = existingSave.instanceId;
+      appState.commencingDate = existingSave.commencingDate;
+      appState.days = JSON.parse(JSON.stringify(existingSave.days || []));
+      appState.weeks = JSON.parse(JSON.stringify(existingSave.weeks || []));
+      if (existingSave.weaknesses) {
+        appState.weaknesses = JSON.parse(JSON.stringify(existingSave.weaknesses));
+      }
+      syncAllTimelinesToFirstWeek();
+      saveState();
+      return;
+    }
+  }
+  
+  // No saved state or user clicked cancel -> start fresh
+  resetActiveBoardForNewCard(newCardId);
 }
 
 function autoArchiveIfNeeded() {
@@ -2111,16 +2700,25 @@ function autoArchiveIfNeeded() {
 }
 
 // Archive active card into local library database
-function archiveActiveCard(silent = false) {
+async function archiveActiveCard(silent = false) {
   const stats = calculateScores();
   
-  if (!silent && !confirm(`Archive active card (Card ${appState.currentCardId}) to history? Total Score: ${stats.totalScore} pts, Laxity: ${stats.totalLaxity} pts.`)) {
-    return false;
+  if (!silent) {
+    const confirmed = await showModal({
+      title: `Archive Card ${appState.currentCardId}?`,
+      subtitle: `Score: ${stats.totalScore} pts | Laxity: ${stats.totalLaxity} pts`,
+      message: `Are you sure you want to archive your active card (Card ${appState.currentCardId}) to your historical library?`,
+      type: "info",
+      confirmText: "Archive Card",
+      cancelText: "Cancel"
+    });
+    if (!confirmed) return false;
   }
   
   const cId = appState.currentCardId;
+  const instId = appState.activeInstanceId || (`card_${cId}_${appState.commencingDate || Date.now()}`);
   const archiveInstance = {
-    instanceId: `card_${cId}`,
+    instanceId: instId,
     currentCardId: cId,
     cardId: cId,
     commencingDate: appState.commencingDate,
@@ -2135,8 +2733,12 @@ function archiveActiveCard(silent = false) {
     savedAt: new Date().toISOString()
   };
   
-  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  const existingIdx = appState.savedCards.findIndex(c => 
+    c.instanceId === instId || 
+    ((c.currentCardId || c.cardId) === cId && c.commencingDate === appState.commencingDate)
+  );
   if (existingIdx >= 0) {
+    archiveInstance.instanceId = appState.savedCards[existingIdx].instanceId;
     appState.savedCards[existingIdx] = archiveInstance;
   } else {
     appState.savedCards.push(archiveInstance);
@@ -2151,14 +2753,34 @@ function archiveActiveCard(silent = false) {
   saveState();
   
   if (!silent) {
-    alert("Card successfully archived to your library!");
-    if (appState.currentCardId < 7 && confirm(`Would you like to upgrade your active card to Card ${appState.currentCardId + 1} and clear logs?`)) {
-      resetActiveBoardForNewCard(appState.currentCardId + 1);
-    } else if (confirm("Would you like to reset/clear active card logs to start a new round?")) {
-      resetActiveBoardForNewCard(appState.currentCardId);
-    } else {
-      renderAll();
+    showToast("Card successfully archived to your library!", "success");
+    if (appState.currentCardId < 7) {
+      const upgrade = await showModal({
+        title: "Upgrade Card?",
+        subtitle: `Advance to Card ${appState.currentCardId + 1}`,
+        message: `Would you like to upgrade your active card to Card ${appState.currentCardId + 1} and start a fresh round?`,
+        type: "info",
+        confirmText: `Upgrade to Card ${appState.currentCardId + 1}`,
+        cancelText: "Stay on Current"
+      });
+      if (upgrade) {
+        resetActiveBoardForNewCard(appState.currentCardId + 1);
+        renderAll();
+        return true;
+      }
     }
+    const reset = await showModal({
+      title: "Reset Card Logs?",
+      subtitle: "Start New Round",
+      message: "Would you like to reset/clear active card logs to start a new round?",
+      type: "info",
+      confirmText: "Reset Logs",
+      cancelText: "Keep Logs"
+    });
+    if (reset) {
+      resetActiveBoardForNewCard(appState.currentCardId);
+    }
+    renderAll();
   }
   return true;
 }
@@ -2316,9 +2938,14 @@ function importData(e) {
     try {
       const parsed = JSON.parse(event.target.result);
       if (parsed.days && (parsed.days.length === 28 || parsed.days.length === 35)) {
+        // Preserve current theme so the display doesn't flip when importing
+        const currentTheme = appState.theme || 'dark';
+        
         appState = parsed;
         
-        // Ensure library structure exists in imported state
+        // Restore the theme the user had before importing
+        appState.theme = currentTheme;
+        
         if (!appState.savedCards) appState.savedCards = [];
         if (!appState.weaknesses) {
           appState.weaknesses = [
@@ -2328,25 +2955,48 @@ function importData(e) {
           ];
         }
         
+        syncAllTimelinesToFirstWeek();
+        
+        // Sync imported archived cards into the backend database
+        if (appState.savedCards && appState.savedCards.length > 0) {
+          appState.savedCards.forEach(card => {
+            fetch('/api/archive', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(card)
+            }).catch(e => console.error("Failed to sync imported archive to DB", e));
+          });
+        }
+        
         saveState();
         initUI();
         renderAll();
-        alert("Backup data imported successfully!");
+        showToast("Backup data imported successfully!", "success");
       } else {
-        alert("Invalid backup file structure. Ensure it is a valid CBR backup JSON.");
+        showToast("Invalid backup file structure. Ensure it is a valid CBR backup JSON.", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to parse JSON file.");
+      showToast("Failed to parse JSON file.", "error");
     }
   };
   fileReader.readAsText(file);
 }
 
 // Reset current active card logs
-function resetCurrentCard() {
-  if (confirm("Are you sure you want to reset all log fields for the active card? This action cannot be undone unless you have archived it or exported a JSON backup.")) {
+async function resetCurrentCard() {
+  const confirmed = await showModal({
+    title: "Reset Card Logs?",
+    subtitle: "Clear All Progress",
+    message: "Are you sure you want to reset all log fields for the active card? This action cannot be undone unless you have archived it or exported a JSON backup.",
+    type: "error",
+    confirmText: "Yes, Reset Logs",
+    cancelText: "Cancel",
+    isDanger: true
+  });
+  if (confirmed) {
     resetActiveCardLogsOnly();
+    showToast("Active card logs reset.", "info");
   }
 }
 
@@ -2355,6 +3005,27 @@ function resetCurrentCard() {
 // ----------------------------------------------------------------------
 let leaderboardCache = null;   // prefetched data stored here
 let leaderboardFetching = false; // prevent duplicate in-flight requests
+let lbCurrentFilter = 'cumulative'; // Default filter: cumulative, session, weekly, daily
+
+// Bind filter buttons
+document.addEventListener('DOMContentLoaded', () => {
+  const filterBtns = document.querySelectorAll('.lb-filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      const targetBtn = e.currentTarget;
+      targetBtn.classList.add('active');
+      lbCurrentFilter = targetBtn.dataset.filter;
+      
+      if (leaderboardCache) {
+        const podium = document.getElementById('leaderboard-podium');
+        const listWrapper = document.getElementById('leaderboard-list-wrapper');
+        const tbody = document.getElementById('leaderboard-tbody');
+        renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
+      }
+    });
+  });
+});
 
 async function prefetchLeaderboard() {
   // Fire-and-forget background fetch
@@ -2420,13 +3091,13 @@ async function fetchLeaderboard() {
   }
 }
 
-function renderLeaderboard(leaderboard, podium, listWrapper, tbody) {
+function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
   const loader = document.getElementById('leaderboard-loader');
   
   podium.innerHTML = '';
   tbody.innerHTML = '';
   
-  if (!leaderboard || leaderboard.length === 0) {
+  if (!leaderboardData || leaderboardData.length === 0) {
     loader.style.display = 'flex';
     loader.innerHTML = '<p>No leaderboard data available yet.</p>';
     return;
@@ -2434,8 +3105,27 @@ function renderLeaderboard(leaderboard, podium, listWrapper, tbody) {
   
   loader.style.display = 'none';
   
+  // Clone the array so we can sort without mutating the cache
+  let sortedData = [...leaderboardData];
+  
+  // Determine the key to sort by based on the active filter
+  const pointsKey = `${lbCurrentFilter}_points`;
+  const laxityKey = `${lbCurrentFilter}_laxity`;
+  
+  // Sort by points (descending), then laxity (ascending)
+  sortedData.sort((a, b) => {
+    const ptsDiff = (b[pointsKey] || 0) - (a[pointsKey] || 0);
+    if (ptsDiff !== 0) return ptsDiff;
+    return (a[laxityKey] || 0) - (b[laxityKey] || 0);
+  });
+  
+  // Assign new ranks based on current sort
+  sortedData.forEach((user, index) => {
+    user._currentRank = index + 1;
+  });
+  
   // --- PODIUM: Top 3 ---
-  const top3 = leaderboard.slice(0, 3);
+  const top3 = sortedData.slice(0, 3);
   // Display order: 2nd left, 1st center, 3rd right
   const podiumOrder = [top3[1] || null, top3[0] || null, top3[2] || null];
   
@@ -2446,44 +3136,51 @@ function renderLeaderboard(leaderboard, podium, listWrapper, tbody) {
       ? `<img src="${avatarSrc}" alt="${user.name}" class="podium-avatar">`
       : `<div class="podium-avatar podium-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
     
-    const crownHtml = user.rank === 1
+    const crownHtml = user._currentRank === 1
       ? `<div class="podium-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 0 0 0 2h10a1 1 0 0 0 0-2H7z"/></svg></div>`
       : '';
     
+    const displayPoints = user[pointsKey] || 0;
+    
     const pItem = document.createElement('div');
-    pItem.className = `podium-item rank-${user.rank}`;
+    pItem.className = `podium-item rank-${user._currentRank}`;
     pItem.innerHTML = `
       ${crownHtml}
       ${avatarHtml}
       <div class="podium-name" title="${user.name}">${user.name}</div>
-      <div class="podium-points"><strong>${user.points}</strong> PTS</div>
+      <div class="podium-points"><strong>${displayPoints}</strong> PTS</div>
       <div class="podium-card-label">Card ${user.cardLevel}</div>
-      <div class="podium-rank-badge">${user.rank}</div>
+      <div class="podium-rank-badge">${user._currentRank}</div>
     `;
     podium.appendChild(pItem);
   });
   podium.style.display = 'flex';
   
   // --- TABLE: Rank 4+ ---
-  const rest = leaderboard.slice(3);
+  const rest = sortedData.slice(3);
   if (rest.length > 0) {
     rest.forEach(user => {
       const avatarSrc = user.avatar || '';
       const avatarHtml = avatarSrc
         ? `<img src="${avatarSrc}" alt="${user.name}" class="user-avatar-small">`
         : `<div class="user-avatar-small user-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
+        
+      const displayPoints = user[pointsKey] || 0;
+      const displayLaxity = user[laxityKey] || 0;
       
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="col-rank">#${user.rank}</td>
-        <td class="col-user">${avatarHtml}<span>${user.name}</span></td>
+        <td class="col-rank">#${user._currentRank}</td>
+        <td class="col-user"><div class="user-cell-content">${avatarHtml}<span>${user.name}</span></div></td>
         <td class="col-card"><span class="card-badge">Card ${user.cardLevel}</span></td>
-        <td class="col-points text-right">${user.points}</td>
-        <td class="col-laxity text-center">${user.laxity}</td>
+        <td class="col-points text-right">${displayPoints}</td>
+        <td class="col-laxity text-center">${displayLaxity}</td>
       `;
       tbody.appendChild(tr);
     });
     listWrapper.style.display = 'block';
+  } else {
+    listWrapper.style.display = 'none';
   }
 }
 
@@ -2493,10 +3190,12 @@ function renderLeaderboard(leaderboard, podium, listWrapper, tbody) {
 
 let seData = {};   // { sessionNumber: { diligence:{}, bonus:{}, growthPoints } }
 let seInitialized = false;
+let seCurrentViewSession = 1;
 
 async function initSessionEval() {
   if (seInitialized) {
-    seRenderAll();
+    seRenderSelector();
+    seRenderSessionView(seCurrentViewSession);
     return;
   }
   try {
@@ -2504,6 +3203,9 @@ async function initSessionEval() {
     const json = await res.json();
     const sessions = json.sessions || {};
     // Merge fetched data into seData
+    for (let i = 1; i <= 7; i++) {
+      if (!seData[i]) seData[i] = { diligence: {}, bonus: {}, growthPoints: 0 };
+    }
     for (const sNum in sessions) {
       seData[sNum] = sessions[sNum];
     }
@@ -2515,221 +3217,234 @@ async function initSessionEval() {
         if (cardId && card.totalScore !== undefined) {
           const sKey = String(cardId);
           if (!seData[sKey]) seData[sKey] = { diligence: {}, bonus: {}, growthPoints: 0 };
-          // Use archived card's total score as growth points
           seData[sKey].growthPoints = card.totalScore;
         }
       });
     }
     
+    // Default to the user's current card session
+    seCurrentViewSession = appState && appState.currentCardId ? appState.currentCardId : 1;
+    
     seInitialized = true;
-    seRenderAll();
+    seRenderSelector();
+    seRenderSessionView(seCurrentViewSession);
+    seBindSelector();
     seBindCheckboxes();
+    seRecalcGrandTotals();
   } catch(e) {
     console.error('Session eval load error', e);
   }
 }
 
-function seRenderAll() {
+function seRenderSelector() {
+  const select = document.getElementById('se-session-select');
+  if (!select) return;
+  select.innerHTML = '';
+  
   const currentCard = appState ? appState.currentCardId : 1;
   
-  // Update checkboxes from data
   for (let s = 1; s <= 7; s++) {
-    const sData = seData[String(s)] || {};
-    const diligence = sData.diligence || {};
-    const bonus = sData.bonus || {};
-    
-    // Lock future sessions
-    const isCompleted = appState && appState.savedCards &&
-      appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
-    const isActive = (s === currentCard);
-    const isAccessible = isCompleted || isActive;
-    
-    // Session column header
-    const th = document.getElementById(`se-th-${s}`);
-    if (th) {
-      th.classList.toggle('se-th-active', isActive);
+    const option = document.createElement('option');
+    option.value = s;
+    if (s < currentCard) {
+      option.textContent = `Session ${s} — Completed`;
+    } else if (s === currentCard) {
+      option.textContent = `Session ${s} — Active`;
+    } else {
+      option.textContent = `Session ${s} — Upcoming`;
     }
-    
-    // Growth points
-    const gCell = document.getElementById(`se-growth-${s}`);
-    if (gCell) {
-      const gp = sData.growthPoints || 0;
-      gCell.textContent = isAccessible ? gp : '—';
-    }
-    
-    // Diligence checkboxes
-    for (let d = 1; d <= 6; d++) {
-      const cell = document.querySelector(`td[data-session="${s}"][data-key="diligence"][data-num="${d}"]`);
-      if (!cell) continue;
-      const cb = cell.querySelector('.se-checkbox');
-      const checked = diligence[String(d)] || false;
-      if (cb) cb.classList.toggle('checked', checked);
-      cell.classList.toggle('locked', !isAccessible);
-    }
+    select.appendChild(option);
   }
   
-  // Bonus checkboxes (not session-specific)
-  const anySession = Object.values(seData).find(s => s.bonus) || {};
-  const bonus = anySession.bonus || {};
-  for (let b = 7; b <= 12; b++) {
-    const cb = document.getElementById(`se-bonus-${b}`);
-    if (cb) cb.classList.toggle('checked', !!(bonus[String(b)]));
-    const pts = document.getElementById(`se-bonus-${b}-pts`);
-    if (pts) pts.textContent = bonus[String(b)] ? '50' : '0';
-  }
-  
-  seRecalcTotals();
+  select.value = seCurrentViewSession;
 }
 
-function seRecalcTotals() {
+function seBindSelector() {
+  const select = document.getElementById('se-session-select');
+  if (select) {
+    select.addEventListener('change', (e) => {
+      seCurrentViewSession = parseInt(e.target.value);
+      seRenderSessionView(seCurrentViewSession);
+    });
+  }
+}
+
+function seRenderSessionView(sessionNum) {
+  const currentCard = appState ? appState.currentCardId : 1;
+  const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
+  
+  const isPast = sessionNum < currentCard;
+  const isCurrent = sessionNum === currentCard;
+  const isFuture = sessionNum > currentCard;
+  const isEditable = isCurrent; // Only the current session is editable
+  
+  // Update badge
+  const badge = document.getElementById('se-status-badge');
+  if (badge) {
+    badge.className = 'se-status-badge';
+    if (isPast) {
+      badge.classList.add('se-badge-completed');
+      badge.innerHTML = '<i data-lucide="check-circle" style="width:14px;height:14px;"></i> Completed (Read Only)';
+    } else if (isCurrent) {
+      badge.classList.add('se-badge-active');
+      badge.innerHTML = '<i data-lucide="edit-2" style="width:14px;height:14px;"></i> Active (Editable)';
+    } else {
+      badge.classList.add('se-badge-locked');
+      badge.innerHTML = '<i data-lucide="lock" style="width:14px;height:14px;"></i> Locked (Not Reached)';
+    }
+  }
+  if (window.lucide) lucide.createIcons();
+
+  // Diligence Checkboxes
+  let currentDiligenceScore = 0;
+  document.querySelectorAll('.diligence-cb').forEach(cb => {
+    const num = cb.dataset.num;
+    const isChecked = sData.diligence[num] || false;
+    
+    cb.classList.toggle('checked', isChecked);
+    cb.classList.toggle('locked', !isEditable);
+    
+    if (isChecked) currentDiligenceScore += 10;
+  });
+  
+  const scoreEl = document.getElementById('se-current-diligence-score');
+  if (scoreEl) scoreEl.textContent = `${currentDiligenceScore} / 60`;
+  
+  // Growth Points
+  const gpEl = document.getElementById('se-current-growth-points');
+  if (gpEl) {
+    let gp = sData.growthPoints || 0;
+    if (isCurrent && appState) {
+      const stats = calculateScores();
+      gp = stats.totalScore;
+    }
+    gpEl.textContent = isFuture ? '—' : gp;
+  }
+  
+  // Bonus (Only show on Session 7)
+  const bonusSection = document.getElementById('se-bonus-section');
+  if (bonusSection) {
+    bonusSection.style.display = (sessionNum === 7) ? 'block' : 'none';
+  }
+  
+  let currentBonusScore = 0;
+  if (sessionNum === 7) {
+    document.querySelectorAll('.bonus-cb').forEach(cb => {
+      const num = cb.dataset.num;
+      const isChecked = sData.bonus[num] || false;
+      
+      cb.classList.toggle('checked', isChecked);
+      cb.classList.toggle('locked', !isEditable);
+      
+      if (isChecked) currentBonusScore += 50;
+    });
+    
+    const bonusScoreEl = document.getElementById('se-current-bonus-score');
+    if (bonusScoreEl) bonusScoreEl.textContent = `${currentBonusScore} / 300`;
+  }
+  
+  // Total preview
+  const gpPreview = isFuture ? 0 : (isCurrent ? calculateScores().totalScore : (sData.growthPoints || 0));
+  const sessionTotal = currentDiligenceScore + gpPreview + currentBonusScore;
+  const previewEl = document.getElementById('se-session-total-preview');
+  if (previewEl) {
+    previewEl.innerHTML = `Session Total: <strong>${sessionTotal} pts</strong>`;
+  }
+}
+
+function seBindCheckboxes() {
+  document.querySelectorAll('.se-checkbox').forEach(cb => {
+    cb.addEventListener('click', () => {
+      if (cb.classList.contains('locked')) return;
+      
+      const num = cb.dataset.num;
+      const isBonus = cb.classList.contains('bonus-cb');
+      const sessionNum = seCurrentViewSession;
+      
+      if (!seData[sessionNum]) seData[sessionNum] = { diligence: {}, bonus: {}, growthPoints: 0 };
+      
+      if (isBonus) {
+        if (!seData[sessionNum].bonus) seData[sessionNum].bonus = {};
+        seData[sessionNum].bonus[num] = !seData[sessionNum].bonus[num];
+      } else {
+        if (!seData[sessionNum].diligence) seData[sessionNum].diligence = {};
+        seData[sessionNum].diligence[num] = !seData[sessionNum].diligence[num];
+      }
+      
+      seRenderSessionView(sessionNum);
+      seRecalcGrandTotals();
+      debounceSeAutoSave(sessionNum);
+    });
+  });
+}
+
+function seRecalcGrandTotals() {
   const currentCard = appState ? appState.currentCardId : 1;
   let totalDiligence = 0;
   let totalGrowth = 0;
   let totalBonus = 0;
 
   for (let s = 1; s <= 7; s++) {
-    const sData = seData[String(s)] || {};
-    const diligence = sData.diligence || {};
-    const isCompleted = appState && appState.savedCards &&
-      appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
-    const isActive = (s === currentCard);
-    const accessible = isCompleted || isActive;
+    const sData = seData[String(s)] || { diligence: {}, bonus: {}, growthPoints: 0 };
     
-    let sessionDiligence = 0;
-    for (let d = 1; d <= 6; d++) {
-      const checked = diligence[String(d)] || false;
-      sessionDiligence += checked ? 10 : 0;
-    }
-    
-    // Update per-row totals
-    for (let d = 1; d <= 6; d++) {
-      // row total across sessions
-    }
-    
-    // Session column diligence score
-    const sessionScoreEl = document.getElementById(`se-session-score-${s}`);
-    if (sessionScoreEl) sessionScoreEl.textContent = accessible ? sessionDiligence : '—';
-    
-    // Grand session total (diligence + growth)
-    const gp = accessible ? (sData.growthPoints || 0) : 0;
-    const grandScoreEl = document.getElementById(`se-grand-s${s}`);
-    if (grandScoreEl) grandScoreEl.textContent = accessible ? (sessionDiligence + gp) : '—';
-    
-    if (accessible) {
-      totalDiligence += sessionDiligence;
+    // Only count accessible sessions (past + current)
+    if (s <= currentCard) {
+      // Diligence
+      for (let d = 1; d <= 6; d++) {
+        if (sData.diligence[String(d)]) totalDiligence += 10;
+      }
+      
+      // Growth
+      let gp = sData.growthPoints || 0;
+      if (s === currentCard && appState) {
+        gp = calculateScores().totalScore;
+      }
       totalGrowth += gp;
-    }
-  }
-  
-  // Row totals for each diligence criterion
-  for (let d = 1; d <= 6; d++) {
-    let rowTotal = 0;
-    for (let s = 1; s <= 7; s++) {
-      const isCompleted = appState && appState.savedCards &&
-        appState.savedCards.some(c => (c.currentCardId || c.cardId) === s);
-      const isActive = (s === currentCard);
-      if (isCompleted || isActive) {
-        const sData = seData[String(s)] || {};
-        rowTotal += (sData.diligence || {})[String(d)] ? 10 : 0;
+      
+      // Bonus (assumes bonus is saved in session 7)
+      if (s === 7) {
+        for (let b = 7; b <= 12; b++) {
+          if (sData.bonus[String(b)]) totalBonus += 50;
+        }
       }
     }
-    const rowTotalEl = document.getElementById(`se-row-d${d}-total`);
-    if (rowTotalEl) rowTotalEl.textContent = rowTotal;
   }
-  
-  // Growth row total
-  const growthTotalEl = document.getElementById('se-growth-total');
-  if (growthTotalEl) growthTotalEl.textContent = totalGrowth;
-  
-  // Diligence total all
-  const dilTotalEl = document.getElementById('se-diligence-total-all');
-  if (dilTotalEl) dilTotalEl.textContent = totalDiligence;
-
-  // Bonus
-  const anySession = Object.values(seData).find(s => s.bonus) || {};
-  const bonus = anySession.bonus || {};
-  for (let b = 7; b <= 12; b++) {
-    if (bonus[String(b)]) totalBonus += 50;
-  }
-  const bonusTotalEl = document.getElementById('se-bonus-total');
-  if (bonusTotalEl) bonusTotalEl.textContent = totalBonus;
   
   const grandTotal = totalDiligence + totalGrowth + totalBonus;
   
-  // Update summary bar
+  // Update DOM
   const elD = document.getElementById('se-total-diligence');
   const elG = document.getElementById('se-total-growth');
   const elB = document.getElementById('se-total-bonus');
   const elA = document.getElementById('se-total-all');
-  const elGrand = document.getElementById('se-grand-total');
   
   if (elD) elD.textContent = totalDiligence;
   if (elG) elG.textContent = totalGrowth;
   if (elB) elB.textContent = totalBonus;
-  if (elA) elA.textContent = grandTotal;
-  if (elGrand) elGrand.textContent = grandTotal;
-  
-  // Color total based on target
   if (elA) {
+    elA.textContent = grandTotal;
     elA.style.color = grandTotal >= 600 ? 'var(--success)' : 'var(--primary)';
-  }
-}
-
-function seBindCheckboxes() {
-  // Diligence checkboxes
-  document.querySelectorAll('.se-check-cell').forEach(cell => {
-    cell.addEventListener('click', () => {
-      if (cell.classList.contains('locked')) return;
-      const session = parseInt(cell.dataset.session);
-      const num = cell.dataset.num;
-      if (!seData[session]) seData[session] = { diligence: {}, bonus: {}, growthPoints: 0 };
-      if (!seData[session].diligence) seData[session].diligence = {};
-      seData[session].diligence[num] = !seData[session].diligence[num];
-      const cb = cell.querySelector('.se-checkbox');
-      if (cb) cb.classList.toggle('checked', seData[session].diligence[num]);
-      seRecalcTotals();
-      debounceSeAutoSave(session);
-    });
-  });
-  
-  // Bonus checkboxes
-  for (let b = 7; b <= 12; b++) {
-    const cb = document.getElementById(`se-bonus-${b}`);
-    if (!cb) continue;
-    cb.addEventListener('click', () => {
-      // Store bonus in session 7 by convention (end of course)
-      if (!seData['7']) seData['7'] = { diligence: {}, bonus: {}, growthPoints: 0 };
-      if (!seData['7'].bonus) seData['7'].bonus = {};
-      seData['7'].bonus[String(b)] = !seData['7'].bonus[String(b)];
-      cb.classList.toggle('checked', seData['7'].bonus[String(b)]);
-      const pts = document.getElementById(`se-bonus-${b}-pts`);
-      if (pts) pts.textContent = seData['7'].bonus[String(b)] ? '50' : '0';
-      seRecalcTotals();
-      debounceSeAutoSave(7);
-    });
   }
 }
 
 let seSaveTimers = {};
 function debounceSeAutoSave(sessionNum) {
+  const statusEl = document.getElementById('se-save-status-text');
+  if (statusEl) statusEl.innerHTML = '⏳ Saving...';
+  
   clearTimeout(seSaveTimers[sessionNum]);
-  seSaveTimers[sessionNum] = setTimeout(() => saveSessionEval(sessionNum), 800);
+  seSaveTimers[sessionNum] = setTimeout(async () => {
+    await saveSessionEval(sessionNum);
+    if (statusEl) statusEl.innerHTML = '✅ Changes auto-saved';
+  }, 800);
 }
 
 async function saveSessionEval(sessionNum) {
-  const sData = seData[String(sessionNum)] || {};
-  const diligence = sData.diligence || {};
-  const bonus = sData.bonus || {};
+  const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
   
-  // Get growth points for this session from archived cards
   let growthPoints = sData.growthPoints || 0;
-  if (appState && appState.savedCards) {
-    const archived = appState.savedCards.find(c => (c.currentCardId || c.cardId) === sessionNum);
-    if (archived) growthPoints = archived.totalScore || 0;
-  }
   if (sessionNum === (appState && appState.currentCardId)) {
-    const stats = calculateScores();
-    growthPoints = stats.totalScore;
+    growthPoints = calculateScores().totalScore;
   }
   
   try {
@@ -2738,8 +3453,8 @@ async function saveSessionEval(sessionNum) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sessionNumber: sessionNum,
-        diligence,
-        bonus,
+        diligence: sData.diligence || {},
+        bonus: sData.bonus || {},
         growthPoints
       })
     });
@@ -2748,20 +3463,3 @@ async function saveSessionEval(sessionNum) {
   }
 }
 
-async function saveSessionEvalAll() {
-  const currentCard = appState ? appState.currentCardId : 1;
-  const btn = document.getElementById('se-save-btn');
-  if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
-  
-  for (let s = 1; s <= currentCard; s++) {
-    await saveSessionEval(s);
-  }
-  
-  if (btn) {
-    btn.innerHTML = '✅ Saved!';
-    setTimeout(() => {
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Evaluation';
-      btn.disabled = false;
-    }, 2000);
-  }
-}

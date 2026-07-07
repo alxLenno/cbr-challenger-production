@@ -1,7 +1,7 @@
 <div class="content-header">
   <div class="title-text">
     <h2>Session Evaluation <span class="se-subtitle">| Diligence in CBR Course</span></h2>
-    <p>Filled at the end of each session (card archive day). Tracks your diligence, growth points, and bonus scores across all 7 sessions.</p>
+    <p>Filled at the end of each session (card archive day). Tracks your diligence, growth points, and bonus scores.</p>
   </div>
 </div>
 
@@ -10,16 +10,16 @@
   <!-- Scoring Rules Banner -->
   <div class="se-scoring-banner">
     <div class="se-scoring-rule">
-      <span class="se-rule-icon">📋</span>
+      <span class="se-rule-icon"><i data-lucide="clipboard-check"></i></span>
       <span>Areas <strong>1–6</strong>: Each criterion = <strong>10 pts</strong> per session</span>
     </div>
     <div class="se-scoring-rule">
-      <span class="se-rule-icon">⭐</span>
+      <span class="se-rule-icon"><i data-lucide="star"></i></span>
       <span>Areas <strong>7–12</strong>: Each bonus = <strong>50 pts</strong> at end of course</span>
     </div>
     <div class="se-scoring-rule">
-      <span class="se-rule-icon">🎯</span>
-      <span>Score at least <strong>600 pts</strong> total to be commissioned as a Consistent Bible Reader</span>
+      <span class="se-rule-icon"><i data-lucide="target"></i></span>
+      <span>Score at least <strong>600 pts</strong> total to be commissioned</span>
     </div>
   </div>
 
@@ -47,276 +47,196 @@
     </div>
   </div>
 
-  <!-- Session Tabs -->
-  <div class="se-session-tabs" id="se-session-tabs">
-    <!-- Rendered by JS -->
+  <!-- Session Selector -->
+  <div class="se-selector-bar">
+    <div class="se-selector-group">
+      <label class="se-selector-label">Select Session to View/Edit</label>
+      <div class="se-dropdown-wrapper">
+        <select id="se-session-select" class="se-session-select">
+          <!-- Populated by JS -->
+        </select>
+        <div class="se-dropdown-icon"><i data-lucide="chevron-down"></i></div>
+      </div>
+    </div>
+    <div class="se-status-badge" id="se-status-badge">
+      <!-- Status injected by JS -->
+    </div>
   </div>
 
-  <!-- Main Evaluation Table -->
-  <div class="se-table-wrapper">
-    <table class="se-eval-table">
-      <thead>
-        <tr>
-          <th class="se-col-criteria">EVALUATION CRITERIA</th>
-          <th class="se-col-session" id="se-th-1">S1</th>
-          <th class="se-col-session" id="se-th-2">S2</th>
-          <th class="se-col-session" id="se-th-3">S3</th>
-          <th class="se-col-session" id="se-th-4">S4</th>
-          <th class="se-col-session" id="se-th-5">S5</th>
-          <th class="se-col-session" id="se-th-6">S6</th>
-          <th class="se-col-session" id="se-th-7">S7</th>
-          <th class="se-col-total">TOTAL</th>
-        </tr>
-      </thead>
-      <tbody>
+  <!-- Single Session View Form -->
+  <div class="se-single-session-view" id="se-single-session-view">
 
-        <!-- DILIGENCE SECTION HEADER -->
-        <tr class="se-section-header">
-          <td colspan="9">
-            <span class="se-section-label">📌 DILIGENCE POINTS</span>
-            <span class="se-section-note">Each criteria = 10 pts per session (max 60/session)</span>
-          </td>
-        </tr>
+    <!-- DILIGENCE section -->
+    <div class="se-section-title">
+      <div class="se-section-title-left">
+        <i data-lucide="award"></i> Diligence Points
+        <span class="se-section-note">10 pts per criteria</span>
+      </div>
+      <div class="se-section-score" id="se-current-diligence-score">0 / 60</div>
+    </div>
 
-        <!-- Criteria 1 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="1">
-          <td class="se-criteria-cell">
-            <span class="se-num">1.</span>
-            <span class="se-criteria-text">I arrived for the Training Session on <strong>TIME</strong></span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="1"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d1-total">0</td>
-        </tr>
+    <div class="se-criteria-list">
+      <!-- Criteria 1 -->
+      <div class="se-criteria-item" data-num="1">
+        <div class="se-criteria-info">
+          <span class="se-num">1.</span>
+          <span class="se-criteria-text">I arrived for the Training Session on <strong>TIME</strong></span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-1" data-num="1"></div>
+        </div>
+      </div>
+      <!-- Criteria 2 -->
+      <div class="se-criteria-item" data-num="2">
+        <div class="se-criteria-info">
+          <span class="se-num">2.</span>
+          <span class="se-criteria-text">I completed <strong>ALL</strong> the listed session activities</span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-2" data-num="2"></div>
+        </div>
+      </div>
+      <!-- Criteria 3 -->
+      <div class="se-criteria-item" data-num="3">
+        <div class="se-criteria-info">
+          <span class="se-num">3.</span>
+          <span class="se-criteria-text">I had at least <strong>THREE</strong> review meetings with my PEs</span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-3" data-num="3"></div>
+        </div>
+      </div>
+      <!-- Criteria 4 -->
+      <div class="se-criteria-item" data-num="4">
+        <div class="se-criteria-info">
+          <span class="se-num">4.</span>
+          <span class="se-criteria-text">My faithfulness in Scripture Memory &amp; Data Validity is at least <strong>25 days</strong> each</span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-4" data-num="4"></div>
+        </div>
+      </div>
+      <!-- Criteria 5 -->
+      <div class="se-criteria-item" data-num="5">
+        <div class="se-criteria-info">
+          <span class="se-num">5.</span>
+          <span class="se-criteria-text">I am <strong>ORDERLY</strong> (Mobile off &amp; Verses written on cards or sticky notes)</span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-5" data-num="5"></div>
+        </div>
+      </div>
+      <!-- Criteria 6 -->
+      <div class="se-criteria-item" data-num="6">
+        <div class="se-criteria-info">
+          <span class="se-num">6.</span>
+          <span class="se-criteria-text">I promoted CBR (I spoke to 3 people about CBR or loaned out a book)</span>
+        </div>
+        <div class="se-checkbox-wrap">
+          <div class="se-checkbox diligence-cb" id="se-cb-6" data-num="6"></div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Criteria 2 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="2">
-          <td class="se-criteria-cell">
-            <span class="se-num">2.</span>
-            <span class="se-criteria-text">I completed <strong>ALL</strong> the listed session activities</span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="2"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d2-total">0</td>
-        </tr>
+    <!-- Growth Points Section -->
+    <div class="se-section-title" style="margin-top: 1.5rem;">
+      <div class="se-section-title-left">
+        <i data-lucide="trending-up" style="color:var(--success);"></i> Growth Points
+        <span class="se-section-note">From archived card</span>
+      </div>
+    </div>
+    
+    <div class="se-criteria-item growth-item">
+      <div class="se-criteria-info">
+        <span class="se-criteria-text">My Total <strong>Growth Points</strong> (4 weeks) in CBR practice this session</span>
+      </div>
+      <div class="se-growth-val" id="se-current-growth-points">0</div>
+    </div>
 
-        <!-- Criteria 3 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="3">
-          <td class="se-criteria-cell">
-            <span class="se-num">3.</span>
-            <span class="se-criteria-text">I had at least <strong>THREE</strong> review meetings with my PEs</span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="3"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d3-total">0</td>
-        </tr>
+    <!-- BONUS section (Visible only on S7) -->
+    <div id="se-bonus-section" style="display: none;">
+      <div class="se-section-title" style="margin-top: 1.5rem;">
+        <div class="se-section-title-left">
+          <i data-lucide="star" style="color:var(--warning);"></i> Bonus Assignments
+          <span class="se-section-note">50 pts each</span>
+        </div>
+        <div class="se-section-score" id="se-current-bonus-score" style="color:var(--warning);">0 / 300</div>
+      </div>
 
-        <!-- Criteria 4 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="4">
-          <td class="se-criteria-cell">
-            <span class="se-num">4.</span>
-            <span class="se-criteria-text">My faithfulness in Scripture Memory &amp; Data Validity is at least <strong>25 days</strong> each</span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="4"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d4-total">0</td>
-        </tr>
-
-        <!-- Criteria 5 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="5">
-          <td class="se-criteria-cell">
-            <span class="se-num">5.</span>
-            <span class="se-criteria-text">I am <strong>ORDERLY</strong> (Mobile off &amp; Verses written on cards or sticky notes)</span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="5"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d5-total">0</td>
-        </tr>
-
-        <!-- Criteria 6 -->
-        <tr class="se-criteria-row" data-key="diligence" data-num="6">
-          <td class="se-criteria-cell">
-            <span class="se-num">6.</span>
-            <span class="se-criteria-text">I promoted CBR (I spoke to 3 people about CBR or loaned out a book)</span>
-          </td>
-          <td class="se-check-cell" data-session="1" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="2" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="3" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="4" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="5" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="6" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-check-cell" data-session="7" data-key="diligence" data-num="6"><div class="se-checkbox"></div></td>
-          <td class="se-row-total" id="se-row-d6-total">0</td>
-        </tr>
-
-        <!-- Growth Points Row -->
-        <tr class="se-growth-row">
-          <td class="se-criteria-cell">
-            <span class="se-criteria-text se-growth-label">📈 My Total <strong>Growth Points</strong> (4 weeks) in CBR practice this session</span>
-            <span class="se-growth-hint">Auto-filled from archived card score</span>
-          </td>
-          <td class="se-growth-cell" id="se-growth-1">—</td>
-          <td class="se-growth-cell" id="se-growth-2">—</td>
-          <td class="se-growth-cell" id="se-growth-3">—</td>
-          <td class="se-growth-cell" id="se-growth-4">—</td>
-          <td class="se-growth-cell" id="se-growth-5">—</td>
-          <td class="se-growth-cell" id="se-growth-6">—</td>
-          <td class="se-growth-cell" id="se-growth-7">—</td>
-          <td class="se-row-total" id="se-growth-total">0</td>
-        </tr>
-
-        <!-- Session Totals Row -->
-        <tr class="se-session-total-row">
-          <td class="se-criteria-cell"><strong>DILIGENCE SCORE PER SESSION</strong></td>
-          <td class="se-session-score" id="se-session-score-1">0</td>
-          <td class="se-session-score" id="se-session-score-2">0</td>
-          <td class="se-session-score" id="se-session-score-3">0</td>
-          <td class="se-session-score" id="se-session-score-4">0</td>
-          <td class="se-session-score" id="se-session-score-5">0</td>
-          <td class="se-session-score" id="se-session-score-6">0</td>
-          <td class="se-session-score" id="se-session-score-7">0</td>
-          <td class="se-row-total" id="se-diligence-total-all">0</td>
-        </tr>
-
-        <!-- Permitted Laxity Row -->
-        <tr class="se-laxity-row">
-          <td class="se-criteria-cell"><em>Permitted Laxity per Session</em></td>
-          <td class="se-laxity-cell">-30</td>
-          <td class="se-laxity-cell">-25</td>
-          <td class="se-laxity-cell">-20</td>
-          <td class="se-laxity-cell">-15</td>
-          <td class="se-laxity-cell">-10</td>
-          <td class="se-laxity-cell">-5</td>
-          <td class="se-laxity-cell">0</td>
-          <td class="se-laxity-cell se-laxity-total" id="se-laxity-actual-total">—</td>
-        </tr>
-
-        <!-- BONUS SECTION HEADER -->
-        <tr class="se-section-header se-bonus-header">
-          <td colspan="9">
-            <span class="se-section-label">⭐ BONUS SCORING ASSIGNMENTS</span>
-            <span class="se-section-note">Each = 50 bonus pts — assessed AT THE END of the course</span>
-          </td>
-        </tr>
-
-        <!-- Bonus 7 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="7">
-          <td class="se-criteria-cell">
+      <div class="se-criteria-list">
+        <div class="se-criteria-item bonus-item" data-num="7">
+          <div class="se-criteria-info">
             <span class="se-num">7.</span>
             <span class="se-criteria-text">I have listed over 10 people and shall bring at least 5 to the next class</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-7"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-7-pts">0</td>
-        </tr>
-
-        <!-- Bonus 8 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="8">
-          <td class="se-criteria-cell">
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-7" data-num="7"></div>
+          </div>
+        </div>
+        <div class="se-criteria-item bonus-item" data-num="8">
+          <div class="se-criteria-info">
             <span class="se-num">8.</span>
             <span class="se-criteria-text">I have practised CBR beyond 5 am and 5 chapters</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-8"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-8-pts">0</td>
-        </tr>
-
-        <!-- Bonus 9 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="9">
-          <td class="se-criteria-cell">
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-8" data-num="8"></div>
+          </div>
+        </div>
+        <div class="se-criteria-item bonus-item" data-num="9">
+          <div class="se-criteria-info">
             <span class="se-num">9.</span>
             <span class="se-criteria-text">I also prayed back the entire Psalm 119 successfully</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-9"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-9-pts">0</td>
-        </tr>
-
-        <!-- Bonus 10 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="10">
-          <td class="se-criteria-cell">
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-9" data-num="9"></div>
+          </div>
+        </div>
+        <div class="se-criteria-item bonus-item" data-num="10">
+          <div class="se-criteria-info">
             <span class="se-num">10.</span>
             <span class="se-criteria-text">I have done at least 7 recitation checks on all the course Scriptures</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-10"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-10-pts">0</td>
-        </tr>
-
-        <!-- Bonus 11 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="11">
-          <td class="se-criteria-cell">
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-10" data-num="10"></div>
+          </div>
+        </div>
+        <div class="se-criteria-item bonus-item" data-num="11">
+          <div class="se-criteria-info">
             <span class="se-num">11.</span>
             <span class="se-criteria-text">I completed writing principles for ALL the listed CBs</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-11"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-11-pts">0</td>
-        </tr>
-
-        <!-- Bonus 12 -->
-        <tr class="se-criteria-row se-bonus-row" data-key="bonus" data-num="12">
-          <td class="se-criteria-cell">
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-11" data-num="11"></div>
+          </div>
+        </div>
+        <div class="se-criteria-item bonus-item" data-num="12">
+          <div class="se-criteria-info">
             <span class="se-num">12.</span>
             <span class="se-criteria-text">I attended ALL the training sessions of the CBR course</span>
-          </td>
-          <td class="se-bonus-check" colspan="7"><div class="se-bonus-checkbox-wrap"><div class="se-checkbox se-bonus-cb" id="se-bonus-12"></div><span>Achieved</span></div></td>
-          <td class="se-row-total se-bonus-pts" id="se-bonus-12-pts">0</td>
-        </tr>
-
-        <!-- Total Bonus Row -->
-        <tr class="se-total-bonus-row">
-          <td class="se-criteria-cell"><strong>TOTAL BONUSES</strong></td>
-          <td colspan="7"></td>
-          <td class="se-row-total se-primary-total" id="se-bonus-total">0</td>
-        </tr>
-
-        <!-- Grand Total Sessions Score -->
-        <tr class="se-grand-total-row">
-          <td class="se-criteria-cell"><strong>TOTAL SESSIONS SCORE</strong></td>
-          <td class="se-grand-score" id="se-grand-s1">0</td>
-          <td class="se-grand-score" id="se-grand-s2">0</td>
-          <td class="se-grand-score" id="se-grand-s3">0</td>
-          <td class="se-grand-score" id="se-grand-s4">0</td>
-          <td class="se-grand-score" id="se-grand-s5">0</td>
-          <td class="se-grand-score" id="se-grand-s6">0</td>
-          <td class="se-grand-score" id="se-grand-s7">0</td>
-          <td class="se-row-total se-primary-total" id="se-grand-total">0</td>
-        </tr>
-
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Save Button -->
-  <div class="se-save-bar">
-    <div class="se-save-info" id="se-save-info">
-      <span id="se-save-status-text">✅ Changes auto-saved when you tick a checkbox</span>
+          </div>
+          <div class="se-checkbox-wrap">
+            <span class="se-bonus-label">50 pts</span>
+            <div class="se-checkbox bonus-cb" id="se-cb-12" data-num="12"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="se-save-btn" id="se-save-btn" onclick="saveSessionEvalAll()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      Save Evaluation
-    </button>
+
+  </div> <!-- /se-single-session-view -->
+
+  <!-- Save Button Bar -->
+  <div class="se-save-bar" id="se-save-bar">
+    <div class="se-save-info" id="se-save-info">
+      <span id="se-save-status-text">✅ Changes auto-saved</span>
+    </div>
+    <div class="se-session-total-preview" id="se-session-total-preview">
+      Session Total: <strong>0 pts</strong>
+    </div>
   </div>
 
 </div>

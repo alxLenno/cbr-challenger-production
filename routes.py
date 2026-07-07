@@ -77,16 +77,13 @@ def get_state():
     state["weeks"].sort(key=lambda x: x["weekNumber"])
     
     archives = ArchivedCard.query.filter_by(user_id=current_user.id).order_by(ArchivedCard.id.desc()).all()
-    seen_cards = set()
     for arch in archives:
         snap = arch.snapshot_data
         c_id = snap.get("currentCardId") or snap.get("cardId") or arch.card_id or 1
-        if c_id in seen_cards:
-            continue
-        seen_cards.add(c_id)
         if "currentCardId" not in snap:
             snap["currentCardId"] = c_id
-        snap["instanceId"] = f"card_{c_id}"
+        inst_id = arch.instance_id or snap.get("instanceId") or f"card_{c_id}_{arch.id}"
+        snap["instanceId"] = inst_id
         state["savedCards"].append(snap)
         
     return jsonify(state)
@@ -167,15 +164,18 @@ def save_state():
 def archive_card():
     data = request.json
     c_id = data.get("currentCardId") or data.get("cardId")
-    inst_id = f"card_{c_id}" if c_id else data.get("instanceId")
+    inst_id = data.get("instanceId") or (f"card_{c_id}_{data.get('commencingDate', '')}" if c_id else "archive_1")
     data["instanceId"] = inst_id
     if c_id:
         data["currentCardId"] = c_id
         data["cardId"] = c_id
         
-    existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id).first() if c_id else None
-    if not existing and inst_id:
-        existing = ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=inst_id).first()
+    existing = ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=inst_id).first() if inst_id else None
+    if not existing and c_id and data.get("commencingDate"):
+        existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id, commencing_date=data.get("commencingDate")).first()
+        if existing:
+            inst_id = existing.instance_id
+            data["instanceId"] = inst_id
         
     if existing:
         existing.instance_id = inst_id
@@ -196,17 +196,29 @@ def archive_card():
             snapshot_data=data
         )
         db.session.add(arch)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # Handle race condition where another request just inserted this archive
+        existing = ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=inst_id).first()
+        if not existing and c_id and data.get("commencingDate"):
+            existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id, commencing_date=data.get("commencingDate")).first()
+        if existing:
+            existing.instance_id = inst_id
+            existing.commencing_date = data.get("commencingDate")
+            existing.total_score = data.get("totalScore")
+            existing.total_laxity = data.get("totalLaxity")
+            existing.saved_at = data.get("savedAt")
+            existing.snapshot_data = data
+            db.session.commit()
+        else:
+            raise e
     return jsonify({"status": "success"})
 
 @api_bp.route('/archive/<instance_id>', methods=['DELETE'])
 @login_required
 def delete_archived_card(instance_id):
-    if instance_id.startswith("card_"):
-        parts = instance_id.split("_")
-        if len(parts) >= 2 and parts[1].isdigit():
-            c_id = int(parts[1])
-            ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id).delete()
     ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=instance_id).delete()
     db.session.commit()
     return jsonify({"status": "success"})
@@ -214,7 +226,7 @@ def delete_archived_card(instance_id):
 @api_bp.route('/leaderboard', methods=['GET'])
 @login_required
 def get_leaderboard():
-    from models import User
+    from models import User, ArchivedCard
     
     # Target configurations based on card ID
     CARD_TARGETS = {
@@ -240,17 +252,37 @@ def get_leaderboard():
     leaderboard = []
     
     for u in users:
+        # 1. Archived scores (for Cumulative)
+        archived = ArchivedCard.query.filter_by(user_id=u.id).all()
+        archived_score = sum(a.total_score for a in archived if a.total_score)
+        archived_laxity = sum(a.total_laxity for a in archived if a.total_laxity)
+        
         # Get latest active card state
         c_state = CardState.query.filter_by(user_id=u.id).order_by(CardState.id.desc()).first()
-        if not c_state: continue
+        if not c_state:
+            leaderboard.append({
+                "id": u.id,
+                "name": u.name or u.email.split('@')[0],
+                "avatar": u.profile_pic,
+                "cardLevel": 1,
+                "cumulative_points": archived_score, "cumulative_laxity": archived_laxity,
+                "session_points": 0, "session_laxity": 0,
+                "weekly_points": 0, "weekly_laxity": 0,
+                "daily_points": 0, "daily_laxity": 0
+            })
+            continue
         
         c_id = c_state.current_card_id or 1
         targets = CARD_TARGETS.get(c_id, CARD_TARGETS[1])
         target_chap = targets["chapters"]
         target_ert = targets["ert"]
         
-        total_score = 0
-        total_laxity = 0
+        session_score = 0
+        session_laxity = 0
+        weekly_score = 0
+        weekly_laxity = 0
+        daily_score = 0
+        daily_laxity = 0
         
         weeks_map = {w.week_number: w.shared_fid for w in c_state.weeks}
         days = sorted(c_state.days, key=lambda d: d.day_number)
@@ -259,6 +291,8 @@ def get_leaderboard():
         max_week = 0
         if c_state.weeks:
             max_week = max(w.week_number for w in c_state.weeks)
+            
+        last_day_num = days[-1].day_number if days else None
             
         for w in range(max_week):
             week_idx = w + 1
@@ -281,11 +315,21 @@ def get_leaderboard():
                         chap_met = True
                         redeemed_cb_ids.add(d.cb_id)
                         
+                c_met = (d_ert is not None and d_ert <= target_ert)
+                pr_met = bool(d.prayer_10mins)
+                sm_met = bool(d.recited_memory)
+                m_met = bool(d.fid_journaling)
+                
                 if chap_met: p_count += 1
-                if d_ert is not None and d_ert <= target_ert: c_count += 1
-                if d.prayer_10mins: pr_count += 1
-                if d.recited_memory: sm_count += 1
-                if d.fid_journaling: m_count += 1
+                if c_met: c_count += 1
+                if pr_met: pr_count += 1
+                if sm_met: sm_count += 1
+                if m_met: m_count += 1
+                
+                # Daily score
+                if d.day_number == last_day_num:
+                    daily_score = int(chap_met) + int(c_met) + int(pr_met) + int(sm_met) + int(m_met)
+                    daily_laxity = 5 - daily_score
                 
             w_score = 0
             if p_count == 7: w_score += 3
@@ -295,22 +339,31 @@ def get_leaderboard():
             if m_count == 7: w_score += 1
             if weeks_map.get(week_idx): w_score += 1
             
-            total_score += w_score
-            total_laxity += (10 - w_score)
+            session_score += w_score
+            session_laxity += (10 - w_score)
+            
+            # Weekly score (use latest week)
+            if week_idx == max_week:
+                weekly_score = p_count + c_count + pr_count + sm_count + m_count
+                weekly_laxity = 35 - weekly_score
+                
+        cumulative_score = archived_score + session_score
+        cumulative_laxity = archived_laxity + session_laxity
             
         leaderboard.append({
             "id": u.id,
             "name": u.name or u.email.split('@')[0],
             "avatar": u.profile_pic,
             "cardLevel": c_id,
-            "points": total_score,
-            "laxity": total_laxity
+            "cumulative_points": cumulative_score,
+            "cumulative_laxity": cumulative_laxity,
+            "session_points": session_score,
+            "session_laxity": session_laxity,
+            "weekly_points": weekly_score,
+            "weekly_laxity": weekly_laxity,
+            "daily_points": daily_score,
+            "daily_laxity": daily_laxity
         })
-        
-    leaderboard.sort(key=lambda x: (-x["points"], x["laxity"]))
-    
-    for i, entry in enumerate(leaderboard):
-        entry["rank"] = i + 1
         
     return jsonify({"leaderboard": leaderboard})
 

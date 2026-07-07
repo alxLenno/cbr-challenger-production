@@ -131,13 +131,13 @@ body.light-mode .account-subnav {
   font-weight: 600;
 }
 .badge-google {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   color: #e2e8f0;
 }
 .light-mode .badge-google {
-  background: rgba(0,0,0,0.04);
-  border-color: rgba(0,0,0,0.1);
+  background: var(--input-bg);
+  border-color: var(--input-border);
   color: #475569;
 }
 .badge-active {
@@ -170,7 +170,7 @@ body.light-mode .account-subnav {
   padding-bottom: 1rem;
 }
 .light-mode .profile-card-header {
-  border-bottom-color: rgba(0,0,0,0.06);
+  border-bottom-color: var(--panel-border);
 }
 .profile-card-header-icon {
   width: 34px;
@@ -221,8 +221,8 @@ body.light-mode .account-subnav {
   box-sizing: border-box;
 }
 .light-mode .profile-input {
-  background: rgba(0,0,0,0.03);
-  border-color: rgba(0,0,0,0.12);
+  background: var(--input-bg);
+  border-color: var(--input-border);
   color: #0f172a;
 }
 .profile-input:focus {
@@ -244,8 +244,8 @@ body.light-mode .account-subnav {
   color: #94a3b8;
 }
 .light-mode .profile-static-pill {
-  background: rgba(0,0,0,0.04);
-  border-color: rgba(0,0,0,0.08);
+  background: var(--input-bg);
+  border-color: var(--input-border);
 }
 
 /* ─── Save Button ─── */
@@ -301,8 +301,8 @@ body.light-mode .account-subnav {
   transition: background var(--transition-fast);
 }
 .light-mode .milestone-item {
-  background: rgba(0,0,0,0.03);
-  border-color: rgba(0,0,0,0.06);
+  background: var(--input-bg);
+  border-color: var(--panel-border);
 }
 .milestone-item:hover {
   background: rgba(var(--primary-rgb), 0.06);
@@ -438,7 +438,7 @@ body.light-mode .account-subnav {
   transition: background var(--transition-fast);
 }
 .light-mode .backup-card {
-  background: rgba(0,0,0,0.02);
+  background: var(--panel-hover);
 }
 .backup-card:hover {
   background: rgba(var(--primary-rgb), 0.04);
