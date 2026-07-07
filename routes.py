@@ -1,8 +1,24 @@
 import json
+import os
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory
+from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required
 from models import db, CardState, Weakness, DailyLog, WeekLog, ArchivedCard, SessionEvaluation
+
+ADMIN_EMAILS = []  # Populated lazily — env may not be loaded at import time
+
+VIDEO_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'videos')
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv'}
+os.makedirs(VIDEO_UPLOAD_FOLDER, exist_ok=True)
+
+def is_admin_user():
+    # Read env dynamically so load_dotenv() order doesn't matter
+    admin_emails = [e.strip() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
+    return current_user.email in admin_emails if admin_emails else False
+
+def allowed_video(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
 
 api_bp = Blueprint('api', __name__)
 
@@ -17,6 +33,7 @@ def get_state():
     state = {
         "username": current_user.name or current_user.email,
         "email": current_user.email,
+        "isAdmin": is_admin_user(),
         "profilePic": current_user.profile_pic or "",
         "contact": card_state.contact or "",
         "church": card_state.church or "",
@@ -450,4 +467,55 @@ def save_session_eval():
     ev.submitted_at = datetime.utcnow().isoformat()
     db.session.commit()
     return jsonify({"status": "success"})
+
+
+# ─── VIDEO GUIDES ROUTES ────────────────────────────────────────────────────
+
+@api_bp.route('/videos', methods=['GET'])
+@login_required
+def list_videos():
+    """List all uploaded guide videos."""
+    videos = []
+    if os.path.isdir(VIDEO_UPLOAD_FOLDER):
+        for fname in sorted(os.listdir(VIDEO_UPLOAD_FOLDER)):
+            if allowed_video(fname):
+                title = os.path.splitext(fname)[0].replace('_', ' ').replace('-', ' ').title()
+                videos.append({
+                    "filename": fname,
+                    "title": title,
+                    "url": f"/static/videos/{fname}"
+                })
+    return jsonify({"videos": videos})
+
+
+@api_bp.route('/videos/upload', methods=['POST'])
+@login_required
+def upload_video():
+    """Admin-only: upload a guide video."""
+    if not is_admin_user():
+        return jsonify({"error": "Forbidden"}), 403
+    if 'video' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['video']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if not allowed_video(file.filename):
+        return jsonify({"error": "Invalid file type"}), 400
+    filename = secure_filename(file.filename)
+    file.save(os.path.join(VIDEO_UPLOAD_FOLDER, filename))
+    return jsonify({"status": "uploaded", "filename": filename})
+
+
+@api_bp.route('/videos/<filename>', methods=['DELETE'])
+@login_required
+def delete_video(filename):
+    """Admin-only: delete a guide video."""
+    if not is_admin_user():
+        return jsonify({"error": "Forbidden"}), 403
+    safe = secure_filename(filename)
+    path = os.path.join(VIDEO_UPLOAD_FOLDER, safe)
+    if os.path.exists(path):
+        os.remove(path)
+        return jsonify({"status": "deleted"})
+    return jsonify({"error": "File not found"}), 404
 

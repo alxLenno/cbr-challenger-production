@@ -22,3 +22,8 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Uploaded Videos (large video files should not be committed to Git)
+static/videos/*
+!static/videos/.gitkeep
+
