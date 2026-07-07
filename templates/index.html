@@ -13,15 +13,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CBR Challenger">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}?v=45">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=1">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=44">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=44">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=50">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=46">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=47">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}?v=51">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=45">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=45">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=46">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=44">
 </head>
 <body>
@@ -39,17 +39,17 @@
         </div>
       </div>
       <div class="header-center">
-        <div class="header-stat-pill" id="header-pill-score">📊 Score: <strong id="header-score-val">—</strong></div>
-        <div class="header-stat-pill" id="header-pill-days">📅 Days: <strong id="header-days-val">—</strong></div>
-        <div class="header-stat-pill danger" id="header-pill-laxity">⚡ Laxity: <strong id="header-laxity-val">—</strong></div>
+        <div class="header-stat-pill" id="header-pill-score"><i data-lucide="bar-chart-2" style="color:#38bdf8;"></i> Score: <strong id="header-score-val">—</strong></div>
+        <div class="header-stat-pill" id="header-pill-days"><i data-lucide="calendar" style="color:#a78bfa;"></i> Days: <strong id="header-days-val">—</strong></div>
+        <div class="header-stat-pill danger" id="header-pill-laxity"><i data-lucide="zap" style="color:#fb7185;"></i> Laxity: <strong id="header-laxity-val">—</strong></div>
       </div>
       <div class="header-actions">
         <button id="topbar-profile-btn" class="header-profile-pill" title="User Profile">
           <img src="" id="topbar-avatar-img" alt="" class="topbar-avatar" style="display:none;">
-          <span id="topbar-avatar-icon">👤</span>
+          <span id="topbar-avatar-icon"><i data-lucide="user"></i></span>
           <span id="topbar-username">Profile</span>
         </button>
-        <button id="theme-toggle" class="btn-icon" title="Toggle Theme">☀️</button>
+        <button id="theme-toggle" class="btn-icon" title="Toggle Theme"><i data-lucide="sun"></i></button>
         <button class="hamburger" id="hamburger-btn" aria-label="Open sidebar">
           <span></span><span></span><span></span>
         </button>
@@ -63,7 +63,7 @@
   <div class="container page-wrapper">
     <!-- Historical View Exit Banner -->
     <div id="historical-banner" class="historical-banner" style="display: none;">
-      <span>⚠️ You are currently viewing an archived Challenger Card. Setup panels and logs are in read-only mode.</span>
+      <span style="display: flex; align-items: center; gap: 8px;"><i data-lucide="alert-triangle" style="color: #f59e0b;"></i> You are currently viewing an archived Challenger Card. Setup panels and logs are in read-only mode.</span>
       <button id="btn-exit-history">Back to Active Card</button>
     </div>
 
@@ -382,7 +382,7 @@
 
         <!-- Consistency Barrier redemption section -->
         <div class="cb-trigger-box" id="cb-trigger-box">
-          <h4>⚠️ Targets Missed: Log Consistency Barrier</h4>
+          <h4 style="display:flex; align-items:center; gap:6px;"><i data-lucide="alert-triangle" style="color:#f59e0b;"></i> Targets Missed: Log Consistency Barrier</h4>
           <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem;">You woke up later than the set ERT limit. Log and resolve a Consistency Barrier (CB) to redeem points.</p>
           
           <div class="form-group" style="margin-bottom:0.75rem;">
@@ -417,30 +417,37 @@
     </div>
   </div>
 
-  <!-- Custom Delete Confirmation Modal -->
-  <div class="modal-overlay" id="delete-confirm-modal">
-    <div class="modal-content glass-panel" style="max-width: 440px; padding: 2rem;">
-      <div class="modal-header" style="margin-bottom: 1rem;">
-        <div class="modal-title">
-          <h3 style="color: var(--danger);">🗑️ Delete Archive?</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">Permanent Action</p>
+  <!-- Universal Custom Glassmorphism Dialog Modal -->
+  <div class="modal-overlay" id="custom-dialog-modal">
+    <div class="modal-content glass-panel" style="max-width: 480px; padding: 2rem; border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 25px 60px rgba(0,0,0,0.65);">
+      <div class="modal-header" style="margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.85rem;">
+          <div id="custom-dialog-icon" style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3);">
+            <i data-lucide="info"></i>
+          </div>
+          <div>
+            <h3 id="custom-dialog-title" style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0;"></h3>
+            <p id="custom-dialog-subtitle" style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;"></p>
+          </div>
         </div>
-        <button class="modal-close" onclick="closeDeleteConfirmModal()">&times;</button>
+        <button class="modal-close" id="custom-dialog-close-btn">&times;</button>
       </div>
-      <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.5rem;">
-        Are you sure you want to permanently delete this archived card from history? This action cannot be undone.
-      </p>
-      <div class="form-actions" style="display: flex; gap: 1rem; justify-content: flex-end;">
-        <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">Cancel</button>
-        <button type="button" class="btn btn-secondary" onclick="confirmDeleteArchivedCard()" style="border-color: rgba(var(--danger-rgb), 0.4); background: rgba(var(--danger-rgb), 0.15); color: var(--danger); font-weight: 600;">Yes, Delete Permanently</button>
+      <p id="custom-dialog-message" style="font-size: 0.94rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.85rem;"></p>
+      <div class="form-actions" style="display: flex; gap: 0.85rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" id="custom-dialog-cancel-btn" style="min-width: 95px;">Cancel</button>
+        <button type="button" class="btn btn-primary" id="custom-dialog-confirm-btn" style="min-width: 120px; font-weight: 600;"></button>
       </div>
     </div>
   </div>
 
-  <!-- Bind reference databases and application runner -->
+  <!-- Custom Glassmorphism Toast Container -->
+  <div id="toast-container" style="position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 14px; pointer-events: none;"></div>
+
+  <!-- Lucide Icons & Application Runner -->
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="{{ url_for('static', filename='js/data.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=7"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=17"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=33"></script>
   <script>
     // Mobile sidebar hamburger toggle
     const hamburger = document.getElementById('hamburger-btn');

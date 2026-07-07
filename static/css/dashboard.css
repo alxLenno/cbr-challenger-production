@@ -261,9 +261,9 @@ details.dash-config-panel[open] .dash-config-chevron {
 }
 
 /* KPI colour accents */
-.dash-kpi-card.success .dash-kpi-val { color: #34d399; }
-.dash-kpi-card.danger  .dash-kpi-val { color: #f87171; }
-.dash-kpi-card.info    .dash-kpi-val { color: #60a5fa; }
+.dash-kpi-card.success .dash-kpi-val { color: var(--success); }
+.dash-kpi-card.danger  .dash-kpi-val { color: var(--danger); }
+.dash-kpi-card.info    .dash-kpi-val { color: var(--info); }
 
 
 /* ═══════════════════════════════════════════════════
@@ -336,7 +336,15 @@ details.dash-config-panel[open] .dash-config-chevron {
   border-color: rgba(var(--primary-rgb), 0.5);
 }
 body.light-mode .dash-btn-success { color: var(--primary); }
-
+body.light-mode .dash-btn-secondary {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+body.light-mode .dash-btn-secondary:hover {
+  background: var(--panel-hover);
+  border-color: #cbd5e1;
+}
 
 /* ═══════════════════════════════════════════════════
    RESPONSIVE — MOBILE (≤768px)

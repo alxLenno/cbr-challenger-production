@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cbr-challenger-v24';
+const CACHE_NAME = 'cbr-challenger-v33';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/css/today.css',

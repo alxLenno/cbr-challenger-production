@@ -48,7 +48,7 @@
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-color);
 }
-body.light-mode .analytics-subnav-btn:hover { background: rgba(0,0,0,0.03); }
+body.light-mode .analytics-subnav-btn:hover { background: var(--panel-hover); }
 
 .analytics-subnav-btn.active {
   background: var(--panel-hover);
@@ -217,7 +217,7 @@ body.light-mode .cwd-list {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
-body.light-mode .chart-wrapper { background: rgba(0,0,0,0.02); }
+body.light-mode .chart-wrapper { background: var(--input-bg); }
 
 .analytics-chart-legend {
   display: flex;
@@ -303,7 +303,7 @@ body.light-mode .chart-wrapper { background: rgba(0,0,0,0.02); }
 .analytics-score-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.02);
 }
-body.light-mode .analytics-score-table tbody tr:hover { background: rgba(0,0,0,0.01); }
+body.light-mode .analytics-score-table tbody tr:hover { background: var(--panel-hover); }
 
 /* Make total row stand out */
 .analytics-score-table tr:last-child {

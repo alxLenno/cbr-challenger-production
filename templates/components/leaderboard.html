@@ -1,11 +1,29 @@
 <div class="content-header">
   <div class="title-text">
-    <h2>LEADERBOARD <span class="leaderboard-subtitle">| Active Card Ranking</span></h2>
-    <p>Rankings are based on total Growth Points earned on your current active card.</p>
+    <h2>LEADERBOARD <span class="leaderboard-subtitle">| Global Rankings</span></h2>
+    <p>Compare your progress against other challengers. Keep pushing forward!</p>
   </div>
 </div>
 
 <div class="leaderboard-wrapper">
+
+  <!-- Segmented Control for Time Filters -->
+  <div class="lb-filter-container">
+    <div class="lb-segmented-control" id="lb-time-filters">
+      <button class="lb-filter-btn active" data-filter="cumulative">
+        <i data-lucide="globe"></i> All-Time
+      </button>
+      <button class="lb-filter-btn" data-filter="session">
+        <i data-lucide="calendar"></i> This Session
+      </button>
+      <button class="lb-filter-btn" data-filter="weekly">
+        <i data-lucide="bar-chart-2"></i> This Week
+      </button>
+      <button class="lb-filter-btn" data-filter="daily">
+        <i data-lucide="sun"></i> Today
+      </button>
+    </div>
+  </div>
   
   <!-- Loading State -->
   <div id="leaderboard-loader" class="leaderboard-loader">
@@ -25,7 +43,7 @@
         <tr>
           <th class="col-rank">RANK</th>
           <th class="col-user">USER</th>
-          <th class="col-card">CARD</th>
+          <th class="col-card text-center">CARD</th>
           <th class="col-points text-right">POINTS</th>
           <th class="col-laxity text-center">LAXITY</th>
         </tr>

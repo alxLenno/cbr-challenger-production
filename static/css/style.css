@@ -13,8 +13,14 @@
   --text-primary: #f0f4ff;
   --text-secondary: #94a3b8;
   --text-muted: #4b5a72;
+  --text-color: #f0f4ff;
+  --text-main: #f0f4ff;
   --input-bg: rgba(255, 255, 255, 0.04);
   --input-border: rgba(255, 255, 255, 0.09);
+  --surface: rgba(30, 41, 59, 0.45);
+  --surface-light: rgba(30, 41, 59, 0.65);
+  --surface-bg: rgba(15, 23, 42, 0.6);
+  --border-color: rgba(255, 255, 255, 0.08);
 
   --primary: #f59e0b;
   --primary-rgb: 245, 158, 11;
@@ -59,8 +65,14 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
+  --text-color: #0f172a;
+  --text-main: #0f172a;
   --input-bg: rgba(15, 23, 42, 0.03);
   --input-border: rgba(15, 23, 42, 0.12);
+  --surface: #ffffff;
+  --surface-light: #f8fafc;
+  --surface-bg: #ffffff;
+  --border-color: #e2e8f0;
 
   --primary: #d97706;
   --primary-rgb: 217, 119, 6;
@@ -934,7 +946,8 @@ table.score-table tr.laxity-row {
 .light-mode .tab-btn { color: #64748b; }
 .light-mode .tab-btn:hover { background: rgba(var(--primary-rgb),0.08); color: var(--primary-hover); }
 .light-mode .tab-btn:hover .nav-icon { background: rgba(var(--primary-rgb),0.12); color: var(--primary-hover); }
-.light-mode .tab-btn.active { background: var(--primary); color: #fff; }
+.light-mode .tab-btn.active,
+.light-mode .tab-btn.active:hover { background: var(--primary); color: #fff; }
 
 /* nav-label text */
 .nav-label {
@@ -1018,6 +1031,65 @@ table.score-table tr.laxity-row {
 .lesson-card h4 { font-size: 0.92rem; color: var(--primary); margin-bottom: 0.45rem; }
 .question-list { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .question-list li { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45; }
+
+/* ===================================================
+   LUCIDE ICONS & VECTOR ICONS
+=================================================== */
+.lucide, [data-lucide] {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1.15em;
+  height: 1.15em;
+  stroke-width: 2;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+/* ===================================================
+   GLASSMORPHISM TOAST NOTIFICATIONS
+=================================================== */
+.toast-msg {
+  pointer-events: auto;
+  min-width: 310px;
+  max-width: 440px;
+  padding: 15px 20px;
+  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transform: translateY(24px) scale(0.96);
+  opacity: 0;
+  transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-msg.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.toast-msg.hide {
+  transform: translateY(12px) scale(0.94);
+  opacity: 0;
+}
+.toast-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+.toast-success .toast-icon { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+.toast-error .toast-icon { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
+.toast-info .toast-icon { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); }
+.toast-warning .toast-icon { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
 
 /* ===================================================
    MODAL
@@ -1438,11 +1510,21 @@ body {
   background-color: #090e17;
   background-image: none;
 }
-.light-mode body {
-  background-color: #f8fafc;
+body.light-mode {
+  background-color: #f0f4f8;
   background-image: none;
 }
 .dashboard-bg-grid { display: none; }
+
+/* --- Tab content area & left column: inherit body background --- */
+.left-column {
+  min-width: 0;
+}
+body.light-mode .left-column,
+body.light-mode .left-column .tab-content,
+body.light-mode .page-wrapper {
+  background-color: transparent;
+}
 
 /* --- Glass Panel → Clean Widget Card --- */
 .glass-panel {
@@ -1454,7 +1536,7 @@ body {
   -webkit-backdrop-filter: none;
 }
 .light-mode .glass-panel {
-  background: #ffffff;
+  background: var(--panel-bg-solid);
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
@@ -1472,7 +1554,7 @@ header {
   box-shadow: none;
 }
 .light-mode header {
-  background: #ffffff;
+  background: var(--panel-bg-solid);
   border-bottom: 1px solid #e2e8f0;
 }
 .header-inner { gap: 1.5rem; }
@@ -1536,7 +1618,7 @@ header {
   border-radius: 10px;
   padding: 1.25rem 1.5rem;
 }
-.light-mode .kpi-card { background: #ffffff; border-color: #e2e8f0; }
+.light-mode .kpi-card { background: var(--panel-bg-solid); border-color: #e2e8f0; }
 
 .kpi-card::before { display: none; } /* remove accent strip */
 
@@ -1596,7 +1678,7 @@ header {
   border-radius: 8px;
   min-height: 90px;
 }
-.light-mode .day-block { background: #ffffff; border-color: #e2e8f0; }
+.light-mode .day-block { background: var(--panel-bg-solid); border-color: #e2e8f0; }
 .day-block:hover {
   border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -1656,7 +1738,7 @@ table.score-table td { color: #e2e8f0; }
 }
 .light-mode .form-group input, .light-mode .form-group select, .light-mode .form-group textarea,
 .light-mode .profile-field input, .light-mode .profile-field select {
-  background: #ffffff;
+  background: var(--panel-bg-solid);
   border-color: #cbd5e1;
   color: #0f172a;
 }
@@ -1684,7 +1766,7 @@ table.score-table td { color: #e2e8f0; }
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
   border-radius: 12px;
 }
-.light-mode .modal-content { background: #ffffff; border-color: #e2e8f0; }
+.light-mode .modal-content { background: var(--panel-bg-solid); border-color: #e2e8f0; }
 
 /* --- CB trigger box --- */
 .cb-trigger-box {
@@ -1716,6 +1798,8 @@ table.score-table td { color: #e2e8f0; }
 .light-mode ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #1e293b; }
 ::-webkit-scrollbar-thumb:hover { background: #334155; }
+.light-mode ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.light-mode ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* =====================================================
    TRUE SIDEBAR DASHBOARD LAYOUT
@@ -1804,6 +1888,7 @@ table.score-table td { color: #e2e8f0; }
   /* Sidebar scroll area */
   .sidebar-panel::-webkit-scrollbar { width: 3px; }
   .sidebar-panel::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+  .light-mode .sidebar-panel::-webkit-scrollbar-thumb { background: #cbd5e1; }
 
   /* Tighten header on desktop */
   .header-inner { padding: 0 2rem; }
@@ -2028,7 +2113,9 @@ body.light-mode .subnav-btn:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
-.subnav-btn.active {
+.subnav-btn.active,
+body.light-mode .subnav-btn.active,
+body.light-mode .subnav-btn.active:hover {
   background: var(--primary);
   color: white;
   border-color: rgba(255, 255, 255, 0.15);
@@ -2279,3 +2366,99 @@ body.light-mode #today-date-heading {
   .act-status     { padding: 0.2rem 0.55rem; font-size: 0.68rem; }
 }
 
+/* =====================================================
+   LIGHT MODE — GLOBAL TEXT VISIBILITY FIX
+   Ensures every hardcoded light-on-dark colour gets
+   a proper dark override when .light-mode is active
+===================================================== */
+
+/* ── General body text ── */
+body.light-mode,
+body.light-mode p,
+body.light-mode span,
+body.light-mode div {
+  color: var(--text-primary);
+}
+
+/* ── Headings ── */
+body.light-mode h1,
+body.light-mode h2,
+body.light-mode h3,
+body.light-mode h4,
+body.light-mode h5,
+body.light-mode h6 {
+  color: #0f172a;
+}
+
+/* ── Brand title in header ── */
+body.light-mode .brand-title h1 { color: #0f172a; }
+
+/* ── Header stat pill strong text ── */
+body.light-mode .header-stat-pill strong { color: #0f172a; }
+
+/* ── KPI values ── */
+body.light-mode .kpi-val { color: #0f172a; }
+
+/* ── Section title headings ── */
+body.light-mode .section-title h2 { color: #0f172a; border-bottom-color: #e2e8f0; }
+
+/* ── Week / day calendar ── */
+body.light-mode .week-header { color: #64748b; border-bottom-color: #e2e8f0; }
+body.light-mode .day-date    { color: #0f172a; }
+body.light-mode .day-reading { color: #475569; }
+
+/* ── Score table ── */
+body.light-mode table.score-table td { color: #0f172a; }
+
+/* ── Profile field labels ── */
+body.light-mode .profile-field label { color: #475569; }
+
+/* ── sidebar nav labels ── */
+body.light-mode .tab-btn        { color: #475569; }
+body.light-mode .tab-btn:hover  { color: var(--primary-hover); }
+body.light-mode .nav-icon       { color: #64748b; }
+
+/* ── Sidebar user footer ── */
+body.light-mode .sidebar-user-name  { color: #0f172a; }
+body.light-mode .sidebar-user-email { color: #64748b; }
+
+/* ── Toast notifications ── */
+body.light-mode .toast-msg {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ── Disc discipline dots (unchecked) ── */
+body.light-mode .disc-dot { color: #64748b; }
+
+/* ── Generic muted/secondary text ── */
+body.light-mode .text-muted,
+body.light-mode [class*="subtitle"],
+body.light-mode [class*="-label"]:not(.badge):not(.act-status):not(.nav-label) {
+  color: #64748b;
+}
+
+/* ── Inputs and textareas ── */
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  color: #0f172a;
+  background: var(--panel-bg-solid);
+  border-color: var(--input-border);
+}
+body.light-mode input::placeholder,
+body.light-mode textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* ── Table cells across all generic tables ── */
+body.light-mode td,
+body.light-mode th {
+  color: #0f172a;
+}
+
+/* ── Any remaining anchors / links ── */
+body.light-mode a:not([class]) {
+  color: var(--primary);
+}

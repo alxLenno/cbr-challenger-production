@@ -47,7 +47,7 @@
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-color);
 }
-body.light-mode .ref-subnav-btn:hover { background: rgba(0,0,0,0.03); }
+body.light-mode .ref-subnav-btn:hover { background: var(--panel-hover); }
 
 .ref-subnav-btn.active {
   background: var(--panel-hover);
@@ -144,7 +144,7 @@ body.light-mode .ref-subnav-btn:hover { background: rgba(0,0,0,0.03); }
   background: rgba(255,255,255,0.08);
   transform: translateY(-2px);
 }
-body.light-mode .ref-pdf-tile:hover { border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.04); }
+body.light-mode .ref-pdf-tile:hover { border-color: var(--input-border); background: var(--panel-hover); }
 
 .pdf-icon {
   font-size: 1.2rem;
@@ -156,7 +156,7 @@ body.light-mode .ref-pdf-tile:hover { border-color: rgba(0,0,0,0.15); background
   justify-content: center;
   border-radius: 8px;
 }
-body.light-mode .pdf-icon { background: rgba(0,0,0,0.03); }
+body.light-mode .pdf-icon { background: var(--input-bg); }
 
 
 /* ═══════════════════════════════════════════════════
@@ -184,7 +184,7 @@ body.light-mode .pdf-icon { background: rgba(0,0,0,0.03); }
 }
 .ref-method-accordion summary::-webkit-details-marker { display: none; }
 .ref-method-accordion summary:hover { background: rgba(255,255,255,0.03); }
-body.light-mode .ref-method-accordion summary:hover { background: rgba(0,0,0,0.02); }
+body.light-mode .ref-method-accordion summary:hover { background: var(--panel-hover); }
 
 .method-summary-content {
   display: flex;
