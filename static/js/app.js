@@ -3897,6 +3897,10 @@ function handleVideoFileSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
 
+  if (file.size > 100 * 1024 * 1024) {
+    showToast('Warning: Video is over 100MB. Online servers may reject large uploads.', 'warning');
+  }
+
   const progressWrap = document.getElementById('video-upload-progress-wrap');
   const progressBar  = document.getElementById('video-upload-progress-bar');
   const label        = document.getElementById('video-upload-label');
@@ -3922,15 +3926,26 @@ function handleVideoFileSelected(e) {
       showToast('Video uploaded!', 'success');
       loadVideoGuides();
     } else {
-      let msg = 'Upload failed.';
-      try { msg = JSON.parse(xhr.responseText).error || msg; } catch(ex) {}
+      let msg = 'Upload failed (HTTP ' + xhr.status + ').';
+      if (xhr.status === 413) {
+        msg = 'File is too large for the online server (HTTP 413). Try uploading a smaller video under 50MB-100MB.';
+      } else if (xhr.status === 403) {
+        msg = 'Permission denied: Admin access required.';
+      } else if (xhr.status === 500) {
+        msg = 'Server error (HTTP 500). Please check server permissions or storage limits.';
+      } else {
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          if (parsed.error) msg = parsed.error;
+        } catch(ex) {}
+      }
       showToast(msg, 'error');
     }
   });
   xhr.addEventListener('error', () => {
     if (progressWrap) progressWrap.style.display = 'none';
     if (label) label.style.opacity = '1';
-    showToast('Upload failed. Please try again.', 'error');
+    showToast('Network error: Upload failed. Please check your connection.', 'error');
   });
   xhr.open('POST', '/api/videos/upload');
   xhr.send(formData);

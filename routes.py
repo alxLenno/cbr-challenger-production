@@ -475,6 +475,7 @@ def save_session_eval():
 @login_required
 def list_videos():
     """List all uploaded guide videos."""
+    os.makedirs(VIDEO_UPLOAD_FOLDER, exist_ok=True)
     videos = []
     if os.path.isdir(VIDEO_UPLOAD_FOLDER):
         for fname in sorted(os.listdir(VIDEO_UPLOAD_FOLDER)):
@@ -502,8 +503,10 @@ def upload_video():
     if not allowed_video(file.filename):
         return jsonify({"error": "Invalid file type"}), 400
     filename = secure_filename(file.filename)
+    os.makedirs(VIDEO_UPLOAD_FOLDER, exist_ok=True)
     file.save(os.path.join(VIDEO_UPLOAD_FOLDER, filename))
     return jsonify({"status": "uploaded", "filename": filename})
+
 
 
 @api_bp.route('/videos/<filename>', methods=['DELETE'])
