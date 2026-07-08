@@ -1512,14 +1512,14 @@ function renderToday() {
   const statusReading = document.getElementById('today-status-reading');
   if (statusReading) {
     if (totalChaptersRead >= card.chaptersTarget) {
-      statusReading.className = 'act-status completed';
-      statusReading.innerText = `✅ Read (${totalChaptersRead} ch)`;
+      statusReading.className = 'activity-status completed';
+      statusReading.innerText = `Done (${totalChaptersRead} ch)`;
     } else if (totalChaptersRead > 0) {
-      statusReading.className = 'act-status partial';
-      statusReading.innerText = `🔄 Partial (${totalChaptersRead}/${card.chaptersTarget})`;
+      statusReading.className = 'activity-status partial';
+      statusReading.innerText = `Partial (${totalChaptersRead}/${card.chaptersTarget})`;
     } else {
-      statusReading.className = 'act-status pending';
-      statusReading.innerText = '📖 Pending Reading';
+      statusReading.className = 'activity-status pending';
+      statusReading.innerText = 'Pending';
     }
   }
 
@@ -1527,11 +1527,11 @@ function renderToday() {
   if (statusJournal) {
     const hasJournal = (dayData.journalNotes && dayData.journalNotes.trim().length > 0) || dayData.fidFocus || dayData.openObservation;
     if (hasJournal) {
-      statusJournal.className = 'act-status completed';
-      statusJournal.innerText = '✅ Recorded';
+      statusJournal.className = 'activity-status completed';
+      statusJournal.innerText = 'Recorded';
     } else {
-      statusJournal.className = 'act-status pending';
-      statusJournal.innerText = '✍️ No Entry Yet';
+      statusJournal.className = 'activity-status pending';
+      statusJournal.innerText = 'No Entry Yet';
     }
   }
 
@@ -1539,22 +1539,22 @@ function renderToday() {
   if (statusWaking) {
     if (dayData.wakingTime) {
       const isLate = (dayData.wakingTime > card.ertTarget);
-      statusWaking.className = isLate ? 'act-status late' : 'act-status completed';
-      statusWaking.innerText = isLate ? `⚠️ Late (${dayData.wakingTime})` : `⏰ On Time (${dayData.wakingTime})`;
+      statusWaking.className = isLate ? 'activity-status late' : 'activity-status completed';
+      statusWaking.innerText = isLate ? `Late (${dayData.wakingTime})` : `On Time (${dayData.wakingTime})`;
     } else {
-      statusWaking.className = 'act-status pending';
-      statusWaking.innerText = '⏰ Time Not Logged';
+      statusWaking.className = 'activity-status pending';
+      statusWaking.innerText = 'Not Logged';
     }
   }
 
   const statusBarriers = document.getElementById('today-status-barriers');
   if (statusBarriers) {
     if (dayData.cbId) {
-      statusBarriers.className = 'act-status late';
-      statusBarriers.innerText = `⚠️ Recorded (${dayData.cbId})`;
+      statusBarriers.className = 'activity-status late';
+      statusBarriers.innerText = `Recorded (${dayData.cbId})`;
     } else {
-      statusBarriers.className = 'act-status clear';
-      statusBarriers.innerText = '🟢 Clear';
+      statusBarriers.className = 'activity-status clear';
+      statusBarriers.innerText = 'Clear';
     }
   }
 
@@ -1563,8 +1563,8 @@ function renderToday() {
   if (detReading) {
     if (dayData.bibleBook && ((dayData.morningChapters || 0) > 0 || (dayData.laterChapters || 0) > 0)) {
       detReading.style.display = 'block';
-      detReading.innerHTML = `<strong style="color:var(--primary);">📖 Book:</strong> ${dayData.bibleBook} ${dayData.startChapter ? `(Ch ${dayData.startChapter}${dayData.endChapter && dayData.endChapter != dayData.startChapter ? `-${dayData.endChapter}` : ''})` : ''}<br>
-      <strong style="color:#34d399;">☀️ Morning:</strong> ${dayData.morningChapters || 0} ch &nbsp;&bull;&nbsp; <strong style="color:#94a3b8;">🌙 Later:</strong> ${dayData.laterChapters || 0} ch`;
+      detReading.innerHTML = `<strong style="color:var(--primary);">Book:</strong> ${dayData.bibleBook} ${dayData.startChapter ? `(Ch ${dayData.startChapter}${dayData.endChapter && dayData.endChapter != dayData.startChapter ? `-${dayData.endChapter}` : ''})` : ''}<br>
+      <strong style="color:var(--morning-read);">Morning:</strong> ${dayData.morningChapters || 0} ch &nbsp;&bull;&nbsp; <strong style="color:var(--text-secondary);">Later:</strong> ${dayData.laterChapters || 0} ch`;
     } else {
       detReading.style.display = 'none';
     }
@@ -1579,16 +1579,16 @@ function renderToday() {
       detJournal.style.display = 'block';
       let html = '';
       if (hasFid) {
-        if (dayData.fidFocus) html += `<div><strong style="color:#60a5fa;">🎯 Focus:</strong> ${dayData.fidFocus}</div>`;
-        if (dayData.fidInsight) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">💡 Insight:</strong> ${dayData.fidInsight}</div>`;
-        if (dayData.fidDoing) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🏃 Doing:</strong> ${dayData.fidDoing}</div>`;
+        if (dayData.fidFocus) html += `<div><strong style="color:var(--morning-read);">Focus:</strong> ${dayData.fidFocus}</div>`;
+        if (dayData.fidInsight) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--primary);">Insight:</strong> ${dayData.fidInsight}</div>`;
+        if (dayData.fidDoing) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Doing:</strong> ${dayData.fidDoing}</div>`;
       } else if (hasOpen) {
-        if (dayData.openObservation) html += `<div><strong style="color:#60a5fa;">👁️ Observation:</strong> ${dayData.openObservation}</div>`;
-        if (dayData.openPrinciples) html += `<div style="margin-top:0.35rem;"><strong style="color:#fbbf24;">📜 Principles:</strong> ${dayData.openPrinciples}</div>`;
-        if (dayData.openExperience) html += `<div style="margin-top:0.35rem;"><strong style="color:#c084fc;">⚡ Experience:</strong> ${dayData.openExperience}</div>`;
-        if (dayData.openNeed) html += `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">🙏 Need:</strong> ${dayData.openNeed}</div>`;
+        if (dayData.openObservation) html += `<div><strong style="color:var(--morning-read);">Observation:</strong> ${dayData.openObservation}</div>`;
+        if (dayData.openPrinciples) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--primary);">Principles:</strong> ${dayData.openPrinciples}</div>`;
+        if (dayData.openExperience) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--later-read);">Experience:</strong> ${dayData.openExperience}</div>`;
+        if (dayData.openNeed) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Need:</strong> ${dayData.openNeed}</div>`;
       } else if (dayData.journalNotes) {
-        html += `<div><strong style="color:#60a5fa;">📝 Notes:</strong> ${dayData.journalNotes}</div>`;
+        html += `<div><strong style="color:var(--morning-read);">Notes:</strong> ${dayData.journalNotes}</div>`;
       }
       detJournal.innerHTML = html;
     } else {
@@ -1601,7 +1601,7 @@ function renderToday() {
   if (detWaking) {
     if (dayData.wakingTime) {
       detWaking.style.display = 'block';
-      detWaking.innerHTML = `<div><strong style="color:#60a5fa;">⏰ Logged Waking:</strong> ${dayData.wakingTime}</div>`;
+      detWaking.innerHTML = `<div><strong style="color:var(--info);">Logged Waking:</strong> ${dayData.wakingTime}</div>`;
     } else {
       detWaking.style.display = 'none';
     }
@@ -1612,9 +1612,9 @@ function renderToday() {
   if (detBarriers) {
     if (dayData.cbId) {
       detBarriers.style.display = 'block';
-      detBarriers.innerHTML = `<div><strong style="color:#f87171;">🚨 Barrier Code:</strong> ${dayData.cbId}</div>
-      ${dayData.cbSolution ? `<div style="margin-top:0.35rem;"><strong style="color:#34d399;">💡 Conviction Principle:</strong> ${dayData.cbSolution}</div>` : ''}
-      ${dayData.cbScripture ? `<div style="margin-top:0.35rem;"><strong style="color:#60a5fa;">📖 Supporting Verse:</strong> ${dayData.cbScripture}</div>` : ''}`;
+      detBarriers.innerHTML = `<div><strong style="color:var(--danger);">Barrier Code:</strong> ${dayData.cbId}</div>
+      ${dayData.cbSolution ? `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Conviction Principle:</strong> ${dayData.cbSolution}</div>` : ''}
+      ${dayData.cbScripture ? `<div style="margin-top:0.35rem;"><strong style="color:var(--morning-read);">Supporting Verse:</strong> ${dayData.cbScripture}</div>` : ''}`;
     } else {
       detBarriers.style.display = 'none';
     }
@@ -1625,7 +1625,7 @@ function renderToday() {
   if (detPsalm) {
     if (dayData.scriptureMemorized) {
       detPsalm.style.display = 'block';
-      detPsalm.innerHTML = `<div><strong style="color:#c084fc;">📜 Memorized Scripture:</strong> ${dayData.scriptureMemorized}</div>`;
+      detPsalm.innerHTML = `<div><strong style="color:var(--later-read);">Memorized Scripture:</strong> ${dayData.scriptureMemorized}</div>`;
     } else {
       detPsalm.style.display = 'none';
     }
@@ -1636,7 +1636,7 @@ function renderToday() {
   if (detPe) {
     if (dayData.prayerTopic) {
       detPe.style.display = 'block';
-      detPe.innerHTML = `<div><strong style="color:#fbbf24;">🙏 Prayer / Sharing Topic:</strong> ${dayData.prayerTopic}</div>`;
+      detPe.innerHTML = `<div><strong style="color:var(--primary-hover);">Prayer / Sharing Topic:</strong> ${dayData.prayerTopic}</div>`;
     } else {
       detPe.style.display = 'none';
     }
