@@ -12,6 +12,10 @@ VIDEO_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'videos'
 ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv'}
 os.makedirs(VIDEO_UPLOAD_FOLDER, exist_ok=True)
 
+PDF_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'pdfs')
+ALLOWED_PDF_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'zip'}
+os.makedirs(PDF_UPLOAD_FOLDER, exist_ok=True)
+
 def is_admin_user():
     # Read env dynamically so load_dotenv() order doesn't matter
     admin_emails = [e.strip() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
@@ -517,6 +521,60 @@ def delete_video(filename):
         return jsonify({"error": "Forbidden"}), 403
     safe = secure_filename(filename)
     path = os.path.join(VIDEO_UPLOAD_FOLDER, safe)
+    if os.path.exists(path):
+        os.remove(path)
+        return jsonify({"status": "deleted"})
+    return jsonify({"error": "File not found"}), 404
+
+
+# ─── PDF MANUALS ROUTES ───────────────────────────────────────────────────────
+
+@api_bp.route('/pdfs', methods=['GET'])
+@login_required
+def list_pdfs():
+    """List all uploaded training PDFs and documents."""
+    os.makedirs(PDF_UPLOAD_FOLDER, exist_ok=True)
+    pdfs = []
+    if os.path.isdir(PDF_UPLOAD_FOLDER):
+        for fname in sorted(os.listdir(PDF_UPLOAD_FOLDER)):
+            if fname.lower().endswith(tuple(ALLOWED_PDF_EXTENSIONS)) and not fname.startswith('.'):
+                title = os.path.splitext(fname)[0].replace('_', ' ').replace('-', ' ').title()
+                pdfs.append({
+                    "filename": fname,
+                    "title": title,
+                    "url": f"/static/pdfs/{fname}"
+                })
+    return jsonify({"pdfs": pdfs})
+
+
+@api_bp.route('/pdfs/upload', methods=['POST'])
+@login_required
+def upload_pdf():
+    """Admin-only: upload a training PDF or document."""
+    if not is_admin_user():
+        return jsonify({"error": "Forbidden"}), 403
+    if 'pdf' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['pdf']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in ALLOWED_PDF_EXTENSIONS:
+        return jsonify({"error": "Invalid file type. Only PDF or document files allowed."}), 400
+    filename = secure_filename(file.filename)
+    os.makedirs(PDF_UPLOAD_FOLDER, exist_ok=True)
+    file.save(os.path.join(PDF_UPLOAD_FOLDER, filename))
+    return jsonify({"status": "uploaded", "filename": filename})
+
+
+@api_bp.route('/pdfs/<filename>', methods=['DELETE'])
+@login_required
+def delete_pdf(filename):
+    """Admin-only: delete a training PDF manual."""
+    if not is_admin_user():
+        return jsonify({"error": "Forbidden"}), 403
+    safe = secure_filename(filename)
+    path = os.path.join(PDF_UPLOAD_FOLDER, safe)
     if os.path.exists(path):
         os.remove(path)
         return jsonify({"status": "deleted"})

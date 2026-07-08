@@ -71,23 +71,22 @@
       
       <!-- Direct PDF Download Manuals -->
       <div class="ref-downloads-section">
-        <h4>CBR Training Files</h4>
-        <div class="ref-pdf-grid">
-          <a href="Version 19 Filling and Evaluating Challenger Card_260512_110909.pdf" download class="ref-pdf-tile">
+        <div class="video-header-row" style="margin-bottom: 1rem;">
+          <h4 style="margin: 0;">CBR Training Files</h4>
+          <div id="pdf-upload-zone" class="video-upload-zone" style="display: none;">
+            <label class="btn-upload-video" id="pdf-upload-label" style="cursor: pointer;">
+              <i data-lucide="upload"></i> Upload PDF Manual
+              <input type="file" id="pdf-file-input" accept=".pdf,.doc,.docx,.zip" style="display: none;">
+            </label>
+          </div>
+        </div>
+        <div id="pdf-upload-progress-wrap" class="video-upload-progress-wrap" style="display: none; margin-bottom: 1rem;">
+          <div id="pdf-upload-progress-bar" class="video-upload-progress-bar"></div>
+        </div>
+        <div id="ref-pdf-grid" class="ref-pdf-grid">
+          <a href="{{ url_for('static', filename='pdfs/Reference Card A5.pdf') }}" download class="ref-pdf-tile">
             <div class="pdf-icon"><i data-lucide="file-text"></i></div>
-            <span>Card Guide</span>
-          </a>
-          <a href="1778574256897_Reference Card May 2025ge (Printing _260512_112434.pdf" download class="ref-pdf-tile">
-            <div class="pdf-icon"><i data-lucide="file-text"></i></div>
-            <span>Course Ref</span>
-          </a>
-          <a href="STUDY QUESTIONS 2025ge (R) (1)_260512_111358.pdf" download class="ref-pdf-tile">
-            <div class="pdf-icon"><i data-lucide="file-text"></i></div>
-            <span>Questions</span>
-          </a>
-          <a href="Understanding PEGs_260512_111801.pdf" download class="ref-pdf-tile">
-            <div class="pdf-icon"><i data-lucide="file-text"></i></div>
-            <span>PEGs Guide</span>
+            <span>Reference Card A5</span>
           </a>
         </div>
       </div>
