@@ -27,3 +27,9 @@ build/
 static/videos/*
 !static/videos/.gitkeep
 
+# Uploaded PDFs
+static/pdfs/*
+!static/pdfs/.gitkeep
+!static/pdfs/Reference Card A5.pdf
+
+

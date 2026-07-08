@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, redirect, url_for, make_response
+from flask import Flask, render_template, redirect, url_for, make_response, send_from_directory, abort
 from flask_login import LoginManager, current_user
 from models import db, User
 from auth import auth_bp, setup_oauth
@@ -58,6 +58,18 @@ def serve_login():
     if current_user.is_authenticated:
         return redirect(url_for('serve_app'))
     return render_template('login.html')
+
+@app.route('/<path:filename>')
+def serve_root_files(filename):
+    """Serve static documents (PDFs, docs) requested from root URL or static/pdfs."""
+    if filename.lower().endswith(('.pdf', '.doc', '.docx', '.txt', '.zip')):
+        pdfs_dir = os.path.join(basedir, 'static', 'pdfs')
+        if os.path.exists(os.path.join(pdfs_dir, filename)):
+            return send_from_directory(pdfs_dir, filename, as_attachment=True)
+        if os.path.exists(os.path.join(basedir, filename)):
+            return send_from_directory(basedir, filename, as_attachment=True)
+    abort(404)
+
 
 def run_migrations():
     """Safely add new columns to existing tables without losing data."""

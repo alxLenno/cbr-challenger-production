@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   prefetchLeaderboard();
   // Init video guides admin state immediately after appState is loaded
   initVideoGuides();
+  initPdfGuides();
 });
 
 function checkAndArchiveCompletedCard() {
@@ -3980,3 +3981,147 @@ async function handleVideoDelete(filename, cardEl) {
     refTabBtn.addEventListener('click', () => loadVideoGuides());
   }
 })();
+
+
+/* ─── PDF GUIDES & MANUALS MODULE ────────────────────────────────────────── */
+function initPdfGuides() {
+  const uploadZone = document.getElementById('pdf-upload-zone');
+  const fileInput  = document.getElementById('pdf-file-input');
+
+  if (appState && appState.isAdmin && uploadZone) {
+    uploadZone.style.display = 'inline-block';
+  }
+  if (fileInput) {
+    fileInput.addEventListener('change', handlePdfFileSelected);
+  }
+  loadPdfGuides();
+}
+
+async function loadPdfGuides() {
+  try {
+    const res  = await fetch('/api/pdfs');
+    if (!res.ok) return;
+    const data = await res.json();
+    renderPdfGuides(data.pdfs || []);
+  } catch(e) {
+    console.error('Failed to load PDF guides:', e);
+  }
+}
+
+function renderPdfGuides(pdfs) {
+  const grid = document.getElementById('ref-pdf-grid');
+  if (!grid) return;
+
+  // If no uploaded pdfs exist from API, keep fallback static card (Reference Card A5) if present
+  if (!pdfs || pdfs.length === 0) {
+    return;
+  }
+
+  grid.innerHTML = '';
+  pdfs.forEach(p => {
+    const tile = document.createElement('div');
+    tile.className = 'ref-pdf-tile';
+    tile.style.position = 'relative';
+    tile.style.display = 'flex';
+    tile.style.alignItems = 'center';
+    tile.style.gap = '12px';
+    tile.style.cursor = 'pointer';
+
+    tile.innerHTML = `
+      <a href="${p.url}" download style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
+        <div class="pdf-icon"><i data-lucide="file-text"></i></div>
+        <span style="font-weight: 500; font-size: 0.95rem;">${p.title}</span>
+      </a>
+    `;
+
+    if (appState && appState.isAdmin) {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete-video';
+      delBtn.style.position = 'static';
+      delBtn.style.marginLeft = 'auto';
+      delBtn.title = 'Delete PDF Manual';
+      delBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handlePdfDelete(p.filename, tile);
+      };
+      tile.appendChild(delBtn);
+    }
+
+    grid.appendChild(tile);
+  });
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function handlePdfFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const progressWrap = document.getElementById('pdf-upload-progress-wrap');
+  const progressBar  = document.getElementById('pdf-upload-progress-bar');
+  const label        = document.getElementById('pdf-upload-label');
+
+  const formData = new FormData();
+  formData.append('pdf', file);
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener('progress', evt => {
+    if (evt.lengthComputable && progressBar)
+      progressBar.style.width = Math.round((evt.loaded / evt.total) * 100) + '%';
+  });
+  xhr.addEventListener('loadstart', () => {
+    if (progressWrap) progressWrap.style.display = 'block';
+    if (label) label.style.opacity = '0.6';
+  });
+  xhr.addEventListener('load', () => {
+    if (progressWrap) progressWrap.style.display = 'none';
+    if (progressBar)  progressBar.style.width = '0%';
+    if (label) label.style.opacity = '1';
+    e.target.value = '';
+    if (xhr.status === 200) {
+      showToast('PDF manual uploaded!', 'success');
+      loadPdfGuides();
+    } else {
+      let msg = 'Upload failed (HTTP ' + xhr.status + ').';
+      try {
+        const parsed = JSON.parse(xhr.responseText);
+        if (parsed.error) msg = parsed.error;
+      } catch(ex) {}
+      showToast(msg, 'error');
+    }
+  });
+  xhr.addEventListener('error', () => {
+    if (progressWrap) progressWrap.style.display = 'none';
+    if (label) label.style.opacity = '1';
+    showToast('Network error: PDF upload failed.', 'error');
+  });
+  xhr.open('POST', '/api/pdfs/upload');
+  xhr.send(formData);
+}
+
+async function handlePdfDelete(filename, tileEl) {
+  const confirmed = await showModal({
+    title: 'Delete PDF Manual', subtitle: 'This cannot be undone',
+    message: 'Are you sure you want to permanently delete "' + filename + '"?',
+    type: 'error', isDanger: true, confirmText: 'Delete', cancelText: 'Cancel'
+  });
+  if (!confirmed) return;
+  try {
+    const res = await fetch('/api/pdfs/' + encodeURIComponent(filename), { method: 'DELETE' });
+    if (res.ok) {
+      showToast('PDF manual deleted.', 'success');
+      if (tileEl && tileEl.parentNode) tileEl.parentNode.removeChild(tileEl);
+      loadPdfGuides();
+    } else { showToast('Failed to delete PDF manual.', 'error'); }
+  } catch(ex) { showToast('Error deleting PDF manual.', 'error'); }
+}
+
+// Reload PDF list when Reference tab is clicked
+(function() {
+  const refTabBtn = document.querySelector('.tab-btn[data-tab="tab-reference"]');
+  if (refTabBtn) {
+    refTabBtn.addEventListener('click', () => loadPdfGuides());
+  }
+})();
+
