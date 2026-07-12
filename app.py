@@ -54,6 +54,11 @@ def serve_app():
     resp.headers['Expires'] = '0'
     return resp
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'icon-192.png', mimetype='image/png')
+
 @app.route('/login_page')
 def serve_login():
     if current_user.is_authenticated:

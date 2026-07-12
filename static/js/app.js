@@ -1530,7 +1530,10 @@ function saveDayLog() {
   dayData.prayer10mins = elements.inputPrayer10mins.checked;
   
   // Data Validity Calculation
-  dayData.dataValidity = (todayStr === dayDate);
+  // If it was already validated as true on the correct day, keep it true even if edited later
+  if (dayData.dataValidity !== true) {
+    dayData.dataValidity = (todayStr === dayDate);
+  }
   
   // Devotion fields
   const chosenMethod = (elements.inputStudyMethod.value || 'FID').toUpperCase();
