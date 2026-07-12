@@ -418,20 +418,57 @@ function renderToday() {
 
   // ── Daily Chapter Reading ──────────────────────────────────────────────────
   const storedChapter = appState.dailyReadingChapter || 'Psalm 119';
-  const startVerse = (dayNum - 1) * 7 + 1;
-  const endVerse = dayNum * 7;
-  const dailyRef = `${storedChapter}:${startVerse}-${endVerse}`;
+  
+  let readingDayIndex = dayNum;
+  if (data && data.commencingDate) {
+    const cardStart = new Date(data.commencingDate);
+    const currentDate = new Date(cardStart);
+    currentDate.setDate(cardStart.getDate() + (dayNum - 1));
+    
+    const overrideStartDate = new Date("2026-07-13T00:00:00");
+    const overrideEndDate = new Date("2026-08-02T23:59:59");
+    
+    if (currentDate >= overrideStartDate && currentDate <= overrideEndDate) {
+        readingDayIndex = dayNum - 7; 
+    } else if (currentDate < overrideStartDate && cardStart < overrideEndDate) {
+        readingDayIndex = 0; 
+    }
+  }
+
+  let dailyRef = "";
+  let targetText = "";
+
+  if (readingDayIndex <= 0) {
+      dailyRef = `${storedChapter}:1-7`;
+      targetText = `Target: Starts Tomorrow`;
+  } else {
+      const startVerse = (readingDayIndex - 1) * 7 + 1;
+      const endVerse = readingDayIndex * 7;
+      dailyRef = `${storedChapter}:${startVerse}-${endVerse}`;
+      targetText = `Target: verses ${startVerse}-${endVerse}`;
+  }
   
   const dailyTitle = document.getElementById('today-daily-title');
   const dailyTarget = document.getElementById('today-daily-target');
   const dailyInput = document.getElementById('today-daily-chapter-input');
   
-  window.currentDailyRef = dailyRef;
+  const dailyRefEl = document.getElementById('today-daily-ref');
+  const dailyTextEl = document.getElementById('today-daily-text');
+  
+  window.currentDailyRef = readingDayIndex > 0 ? dailyRef : null;
   window.currentDailyChapter = storedChapter;
   
   if (dailyTitle) dailyTitle.textContent = storedChapter;
-  if (dailyTarget) dailyTarget.textContent = `Target: verses ${startVerse}-${endVerse}`;
+  if (dailyTarget) dailyTarget.textContent = targetText;
   if (dailyInput) dailyInput.value = storedChapter;
+  
+  if (readingDayIndex <= 0) {
+      if (dailyRefEl) dailyRefEl.textContent = "Starts Tomorrow";
+      if (dailyTextEl) dailyTextEl.innerHTML = `<p class="today-accord-empty">Your Daily Chapter reading will begin starting tomorrow, syncing your 7-verse increments perfectly for this month!</p>`;
+  } else {
+      if (dailyRefEl && dailyRefEl.textContent === 'Loading...') dailyRefEl.textContent = "Click to Load Verses";
+      if (dailyTextEl && dailyTextEl.innerHTML.includes('Loading')) dailyTextEl.innerHTML = `<p class="today-accord-empty">Open this accordion to fetch your verses for today.</p>`;
+  }
 
   // ── Accordion details: Prayer & Fellowship ────────────────────────────────────
   const detPe = document.getElementById('today-details-pe');
