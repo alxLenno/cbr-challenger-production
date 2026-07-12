@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cbr-challenger-v33';
+const CACHE_NAME = 'cbr-challenger-v47';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/css/today.css',
@@ -13,6 +13,14 @@ const STATIC_ASSETS = [
   '/static/js/app.js',
   '/static/js/data.js',
   '/static/js/card-generator.js',
+  '/static/js/tabs/today.js',
+  '/static/js/tabs/dashboard.js',
+  '/static/js/tabs/leaderboard.js',
+  '/static/js/tabs/session_eval.js',
+  '/static/js/tabs/reference.js',
+  '/static/js/tabs/history.js',
+  '/static/js/tabs/account.js',
+  '/static/js/tabs/analytics.js',
   '/static/icon-192.png',
   '/static/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap'
@@ -50,7 +58,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // CSS/JS: always network-first so version bumps take effect immediately
+  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets (images, fonts, etc.)
   if (url.pathname.startsWith('/static/')) {
     event.respondWith(
       caches.match(event.request).then((cached) => {

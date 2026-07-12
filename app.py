@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, redirect, url_for, make_response, send_from_directory, abort
 from flask_login import LoginManager, current_user
-from models import db, User
+from models import db, User, auto_migrate_db
 from auth import auth_bp, setup_oauth
 from routes import api_bp
 from dotenv import load_dotenv
@@ -30,6 +30,7 @@ app.config["GOOGLE_CLIENT_ID"] = os.environ.get("GOOGLE_CLIENT_ID")
 app.config["GOOGLE_CLIENT_SECRET"] = os.environ.get("GOOGLE_CLIENT_SECRET")
 
 db.init_app(app)
+auto_migrate_db(app)
 setup_oauth(app)
 
 login_manager = LoginManager()

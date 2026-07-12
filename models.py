@@ -31,6 +31,8 @@ class CardState(db.Model):
     theme = db.Column(db.String(10), default='dark')
     contact = db.Column(db.String(120), nullable=True)
     church = db.Column(db.String(120), nullable=True)
+    peg = db.Column(db.String(120), nullable=True)
+    cohort = db.Column(db.String(120), nullable=True)
     
     weaknesses = db.relationship('Weakness', backref='card_state', lazy=True, cascade="all, delete-orphan")
     days = db.relationship('DailyLog', backref='card_state', lazy=True, cascade="all, delete-orphan")
@@ -87,6 +89,10 @@ class DailyLog(db.Model):
     
     # Study Method Fields
     study_method = db.Column(db.String(20), default='FID')
+    dif_discovery = db.Column(db.Text, nullable=True)
+    dif_insight = db.Column(db.Text, nullable=True)
+    dif_fruit = db.Column(db.Text, nullable=True)
+    journal_notes = db.Column(db.Text, nullable=True)
     open_observation = db.Column(db.Text, nullable=True)
     open_principles = db.Column(db.Text, nullable=True)
     open_experience = db.Column(db.Text, nullable=True)
@@ -147,3 +153,34 @@ class SessionEvaluation(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'session_number', name='uq_user_session'),
     )
+
+def auto_migrate_db(app):
+    """
+    Safely ensures all tables and new columns exist without requiring Alembic/manual migrations.
+    Works seamlessly locally, on Railway, and when deployed on PythonAnywhere.
+    """
+    with app.app_context():
+        db.create_all()
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            if 'card_states' in inspector.get_table_names():
+                existing_cols = [c['name'] for c in inspector.get_columns('card_states')]
+                if 'peg' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE card_states ADD COLUMN peg VARCHAR(120)"))
+                if 'cohort' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE card_states ADD COLUMN cohort VARCHAR(120)"))
+            if 'daily_logs' in inspector.get_table_names():
+                existing_cols = [c['name'] for c in inspector.get_columns('daily_logs')]
+                if 'dif_discovery' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN dif_discovery TEXT"))
+                if 'dif_insight' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN dif_insight TEXT"))
+                if 'dif_fruit' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN dif_fruit TEXT"))
+                if 'journal_notes' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN journal_notes TEXT"))
+            db.session.commit()
+        except Exception as e:
+            print("Auto-migration note:", e)
+            db.session.rollback()

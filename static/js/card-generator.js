@@ -58,7 +58,7 @@ function buildChallengerCardHTML(data) {
     // Header row
     rows += `<tr><th class="row-header">Chs</th>`;
     rows += buildDayHeaderCells();
-    rows += `<th style="border:none; background:transparent; font-size:4.5pt; text-align:left; padding-left:6px; line-height:1.1; vertical-align:bottom;">CBR VISION<br>IN 30 YEARS</th>`;
+    rows += `<th style="border:none; background:transparent; font-size:4.5pt; text-align:left; padding-left:6px; line-height:1.1; vertical-align:bottom;">CBRSM VISION<br>IN 30 YEARS</th>`;
     rows += `</tr>`;
 
     for (let speed = 8; speed >= 1; speed--) {
@@ -109,7 +109,7 @@ function buildChallengerCardHTML(data) {
           <div class="cc-speed-label-vert">BIBLE-READING SPEEDS</div>
           <div>
             <div style="text-align:center; font-size:7pt; font-weight:900; letter-spacing:1px; padding:2px 0; border-bottom:1px solid #aaa;">
-              CONSISTENT BIBLE READING (CBR)
+              CONSISTENT BIBLE READING (CBRSM)
             </div>
             <table class="cc-grid-table">${rows}</table>
           </div>
@@ -229,7 +229,7 @@ function buildChallengerCardHTML(data) {
       }
     }
     // Add right-side text immediately to the right of the table rows
-    rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBR<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
+    rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBRSM<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
     rows += `</tr>`;
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -293,11 +293,11 @@ function buildChallengerCardHTML(data) {
     const rows = [
       { disc: 'PERSEVERANCE', desc: 'I Read ALL My Set Chapters Each Day', key: 'perseverance', max: 3 },
       { disc: 'COMMITMENT', desc: 'I Woke Up at My Set ER-Time Each Day', key: 'commitment', max: 2 },
-      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 2 },
+      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBRSM Each Day', key: 'prayer', max: 2 },
       { disc: 'SCRIPTURE MEMORY', desc: 'I Recited the Memory Scripture Each Day', key: 'memory', max: 1 },
       { disc: 'MEDITATION', desc: 'I Wrote FID Journal Notes Each Day', key: 'meditation', max: 1 },
       { disc: 'ACCOUNTABILITY', desc: 'I shared FID and Commented Each Week', key: 'accountability', max: 1 },
-      { disc: 'CBR GROWTH POINTS', desc: 'My Total Growth Points', key: 'total', max: 10, isTotalRow: true },
+      { disc: 'CBRSM GROWTH POINTS', desc: 'My Total Growth Points', key: 'total', max: 10, isTotalRow: true },
       { disc: 'LAXITY (Deviation)', desc: 'Points I have Lost', key: 'laxity', max: 0, isLaxityRow: true },
     ];
 
@@ -330,7 +330,7 @@ function buildChallengerCardHTML(data) {
 
     return `
       <div class="cc-growth-section">
-        <div class="cc-growth-title">WEEKLY CBR GROWTH POINTS ANALYSIS</div>
+        <div class="cc-growth-title">WEEKLY CBRSM GROWTH POINTS ANALYSIS</div>
         <table class="cc-growth-table">
           <thead>
             <tr class="header-row">
@@ -351,7 +351,7 @@ function buildChallengerCardHTML(data) {
   // ─────────────────────────────────────────────
   function buildInstructions() {
     const col1 = [
-      { n: '', t: '<b>Follow these INSTRUCTIONS in Filling your CBR, ERT and other pieces of information in this CARD to be able to Analyze your Weekly CBR GROWTH POINTS.</b>' }
+      { n: '', t: '<b>Follow these INSTRUCTIONS in Filling your CBR, ERT and other pieces of information in this CARD to be able to Analyze your Weekly CBRSM GROWTH POINTS.</b>' }
     ];
     const col2 = [
       { n: '1.', t: 'Circle the CARD number and write your <i>Name</i>, <i>Phone</i> number and the commencing <i>Date</i>.' },
@@ -363,9 +363,9 @@ function buildChallengerCardHTML(data) {
     const col3 = [
       { n: '6.', t: 'Use a <b>pencil</b> to record and analyze data on this CARD with absolute HONESTY.' },
       { n: '7.', t: 'Show your <b>Consistency Barriers</b> on the CARD.' },
-      { n: '8.', t: 'Calculate your <b>Weekly CBR Growth Points</b> and add them up to get total for the 4 weeks.' },
+      { n: '8.', t: 'Calculate your <b>Weekly CBRSM Growth Points</b> and add them up to get total for the 4 weeks.' },
       { n: '9.', t: '<b>Laxity:</b> Aim to keep your laxity at zero every week in order to improve your class ranking.' },
-      { n: '', t: '<hr/><b>DEVELOPING CBR SUCCESSFULLY</b><br>1. Sleep early to rise on time for CBR.<br>2. Do CBR and pray daily even during exams.<br>3. Model true christianity to all your friends by early-rising faithfully for CBR even on holidays.<br>4. Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBR years later.<br>5. You are required to share <b>1 FID Every Week</b>.<br>6. Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
+      { n: '', t: '<hr/><b>DEVELOPING CBRSM SUCCESSFULLY</b><br>1. Sleep early to rise on time for CBRSM.<br>2. Do CBRSM and pray daily even during exams.<br>3. Model true christianity to all your friends by early-rising faithfully for CBRSM even on holidays.<br>4. Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBRSM years later.<br>5. You are required to share <b>1 FID Every Week</b>.<br>6. Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
     ];
 
     const renderCol = (items) => items.map(i => `<div class="inst-item"><span class="inst-num">${i.n}</span><span>${i.t}</span></div>`).join('');
@@ -459,7 +459,7 @@ function buildChallengerCardHTML(data) {
   ${buildInstructions()}
 
   <!-- FOOTER -->
-  <div class="cc-footer">© By CBR Discipline Challenger CARD, 19th Edition, January 2021 — Digital Assistant by The Word Feast</div>
+  <div class="cc-footer">© By CBRSM Discipline Challenger CARD, 19th Edition, January 2021 — Digital Assistant by The Word Feast</div>
 </div>`;
 }
 

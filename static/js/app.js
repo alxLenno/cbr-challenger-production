@@ -1,4 +1,4 @@
-// CBR Challenger Card Digital Assistant - Application Script
+// CBRSM Challenger Card Digital Assistant - Application Script
 
 // Global state variable
 let appState = null;
@@ -82,6 +82,7 @@ const elements = {
   inputPersonsObedience: document.getElementById('persons-obedience'),
   inputPersonsNote: document.getElementById('persons-note'),
   inputPersonsStirring: document.getElementById('persons-stirring'),
+  inputJournalNotes: document.getElementById('journal-notes'),
   inputScriptureMemorized: document.getElementById('scripture-memorized'),
   inputPrayerTopic: document.getElementById('prayer-topic'),
   
@@ -148,6 +149,8 @@ const elements = {
   profileInputUsername: document.getElementById('profile-input-username'),
   profileInputContact: document.getElementById('profile-input-contact'),
   profileInputChurch: document.getElementById('profile-input-church'),
+  profileInputPeg: document.getElementById('profile-input-peg'),
+  profileInputCohort: document.getElementById('profile-input-cohort'),
   profileCardNum: document.getElementById('profile-card-num'),
   profileCommenceDate: document.getElementById('profile-commence-date'),
   btnProfileSave: document.getElementById('btn-profile-save'),
@@ -569,6 +572,8 @@ function syncAllTimelinesToFirstWeek() {
       username: appState.username,
       contact: appState.contact,
       church: appState.church,
+      peg: appState.peg || "",
+      cohort: appState.cohort || "",
       weaknesses: JSON.parse(JSON.stringify(appState.weaknesses || [{name:"",action:""},{name:"",action:""},{name:"",action:""}])),
       days: daysArr,
       weeks: weeksArr,
@@ -680,18 +685,20 @@ async function loadState() {
 
 function syncActiveCardToArchiveIfNeeded() {
   if (!appState || !appState.savedCards || isViewingHistory) return;
-  const cId = appState.currentCardId;
-  const existingIdx = appState.savedCards.findIndex(c => (c.currentCardId || c.cardId) === cId);
+  const instId = appState.activeInstanceId || (`card_${appState.currentCardId}_${appState.commencingDate}`);
+  const existingIdx = appState.savedCards.findIndex(c => c.instanceId === instId);
   if (existingIdx >= 0) {
     const stats = calculateScores();
     const syncedArchive = {
-      instanceId: `card_${cId}`,
-      currentCardId: cId,
-      cardId: cId,
+      instanceId: instId,
+      currentCardId: appState.currentCardId,
+      cardId: appState.currentCardId,
       commencingDate: appState.commencingDate,
       username: appState.username,
       contact: appState.contact,
       church: appState.church,
+      peg: appState.peg || "",
+      cohort: appState.cohort || "",
       weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
       days: JSON.parse(JSON.stringify(appState.days)),
       weeks: JSON.parse(JSON.stringify(appState.weeks)),
@@ -730,6 +737,8 @@ function initDefaultState() {
     username: "Bible Reader",
     contact: "",
     church: "",
+    peg: "",
+    cohort: "",
     weaknesses: [
       { name: "", action: "" },
       { name: "", action: "" },
@@ -904,6 +913,8 @@ function setupEventListeners() {
       appState.username = elements.profileInputUsername.value;
       appState.contact = elements.profileInputContact.value;
       appState.church = elements.profileInputChurch.value;
+      if (elements.profileInputPeg) appState.peg = elements.profileInputPeg.value;
+      if (elements.profileInputCohort) appState.cohort = elements.profileInputCohort.value;
       if (elements.usernameInput) elements.usernameInput.value = appState.username;
       if (elements.contactInput) elements.contactInput.value = appState.contact;
       if (elements.churchInput) elements.churchInput.value = appState.church;
@@ -1061,6 +1072,27 @@ function setupEventListeners() {
       if (elements.fidFields) elements.fidFields.style.display = method === 'FID' ? 'flex' : 'none';
       if (elements.openFields) elements.openFields.style.display = method === 'OPEN' ? 'flex' : 'none';
       if (elements.personsFields) elements.personsFields.style.display = method === 'PERSONS' ? 'flex' : 'none';
+      
+      // Update segmented pill UI if it exists
+      document.querySelectorAll('.method-btn').forEach(btn => {
+        if (btn.dataset.value === method) {
+          btn.classList.add('active');
+          btn.style.background = 'var(--primary, #d4af37)';
+          btn.style.color = '#fff';
+        } else {
+          btn.classList.remove('active');
+          btn.style.background = 'transparent';
+          btn.style.color = 'var(--text-secondary)';
+        }
+      });
+    });
+
+    // Handle clicks on segmented buttons
+    document.querySelectorAll('.method-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        elements.inputStudyMethod.value = btn.dataset.value;
+        elements.inputStudyMethod.dispatchEvent(new Event('change'));
+      });
     });
   }
 
@@ -1263,6 +1295,10 @@ function openDayModal(dayNum) {
   currentEditingDayNum = dayNum;
   const data = getActiveData();
   const dayData = data.days.find(d => d.dayNumber === dayNum);
+  if (!dayData) {
+    console.warn('openDayModal: no day data found for dayNum', dayNum);
+    return;
+  }
   const dateStr = addDays(data.commencingDate, dayNum - 1);
   const dateLabel = formatDateLabel(dateStr);
   const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
@@ -1310,6 +1346,8 @@ function openDayModal(dayNum) {
   elements.inputDataValidity.checked = dayData.dataValidity || false;
   
   // Devotion inputs
+  const qp = document.getElementById('quick-paste-journal');
+  if (qp) qp.value = '';
   elements.inputStudyMethod.value = dayData.studyMethod || "FID";
   
   // Update UI for study method
@@ -1334,6 +1372,7 @@ function openDayModal(dayNum) {
   if (elements.inputPersonsObedience) elements.inputPersonsObedience.value = dayData.personsObedience || "";
   if (elements.inputPersonsNote) elements.inputPersonsNote.value = dayData.personsNote || "";
   if (elements.inputPersonsStirring) elements.inputPersonsStirring.value = dayData.personsStirring || "";
+  if (elements.inputJournalNotes) elements.inputJournalNotes.value = dayData.journalNotes || "";
   
   elements.inputScriptureMemorized.value = dayData.scriptureMemorized || "";
   elements.inputPrayerTopic.value = dayData.prayerTopic || "";
@@ -1379,10 +1418,103 @@ function closeModal() {
   elements.dayForm.reset();
 }
 
+// Quick import parser for devotional notes (FACT/INSIGHT/DEED, WhatsApp, Notebook)
+window.parseQuickPasteJournal = function(silent = false) {
+  const qpEl = document.getElementById('quick-paste-journal');
+  let text = qpEl ? qpEl.value : "";
+  if (!text || !text.trim()) {
+    // Check if the user pasted everything into fid-focus or journal-notes instead
+    const focusEl = document.getElementById('fid-focus');
+    const notesEl = document.getElementById('journal-notes');
+    if (focusEl && /\b(?:INSIGHT|DEED|DOING|FRUIT)\b/i.test(focusEl.value)) {
+      text = focusEl.value;
+    } else if (notesEl && /\b(?:FACT|INSIGHT|DEED|FOCUS|DOING)\b/i.test(notesEl.value)) {
+      text = notesEl.value;
+    } else {
+      if (!silent) showToast("Please paste some text into the quick import box first!", "warning");
+      return false;
+    }
+  }
+  
+  let filled = false;
+  
+  // Check for Bible Book and Chapter pattern (e.g. "Numbers 8,9&10" or "Genesis 1-3")
+  const bookMatch = text.match(/\b([1-3]?\s*[A-Za-z]+)\s+(\d+)(?:[\s\,\&\-\:]+(\d+))?\b/);
+  if (bookMatch) {
+    const bookName = bookMatch[1].trim();
+    if (/^(Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation)$/i.test(bookName)) {
+      if (elements.inputBibleBook) elements.inputBibleBook.value = bookName;
+      if (elements.inputStartChapter && bookMatch[2]) elements.inputStartChapter.value = parseInt(bookMatch[2], 10);
+      if (elements.inputEndChapter && bookMatch[3]) elements.inputEndChapter.value = parseInt(bookMatch[3], 10);
+      else if (elements.inputEndChapter && bookMatch[2]) elements.inputEndChapter.value = parseInt(bookMatch[2], 10);
+      filled = true;
+    }
+  }
+
+  // Parse FACT / FOCUS / DISCOVERY / INSIGHT / DEED / DOING / FRUIT
+  const factMatch = text.match(/(?:FACT|FOCUS|DISCOVERY|D\/F|F\/D|F[\s;:\-]|D[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|DEED|DOING|FRUIT|APPLICATION|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
+  const insightMatch = text.match(/(?:INSIGHT|INTERPRETATION|I[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:DEED|DOING|FRUIT|APPLICATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
+  const deedMatch = text.match(/(?:DEED|DOING|FRUIT|APPLICATION|ACTION|D[\s;:\-]|F[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
+
+  if (factMatch && factMatch[1].trim()) {
+    if (elements.inputFidFocus) elements.inputFidFocus.value = factMatch[1].trim();
+    filled = true;
+  }
+  if (insightMatch && insightMatch[1].trim()) {
+    if (elements.inputFidInsight) elements.inputFidInsight.value = insightMatch[1].trim();
+    filled = true;
+  }
+  if (deedMatch && deedMatch[1].trim()) {
+    if (elements.inputFidDoing) elements.inputFidDoing.value = deedMatch[1].trim();
+    filled = true;
+  }
+
+  // Also check OPEN method
+  const obsMatch = text.match(/(?:OBSERVATION|O[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:PRINCIPLES|EXPERIENCE|NEED|$))/i);
+  const prinMatch = text.match(/(?:PRINCIPLES|P[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:EXPERIENCE|NEED|OBSERVATION|$))/i);
+  const expMatch = text.match(/(?:EXPERIENCE|E[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:NEED|OBSERVATION|PRINCIPLES|$))/i);
+  const needMatch = text.match(/(?:NEED|N[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:OBSERVATION|PRINCIPLES|EXPERIENCE|$))/i);
+  
+  if (obsMatch && obsMatch[1].trim()) {
+    if (elements.inputOpenObservation) elements.inputOpenObservation.value = obsMatch[1].trim();
+    if (prinMatch && prinMatch[1].trim()) elements.inputOpenPrinciples.value = prinMatch[1].trim();
+    if (expMatch && expMatch[1].trim()) elements.inputOpenExperience.value = expMatch[1].trim();
+    if (needMatch && needMatch[1].trim()) elements.inputOpenNeed.value = needMatch[1].trim();
+    if (elements.inputStudyMethod) { elements.inputStudyMethod.value = 'OPEN'; elements.inputStudyMethod.dispatchEvent(new Event('change')); }
+    filled = true;
+  } else if (factMatch || insightMatch || deedMatch) {
+    if (elements.inputStudyMethod) { elements.inputStudyMethod.value = 'FID'; elements.inputStudyMethod.dispatchEvent(new Event('change')); }
+  }
+
+  // Extract header prefix (like Date 10-7-2026 \n PEG 8 \n Numbers 8,9&10) before FACT/INSIGHT/DEED
+  const prefixMatch = text.match(/^([\s\S]*?)(?=(?:FACT|FOCUS|DISCOVERY|INSIGHT|DEED|DOING|FRUIT|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|D\/F|F\/D|O —|P —|$))/i);
+  if (prefixMatch && prefixMatch[1].trim() && prefixMatch[1].trim() !== text.trim()) {
+    if (elements.inputJournalNotes) {
+      const existing = elements.inputJournalNotes.value.trim();
+      if (!existing.includes(prefixMatch[1].trim())) {
+        elements.inputJournalNotes.value = prefixMatch[1].trim() + (existing ? '\n' + existing : '');
+      }
+    }
+  }
+
+  if (filled && !silent) {
+    showToast("✨ Successfully parsed note and auto-filled your fields!", "success");
+  } else if (!silent) {
+    showToast("Could not detect standard keywords. Please check your text format.", "error");
+  }
+  return filled;
+};
+
 // Save logged data to state and localStorage
 function saveDayLog() {
   if (currentEditingDayNum === null || isViewingHistory) return;
   
+  // Auto-parse if quick paste box has content or if fidFocus has multiple sections
+  const qpEl = document.getElementById('quick-paste-journal');
+  if ((qpEl && qpEl.value.trim()) || (elements.inputFidFocus && /\b(?:INSIGHT|DEED|DOING|FRUIT)\b/i.test(elements.inputFidFocus.value))) {
+    window.parseQuickPasteJournal(true);
+  }
+
   const dayData = appState.days.find(d => d.dayNumber === currentEditingDayNum);
   const dayDate = addDays(appState.commencingDate, currentEditingDayNum - 1);
   const todayStr = new Date().toISOString().split('T')[0];
@@ -1401,23 +1533,43 @@ function saveDayLog() {
   dayData.dataValidity = (todayStr === dayDate);
   
   // Devotion fields
-  dayData.studyMethod = elements.inputStudyMethod.value;
-  dayData.fidFocus = elements.inputFidFocus.value;
-  dayData.fidInsight = elements.inputFidInsight.value;
-  dayData.fidDoing = elements.inputFidDoing.value;
+  const chosenMethod = (elements.inputStudyMethod.value || 'FID').toUpperCase();
+  dayData.studyMethod = chosenMethod;
   
-  dayData.openObservation = elements.inputOpenObservation ? elements.inputOpenObservation.value : "";
-  dayData.openPrinciples = elements.inputOpenPrinciples ? elements.inputOpenPrinciples.value : "";
-  dayData.openExperience = elements.inputOpenExperience ? elements.inputOpenExperience.value : "";
-  dayData.openNeed = elements.inputOpenNeed ? elements.inputOpenNeed.value : "";
-  
-  dayData.personsPersonal = elements.inputPersonsPersonal ? elements.inputPersonsPersonal.value : "";
-  dayData.personsEnglish = elements.inputPersonsEnglish ? elements.inputPersonsEnglish.value : "";
-  dayData.personsReferences = elements.inputPersonsReferences ? elements.inputPersonsReferences.value : "";
-  dayData.personsSatan = elements.inputPersonsSatan ? elements.inputPersonsSatan.value : "";
-  dayData.personsObedience = elements.inputPersonsObedience ? elements.inputPersonsObedience.value : "";
-  dayData.personsNote = elements.inputPersonsNote ? elements.inputPersonsNote.value : "";
-  dayData.personsStirring = elements.inputPersonsStirring ? elements.inputPersonsStirring.value : "";
+  const stripPrefix = (str, regex) => str ? str.replace(regex, '').trim() : '';
+
+  if (chosenMethod === 'OPEN') {
+    dayData.openObservation = stripPrefix(elements.inputOpenObservation ? elements.inputOpenObservation.value : "", /^(?:OBSERVATION|O[\s;:\-])[\s;:\-]*/i);
+    dayData.openPrinciples = stripPrefix(elements.inputOpenPrinciples ? elements.inputOpenPrinciples.value : "", /^(?:PRINCIPLES|P[\s;:\-])[\s;:\-]*/i);
+    dayData.openExperience = stripPrefix(elements.inputOpenExperience ? elements.inputOpenExperience.value : "", /^(?:EXPERIENCE|E[\s;:\-])[\s;:\-]*/i);
+    dayData.openNeed = stripPrefix(elements.inputOpenNeed ? elements.inputOpenNeed.value : "", /^(?:NEED|N[\s;:\-])[\s;:\-]*/i);
+    dayData.fidFocus = ""; dayData.fidInsight = ""; dayData.fidDoing = "";
+    dayData.difDiscovery = ""; dayData.difInsight = ""; dayData.difFruit = "";
+    dayData.personsPersonal = ""; dayData.personsEnglish = ""; dayData.personsReferences = ""; dayData.personsSatan = "";
+    dayData.personsObedience = ""; dayData.personsNote = ""; dayData.personsStirring = "";
+  } else if (chosenMethod === 'PERSONS') {
+    dayData.personsPersonal = stripPrefix(elements.inputPersonsPersonal ? elements.inputPersonsPersonal.value : "", /^(?:PERSONAL|P[\s;:\-])[\s;:\-]*/i);
+    dayData.personsEnglish = stripPrefix(elements.inputPersonsEnglish ? elements.inputPersonsEnglish.value : "", /^(?:ENGLISH|E[\s;:\-])[\s;:\-]*/i);
+    dayData.personsReferences = stripPrefix(elements.inputPersonsReferences ? elements.inputPersonsReferences.value : "", /^(?:REFERENCES|R[\s;:\-])[\s;:\-]*/i);
+    dayData.personsSatan = stripPrefix(elements.inputPersonsSatan ? elements.inputPersonsSatan.value : "", /^(?:SATAN|S[\s;:\-])[\s;:\-]*/i);
+    dayData.personsObedience = stripPrefix(elements.inputPersonsObedience ? elements.inputPersonsObedience.value : "", /^(?:OBEDIENCE|O[\s;:\-])[\s;:\-]*/i);
+    dayData.personsNote = stripPrefix(elements.inputPersonsNote ? elements.inputPersonsNote.value : "", /^(?:NOTE|N[\s;:\-])[\s;:\-]*/i);
+    dayData.personsStirring = stripPrefix(elements.inputPersonsStirring ? elements.inputPersonsStirring.value : "", /^(?:STIRRING|S[\s;:\-])[\s;:\-]*/i);
+    dayData.fidFocus = ""; dayData.fidInsight = ""; dayData.fidDoing = "";
+    dayData.difDiscovery = ""; dayData.difInsight = ""; dayData.difFruit = "";
+    dayData.openObservation = ""; dayData.openPrinciples = ""; dayData.openExperience = ""; dayData.openNeed = "";
+  } else {
+    dayData.fidFocus = stripPrefix(elements.inputFidFocus.value, /^(?:FACT|FOCUS|DISCOVERY|D\/F|F\/D|F[\s;:\-]|D[\s;:\-])[\s;:\-]*/i);
+    dayData.fidInsight = stripPrefix(elements.inputFidInsight.value, /^(?:INSIGHT|INTERPRETATION|I[\s;:\-])[\s;:\-]*/i);
+    dayData.fidDoing = stripPrefix(elements.inputFidDoing.value, /^(?:DEED|DOING|FRUIT|APPLICATION|ACTION|D[\s;:\-]|F[\s;:\-])[\s;:\-]*/i);
+    dayData.difDiscovery = dayData.fidFocus;
+    dayData.difInsight = dayData.fidInsight;
+    dayData.difFruit = dayData.fidDoing;
+    dayData.openObservation = ""; dayData.openPrinciples = ""; dayData.openExperience = ""; dayData.openNeed = "";
+    dayData.personsPersonal = ""; dayData.personsEnglish = ""; dayData.personsReferences = ""; dayData.personsSatan = "";
+    dayData.personsObedience = ""; dayData.personsNote = ""; dayData.personsStirring = "";
+  }
+  dayData.journalNotes = "";
   
   dayData.scriptureMemorized = elements.inputScriptureMemorized.value;
   dayData.prayerTopic = elements.inputPrayerTopic.value;
@@ -1453,212 +1605,6 @@ function saveDayLog() {
 }
 
 // RENDER TODAY AT A GLANCE TAB
-function renderToday() {
-  const todayEl = document.getElementById('tab-today');
-  if (!todayEl) return;
-  const data = getActiveData();
-  if (!data) return;
-  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
-
-  // Calculate today's day number
-  const todayStr = new Date().toISOString().split('T')[0];
-  let dayNum = 1;
-  if (data.commencingDate) {
-    const diffTime = new Date(todayStr) - new Date(data.commencingDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays >= 0 && diffDays < 28) {
-      dayNum = diffDays + 1;
-    } else if (diffDays >= 28) {
-      dayNum = 28;
-    }
-  }
-
-  const dayData = (data.days || []).find(d => d.dayNumber === dayNum) || {};
-
-  // Update Heading
-  const dateHeading = document.getElementById('today-date-heading');
-  if (dateHeading) {
-    const options = { weekday: 'long', month: 'long', day: 'numeric' };
-    dateHeading.innerText = new Date().toLocaleDateString('en-US', options);
-  }
-
-  const cycleSub = document.getElementById('today-cycle-sub');
-  if (cycleSub) {
-    const weekNum = Math.ceil(dayNum / 7);
-    cycleSub.innerText = `Day ${dayNum} of 28 • Week ${weekNum} • Active Card #${card.cardId}`;
-  }
-
-  // Targets
-  const readingTarget = document.getElementById('today-reading-target');
-  if (readingTarget) readingTarget.innerText = `Target: ${card.chaptersTarget} Chapter${card.chaptersTarget > 1 ? 's' : ''}`;
-
-  const wakingTarget = document.getElementById('today-waking-target');
-  if (wakingTarget) wakingTarget.innerText = `Limit: ${card.ertTarget}`;
-
-  // Journal method
-  const journalTitle = document.getElementById('today-journal-method-title');
-  if (journalTitle) {
-    journalTitle.innerText = card.cardId >= 4 ? '2. Bible Study (OPEN)' : '2. Devotional Journaling (FID)';
-  }
-
-  // Psalm verse
-  const psalmVerse = document.getElementById('today-psalm-verse');
-  if (psalmVerse) {
-    psalmVerse.innerText = `Psalm 119:${dayNum}`;
-  }
-
-  // Statuses
-  const totalChaptersRead = (dayData.morningChapters || 0) + (dayData.daytimeChapters || 0);
-  const statusReading = document.getElementById('today-status-reading');
-  if (statusReading) {
-    if (totalChaptersRead >= card.chaptersTarget) {
-      statusReading.className = 'activity-status completed';
-      statusReading.innerText = `Done (${totalChaptersRead} ch)`;
-    } else if (totalChaptersRead > 0) {
-      statusReading.className = 'activity-status partial';
-      statusReading.innerText = `Partial (${totalChaptersRead}/${card.chaptersTarget})`;
-    } else {
-      statusReading.className = 'activity-status pending';
-      statusReading.innerText = 'Pending';
-    }
-  }
-
-  const statusJournal = document.getElementById('today-status-journal');
-  if (statusJournal) {
-    const hasJournal = (dayData.journalNotes && dayData.journalNotes.trim().length > 0) || dayData.fidFocus || dayData.openObservation;
-    if (hasJournal) {
-      statusJournal.className = 'activity-status completed';
-      statusJournal.innerText = 'Recorded';
-    } else {
-      statusJournal.className = 'activity-status pending';
-      statusJournal.innerText = 'No Entry Yet';
-    }
-  }
-
-  const statusWaking = document.getElementById('today-status-waking');
-  if (statusWaking) {
-    if (dayData.wakingTime) {
-      const isLate = (dayData.wakingTime > card.ertTarget);
-      statusWaking.className = isLate ? 'activity-status late' : 'activity-status completed';
-      statusWaking.innerText = isLate ? `Late (${dayData.wakingTime})` : `On Time (${dayData.wakingTime})`;
-    } else {
-      statusWaking.className = 'activity-status pending';
-      statusWaking.innerText = 'Not Logged';
-    }
-  }
-
-  const statusBarriers = document.getElementById('today-status-barriers');
-  if (statusBarriers) {
-    if (dayData.cbId) {
-      statusBarriers.className = 'activity-status late';
-      statusBarriers.innerText = `Recorded (${dayData.cbId})`;
-    } else {
-      statusBarriers.className = 'activity-status clear';
-      statusBarriers.innerText = 'Clear';
-    }
-  }
-
-  // Populate Filled Details Box 1: Scripture Reading
-  const detReading = document.getElementById('today-details-reading');
-  if (detReading) {
-    if (dayData.bibleBook && ((dayData.morningChapters || 0) > 0 || (dayData.laterChapters || 0) > 0)) {
-      detReading.style.display = 'block';
-      detReading.innerHTML = `<strong style="color:var(--primary);">Book:</strong> ${dayData.bibleBook} ${dayData.startChapter ? `(Ch ${dayData.startChapter}${dayData.endChapter && dayData.endChapter != dayData.startChapter ? `-${dayData.endChapter}` : ''})` : ''}<br>
-      <strong style="color:var(--morning-read);">Morning:</strong> ${dayData.morningChapters || 0} ch &nbsp;&bull;&nbsp; <strong style="color:var(--text-secondary);">Later:</strong> ${dayData.laterChapters || 0} ch`;
-    } else {
-      detReading.style.display = 'none';
-    }
-  }
-
-  // Populate Filled Details Box 2: Devotional Journaling
-  const detJournal = document.getElementById('today-details-journal');
-  if (detJournal) {
-    const hasFid = dayData.fidFocus || dayData.fidInsight || dayData.fidDoing;
-    const hasOpen = dayData.openObservation || dayData.openPrinciples || dayData.openExperience || dayData.openNeed;
-    if (hasFid || hasOpen || (dayData.journalNotes && dayData.journalNotes.trim().length > 0)) {
-      detJournal.style.display = 'block';
-      let html = '';
-      if (hasFid) {
-        if (dayData.fidFocus) html += `<div><strong style="color:var(--morning-read);">Focus:</strong> ${dayData.fidFocus}</div>`;
-        if (dayData.fidInsight) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--primary);">Insight:</strong> ${dayData.fidInsight}</div>`;
-        if (dayData.fidDoing) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Doing:</strong> ${dayData.fidDoing}</div>`;
-      } else if (hasOpen) {
-        if (dayData.openObservation) html += `<div><strong style="color:var(--morning-read);">Observation:</strong> ${dayData.openObservation}</div>`;
-        if (dayData.openPrinciples) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--primary);">Principles:</strong> ${dayData.openPrinciples}</div>`;
-        if (dayData.openExperience) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--later-read);">Experience:</strong> ${dayData.openExperience}</div>`;
-        if (dayData.openNeed) html += `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Need:</strong> ${dayData.openNeed}</div>`;
-      } else if (dayData.journalNotes) {
-        html += `<div><strong style="color:var(--morning-read);">Notes:</strong> ${dayData.journalNotes}</div>`;
-      }
-      detJournal.innerHTML = html;
-    } else {
-      detJournal.style.display = 'none';
-    }
-  }
-
-  // Populate Filled Details Box 3: Waking Time
-  const detWaking = document.getElementById('today-details-waking');
-  if (detWaking) {
-    if (dayData.wakingTime) {
-      detWaking.style.display = 'block';
-      detWaking.innerHTML = `<div><strong style="color:var(--info);">Logged Waking:</strong> ${dayData.wakingTime}</div>`;
-    } else {
-      detWaking.style.display = 'none';
-    }
-  }
-
-  // Populate Filled Details Box 4: Consistency Barriers
-  const detBarriers = document.getElementById('today-details-barriers');
-  if (detBarriers) {
-    if (dayData.cbId) {
-      detBarriers.style.display = 'block';
-      detBarriers.innerHTML = `<div><strong style="color:var(--danger);">Barrier Code:</strong> ${dayData.cbId}</div>
-      ${dayData.cbSolution ? `<div style="margin-top:0.35rem;"><strong style="color:var(--success);">Conviction Principle:</strong> ${dayData.cbSolution}</div>` : ''}
-      ${dayData.cbScripture ? `<div style="margin-top:0.35rem;"><strong style="color:var(--morning-read);">Supporting Verse:</strong> ${dayData.cbScripture}</div>` : ''}`;
-    } else {
-      detBarriers.style.display = 'none';
-    }
-  }
-
-  // Populate Filled Details Box 5: Psalm / Memorized Verse
-  const detPsalm = document.getElementById('today-details-psalm');
-  if (detPsalm) {
-    if (dayData.scriptureMemorized) {
-      detPsalm.style.display = 'block';
-      detPsalm.innerHTML = `<div><strong style="color:var(--later-read);">Memorized Scripture:</strong> ${dayData.scriptureMemorized}</div>`;
-    } else {
-      detPsalm.style.display = 'none';
-    }
-  }
-
-  // Populate Filled Details Box 6: Prayer / Fellowship
-  const detPe = document.getElementById('today-details-pe');
-  if (detPe) {
-    if (dayData.prayerTopic) {
-      detPe.style.display = 'block';
-      detPe.innerHTML = `<div><strong style="color:var(--primary-hover);">Prayer / Sharing Topic:</strong> ${dayData.prayerTopic}</div>`;
-    } else {
-      detPe.style.display = 'none';
-    }
-  }
-
-  // Log Button Click & Label
-  const btnTodayLog = document.getElementById('btn-today-log');
-  if (btnTodayLog) {
-    const hasLogged = ((dayData.morningChapters || 0) + (dayData.daytimeChapters || 0) > 0) ||
-                      (dayData.journalNotes && dayData.journalNotes.trim().length > 0) ||
-                      dayData.fidFocus || dayData.openObservation ||
-                      dayData.wakingTime || dayData.cbId || dayData.prayerTopic;
-    if (hasLogged) {
-      btnTodayLog.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Edit Today's Entry`;
-    } else {
-      btnTodayLog.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Log Today's Entry`;
-    }
-    btnTodayLog.onclick = () => {
-      openDayModal(dayNum);
-    };
-  }
-}
 
 // RENDER ALL PAGE COMPONENTS
 function renderAll() {
@@ -1706,6 +1652,8 @@ function renderProfile() {
   if (elements.profileInputUsername) elements.profileInputUsername.value = name;
   if (elements.profileInputContact) elements.profileInputContact.value = data.contact || "";
   if (elements.profileInputChurch) elements.profileInputChurch.value = data.church || "";
+  if (elements.profileInputPeg) elements.profileInputPeg.value = data.peg || "";
+  if (elements.profileInputCohort) elements.profileInputCohort.value = data.cohort || "";
   if (elements.profileCardNum) elements.profileCardNum.innerText = `Card #${data.currentCardId || 1}`;
   if (elements.profileCommenceDate) elements.profileCommenceDate.innerText = data.commencingDate || "—";
 
@@ -2042,7 +1990,7 @@ function renderScoringTable() {
   
   const headerRow = document.getElementById('score-table-header-row');
   if (headerRow) {
-    headerRow.innerHTML = '<th>CBR Discipline Description</th>';
+    headerRow.innerHTML = '<th>CBRSM Discipline Description</th>';
     for (let w = 1; w <= stats.weeks.length; w++) {
       headerRow.innerHTML += `<th class="text-center" style="width: 12%;">Week ${w}</th>`;
     }
@@ -2052,7 +2000,7 @@ function renderScoringTable() {
   const disciplines = [
     { name: 'Perseverance (Chapters Read)', key: 'perseverance', max: 3, desc: 'Read ALL set chapters each day' },
     { name: 'Commitment (Early Rising)', key: 'commitment', max: 2, desc: 'Woke up at set ERT each day' },
-    { name: 'Prayerfulness (CBR Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBR each day' },
+    { name: 'Prayerfulness (CBRSM Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBRSM each day' },
     { name: 'Scripture Memory (Recitations)', key: 'memory', max: 1, desc: 'Recited the memory scripture each day' },
     { name: 'Meditation (Journal Notes)', key: 'meditation', max: 1, desc: 'Wrote method journal notes each day' },
     { name: 'Accountability (Sharing / PE Meeting)', key: 'accountability', max: 1, desc: 'Sharing & PE meeting once a week' }
@@ -2094,7 +2042,7 @@ function renderScoringTable() {
   const trTotal = document.createElement('tr');
   trTotal.className = 'total-row';
   const tdTotalLabel = document.createElement('td');
-  tdTotalLabel.innerText = 'CBR GROWTH POINTS (Total Weekly Score)';
+  tdTotalLabel.innerText = 'CBRSM GROWTH POINTS (Total Weekly Score)';
   trTotal.appendChild(tdTotalLabel);
   
   for (let w = 0; w < stats.weeks.length; w++) {
@@ -2631,6 +2579,20 @@ function resetActiveBoardForNewCard(newCardId) {
   const today = new Date().toISOString().split('T')[0];
   const timeline = calculateCardTimeline(today);
   
+  // Preserve last logged targets
+  let lastGoals = { wakingTime: "", bibleBook: "", morningChapters: 0, laterChapters: 0 };
+  if (appState && appState.days) {
+    const lastLogged = [...appState.days].reverse().find(d => d.wakingTime || d.bibleBook || d.morningChapters);
+    if (lastLogged) {
+      lastGoals = {
+        wakingTime: lastLogged.wakingTime,
+        bibleBook: lastLogged.bibleBook,
+        morningChapters: lastLogged.morningChapters,
+        laterChapters: lastLogged.laterChapters
+      };
+    }
+  }
+
   appState.currentCardId = newCardId;
   appState.activeInstanceId = `card_${newCardId}_${today}_${Date.now()}`;
   appState.commencingDate = timeline.startStr;
@@ -2638,7 +2600,12 @@ function resetActiveBoardForNewCard(newCardId) {
   appState.weeks = [];
   
   for (let i = 0; i < timeline.dates.length; i++) {
-    appState.days.push(createEmptyDay(i + 1, timeline.dates[i]));
+    const d = createEmptyDay(i + 1, timeline.dates[i]);
+    d.wakingTime = lastGoals.wakingTime;
+    d.bibleBook = lastGoals.bibleBook;
+    d.morningChapters = lastGoals.morningChapters;
+    d.laterChapters = lastGoals.laterChapters;
+    appState.days.push(d);
   }
   
   const totalWeeks = Math.ceil(timeline.dates.length / 7);
@@ -2650,6 +2617,8 @@ function resetActiveBoardForNewCard(newCardId) {
     username: appState.username,
     contact: appState.contact,
     church: appState.church,
+    peg: appState.peg || "",
+    cohort: appState.cohort || "",
     weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
     savedCards: appState.savedCards,
     theme: appState.theme
@@ -2728,6 +2697,8 @@ async function archiveActiveCard(silent = false) {
     username: appState.username,
     contact: appState.contact,
     church: appState.church,
+    peg: appState.peg || "",
+    cohort: appState.cohort || "",
     weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
     days: JSON.parse(JSON.stringify(appState.days)),
     weeks: JSON.parse(JSON.stringify(appState.weeks)),
@@ -2799,13 +2770,27 @@ function resetActiveCardLogsOnly() {
     { weekNumber: 4, sharedFid: false }
   ];
   
+  // Preserve last logged targets
+  let lastGoals = { wakingTime: "", bibleBook: "", morningChapters: 0, laterChapters: 0 };
+  if (appState && appState.days) {
+    const lastLogged = [...appState.days].reverse().find(d => d.wakingTime || d.bibleBook || d.morningChapters);
+    if (lastLogged) {
+      lastGoals = {
+        wakingTime: lastLogged.wakingTime,
+        bibleBook: lastLogged.bibleBook,
+        morningChapters: lastLogged.morningChapters,
+        laterChapters: lastLogged.laterChapters
+      };
+    }
+  }
+
   appState.days.forEach(day => {
-    day.wakingTime = "";
-    day.bibleBook = "";
+    day.wakingTime = lastGoals.wakingTime;
+    day.bibleBook = lastGoals.bibleBook;
     day.startChapter = 0;
     day.endChapter = 0;
-    day.morningChapters = 0;
-    day.laterChapters = 0;
+    day.morningChapters = lastGoals.morningChapters;
+    day.laterChapters = lastGoals.laterChapters;
     day.recitedMemory = false;
     day.fidJournaling = false;
     day.prayer10mins = false;
@@ -2888,31 +2873,6 @@ function exitHistoricalView() {
   if (historyTabBtn) historyTabBtn.click();
 }
 
-// Delete completed card snapshot from database
-let pendingDeleteInstanceId = null;
-
-function deleteArchivedCard(instanceId) {
-  pendingDeleteInstanceId = instanceId;
-  const modal = document.getElementById('delete-confirm-modal');
-  if (modal) modal.classList.add('open');
-}
-
-function closeDeleteConfirmModal() {
-  pendingDeleteInstanceId = null;
-  const modal = document.getElementById('delete-confirm-modal');
-  if (modal) modal.classList.remove('open');
-}
-
-function confirmDeleteArchivedCard() {
-  if (!pendingDeleteInstanceId) return;
-  const instanceId = pendingDeleteInstanceId;
-  appState.savedCards = appState.savedCards.filter(c => c.instanceId !== instanceId);
-  fetch(`/api/archive/${instanceId}`, { method: 'DELETE' })
-    .catch(e => console.error("Failed to delete archive", e));
-  saveState();
-  renderLibraryList();
-  closeDeleteConfirmModal();
-}
 
 // Trigger print process for the current active or loaded history card
 function handlePrintTrigger() {
@@ -2976,7 +2936,7 @@ function importData(e) {
         renderAll();
         showToast("Backup data imported successfully!", "success");
       } else {
-        showToast("Invalid backup file structure. Ensure it is a valid CBR backup JSON.", "error");
+        showToast("Invalid backup file structure. Ensure it is a valid CBRSM backup JSON.", "error");
       }
     } catch (err) {
       console.error(err);
@@ -3186,942 +3146,3 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
     listWrapper.style.display = 'none';
   }
 }
-
-// ======================================================================
-// SESSION EVALUATION LOGIC
-// ======================================================================
-
-let seData = {};   // { sessionNumber: { diligence:{}, bonus:{}, growthPoints } }
-let seInitialized = false;
-let seCurrentViewSession = 1;
-
-async function initSessionEval() {
-  if (seInitialized) {
-    seRenderSelector();
-    seRenderSessionView(seCurrentViewSession);
-    return;
-  }
-  try {
-    const res = await fetch('/api/session_eval');
-    const json = await res.json();
-    const sessions = json.sessions || {};
-    // Merge fetched data into seData
-    for (let i = 1; i <= 7; i++) {
-      if (!seData[i]) seData[i] = { diligence: {}, bonus: {}, growthPoints: 0 };
-    }
-    for (const sNum in sessions) {
-      seData[sNum] = sessions[sNum];
-    }
-    
-    // Also pull growth points from saved cards in appState
-    if (appState && appState.savedCards) {
-      appState.savedCards.forEach(card => {
-        const cardId = card.currentCardId || card.cardId;
-        if (cardId && card.totalScore !== undefined) {
-          const sKey = String(cardId);
-          if (!seData[sKey]) seData[sKey] = { diligence: {}, bonus: {}, growthPoints: 0 };
-          seData[sKey].growthPoints = card.totalScore;
-        }
-      });
-    }
-    
-    // Default to the user's current card session
-    seCurrentViewSession = appState && appState.currentCardId ? appState.currentCardId : 1;
-    
-    seInitialized = true;
-    seRenderSelector();
-    seRenderSessionView(seCurrentViewSession);
-    seBindSelector();
-    seBindCheckboxes();
-    seRecalcGrandTotals();
-  } catch(e) {
-    console.error('Session eval load error', e);
-  }
-}
-
-function seRenderSelector() {
-  const select = document.getElementById('se-session-select');
-  if (!select) return;
-  select.innerHTML = '';
-  
-  const currentCard = appState ? appState.currentCardId : 1;
-  
-  for (let s = 1; s <= 7; s++) {
-    const option = document.createElement('option');
-    option.value = s;
-    if (s < currentCard) {
-      option.textContent = `Session ${s} — Completed`;
-    } else if (s === currentCard) {
-      option.textContent = `Session ${s} — Active`;
-    } else {
-      option.textContent = `Session ${s} — Upcoming`;
-    }
-    select.appendChild(option);
-  }
-  
-  select.value = seCurrentViewSession;
-}
-
-function seBindSelector() {
-  const select = document.getElementById('se-session-select');
-  if (select) {
-    select.addEventListener('change', (e) => {
-      seCurrentViewSession = parseInt(e.target.value);
-      seRenderSessionView(seCurrentViewSession);
-    });
-  }
-}
-
-function seRenderSessionView(sessionNum) {
-  const currentCard = appState ? appState.currentCardId : 1;
-  const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
-  
-  const isPast = sessionNum < currentCard;
-  const isCurrent = sessionNum === currentCard;
-  const isFuture = sessionNum > currentCard;
-  const isEditable = isCurrent; // Only the current session is editable
-  
-  // Update badge
-  const badge = document.getElementById('se-status-badge');
-  if (badge) {
-    badge.className = 'se-status-badge';
-    if (isPast) {
-      badge.classList.add('se-badge-completed');
-      badge.innerHTML = '<i data-lucide="check-circle" style="width:14px;height:14px;"></i> Completed (Read Only)';
-    } else if (isCurrent) {
-      badge.classList.add('se-badge-active');
-      badge.innerHTML = '<i data-lucide="edit-2" style="width:14px;height:14px;"></i> Active (Editable)';
-    } else {
-      badge.classList.add('se-badge-locked');
-      badge.innerHTML = '<i data-lucide="lock" style="width:14px;height:14px;"></i> Locked (Not Reached)';
-    }
-  }
-  if (window.lucide) lucide.createIcons();
-
-  // Diligence Checkboxes
-  let currentDiligenceScore = 0;
-  document.querySelectorAll('.diligence-cb').forEach(cb => {
-    const num = cb.dataset.num;
-    const isChecked = sData.diligence[num] || false;
-    
-    cb.classList.toggle('checked', isChecked);
-    cb.classList.toggle('locked', !isEditable);
-    
-    if (isChecked) currentDiligenceScore += 10;
-  });
-  
-  const scoreEl = document.getElementById('se-current-diligence-score');
-  if (scoreEl) scoreEl.textContent = `${currentDiligenceScore} / 60`;
-  
-  // Growth Points
-  const gpEl = document.getElementById('se-current-growth-points');
-  if (gpEl) {
-    let gp = sData.growthPoints || 0;
-    if (isCurrent && appState) {
-      const stats = calculateScores();
-      gp = stats.totalScore;
-    }
-    gpEl.textContent = isFuture ? '—' : gp;
-  }
-  
-  // Bonus (Only show on Session 7)
-  const bonusSection = document.getElementById('se-bonus-section');
-  if (bonusSection) {
-    bonusSection.style.display = (sessionNum === 7) ? 'block' : 'none';
-  }
-  
-  let currentBonusScore = 0;
-  if (sessionNum === 7) {
-    document.querySelectorAll('.bonus-cb').forEach(cb => {
-      const num = cb.dataset.num;
-      const isChecked = sData.bonus[num] || false;
-      
-      cb.classList.toggle('checked', isChecked);
-      cb.classList.toggle('locked', !isEditable);
-      
-      if (isChecked) currentBonusScore += 50;
-    });
-    
-    const bonusScoreEl = document.getElementById('se-current-bonus-score');
-    if (bonusScoreEl) bonusScoreEl.textContent = `${currentBonusScore} / 300`;
-  }
-  
-  // Total preview
-  const gpPreview = isFuture ? 0 : (isCurrent ? calculateScores().totalScore : (sData.growthPoints || 0));
-  const sessionTotal = currentDiligenceScore + gpPreview + currentBonusScore;
-  const previewEl = document.getElementById('se-session-total-preview');
-  if (previewEl) {
-    previewEl.innerHTML = `Session Total: <strong>${sessionTotal} pts</strong>`;
-  }
-}
-
-function seBindCheckboxes() {
-  document.querySelectorAll('.se-checkbox').forEach(cb => {
-    cb.addEventListener('click', () => {
-      if (cb.classList.contains('locked')) return;
-      
-      const num = cb.dataset.num;
-      const isBonus = cb.classList.contains('bonus-cb');
-      const sessionNum = seCurrentViewSession;
-      
-      if (!seData[sessionNum]) seData[sessionNum] = { diligence: {}, bonus: {}, growthPoints: 0 };
-      
-      if (isBonus) {
-        if (!seData[sessionNum].bonus) seData[sessionNum].bonus = {};
-        seData[sessionNum].bonus[num] = !seData[sessionNum].bonus[num];
-      } else {
-        if (!seData[sessionNum].diligence) seData[sessionNum].diligence = {};
-        seData[sessionNum].diligence[num] = !seData[sessionNum].diligence[num];
-      }
-      
-      seRenderSessionView(sessionNum);
-      seRecalcGrandTotals();
-      debounceSeAutoSave(sessionNum);
-    });
-  });
-}
-
-function seRecalcGrandTotals() {
-  const currentCard = appState ? appState.currentCardId : 1;
-  let totalDiligence = 0;
-  let totalGrowth = 0;
-  let totalBonus = 0;
-
-  for (let s = 1; s <= 7; s++) {
-    const sData = seData[String(s)] || { diligence: {}, bonus: {}, growthPoints: 0 };
-    
-    // Only count accessible sessions (past + current)
-    if (s <= currentCard) {
-      // Diligence
-      for (let d = 1; d <= 6; d++) {
-        if (sData.diligence[String(d)]) totalDiligence += 10;
-      }
-      
-      // Growth
-      let gp = sData.growthPoints || 0;
-      if (s === currentCard && appState) {
-        gp = calculateScores().totalScore;
-      }
-      totalGrowth += gp;
-      
-      // Bonus (assumes bonus is saved in session 7)
-      if (s === 7) {
-        for (let b = 7; b <= 12; b++) {
-          if (sData.bonus[String(b)]) totalBonus += 50;
-        }
-      }
-    }
-  }
-  
-  const grandTotal = totalDiligence + totalGrowth + totalBonus;
-  
-  // Update DOM
-  const elD = document.getElementById('se-total-diligence');
-  const elG = document.getElementById('se-total-growth');
-  const elB = document.getElementById('se-total-bonus');
-  const elA = document.getElementById('se-total-all');
-  
-  if (elD) elD.textContent = totalDiligence;
-  if (elG) elG.textContent = totalGrowth;
-  if (elB) elB.textContent = totalBonus;
-  if (elA) {
-    elA.textContent = grandTotal;
-    elA.style.color = grandTotal >= 600 ? 'var(--success)' : 'var(--primary)';
-  }
-}
-
-let seSaveTimers = {};
-function debounceSeAutoSave(sessionNum) {
-  const statusEl = document.getElementById('se-save-status-text');
-  if (statusEl) statusEl.innerHTML = '⏳ Saving...';
-  
-  clearTimeout(seSaveTimers[sessionNum]);
-  seSaveTimers[sessionNum] = setTimeout(async () => {
-    await saveSessionEval(sessionNum);
-    if (statusEl) statusEl.innerHTML = '✅ Changes auto-saved';
-  }, 800);
-}
-
-async function saveSessionEval(sessionNum) {
-  const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
-  
-  let growthPoints = sData.growthPoints || 0;
-  if (sessionNum === (appState && appState.currentCardId)) {
-    growthPoints = calculateScores().totalScore;
-  }
-  
-  try {
-    await fetch('/api/session_eval', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionNumber: sessionNum,
-        diligence: sData.diligence || {},
-        bonus: sData.bonus || {},
-        growthPoints
-      })
-    });
-  } catch(e) {
-    console.error('Session eval save error', e);
-  }
-}
-
-
-
-
-// ═══════════════════════════════════════════════════
-//  VIDEO GUIDES MODULE — PREMIUM PLAYER
-// ═══════════════════════════════════════════════════
-
-let _allVideoPlayers = []; // track all video elements for global pause
-
-/* SVG icon helpers */
-const VG_ICONS = {
-  play:    `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
-  pause:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
-  volHigh: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
-  volMute: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`,
-  expand:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
-  close:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-  trash:   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
-};
-
-function vgFmt(s) {
-  if (isNaN(s) || !isFinite(s)) return '0:00';
-  const m = Math.floor(s / 60);
-  const ss = Math.floor(s % 60);
-  return `${m}:${ss < 10 ? '0' : ''}${ss}`;
-}
-
-/* Build a controls overlay for any video wrapper */
-function buildVideoOverlay(videoEl, titleText, isFullscreen) {
-  const overlay = document.createElement('div');
-  overlay.className = 'vc-overlay';
-
-  // Top fade
-  const top = document.createElement('div');
-  top.className = 'vc-top-fade';
-
-  // Center big play/pause
-  const center = document.createElement('div');
-  center.className = 'vc-center';
-  const bigPlay = document.createElement('button');
-  bigPlay.className = 'vc-big-play';
-  bigPlay.innerHTML = `<span class="icon-play">${VG_ICONS.play}</span><span class="icon-pause">${VG_ICONS.pause}</span>`;
-  center.appendChild(bigPlay);
-
-  // Bottom bar
-  const bottom = document.createElement('div');
-  bottom.className = 'vc-bottom-fade';
-
-  // Progress
-  const prog = document.createElement('div');
-  prog.className = 'vc-progress';
-  const fill = document.createElement('div');
-  fill.className = 'vc-progress-fill';
-  const thumb = document.createElement('div');
-  thumb.className = 'vc-progress-thumb';
-  fill.appendChild(thumb);
-  prog.appendChild(fill);
-
-  // Controls row
-  const row = document.createElement('div');
-  row.className = 'vc-controls-row';
-
-  // Left: play btn + time
-  const left = document.createElement('div');
-  left.className = 'vc-left';
-  const playBtn = document.createElement('button');
-  playBtn.className = 'vc-btn';
-  playBtn.innerHTML = VG_ICONS.play;
-  const timeEl = document.createElement('span');
-  timeEl.className = 'vc-time';
-  timeEl.textContent = '0:00 / 0:00';
-  left.appendChild(playBtn);
-  left.appendChild(timeEl);
-
-  // Right: volume + fullscreen
-  const right = document.createElement('div');
-  right.className = 'vc-right';
-
-  const volWrap = document.createElement('div');
-  volWrap.className = 'vc-volume-wrap';
-  const volBtn = document.createElement('button');
-  volBtn.className = 'vc-btn';
-  volBtn.innerHTML = VG_ICONS.volHigh;
-  const volSlider = document.createElement('input');
-  volSlider.type = 'range';
-  volSlider.min = 0; volSlider.max = 1; volSlider.step = 0.05; volSlider.value = 1;
-  volSlider.className = 'vc-volume-slider';
-  volWrap.appendChild(volBtn);
-  volWrap.appendChild(volSlider);
-
-  const fsBtn = document.createElement('button');
-  fsBtn.className = 'vc-btn';
-  fsBtn.title = 'Fullscreen';
-  fsBtn.innerHTML = VG_ICONS.expand;
-
-  right.appendChild(volWrap);
-  if (!isFullscreen) right.appendChild(fsBtn);
-
-  row.appendChild(left);
-  row.appendChild(right);
-  bottom.appendChild(prog);
-  bottom.appendChild(row);
-
-  overlay.appendChild(top);
-  overlay.appendChild(center);
-  overlay.appendChild(bottom);
-
-  /* Wire controls to videoEl */
-  let scrubbing = false;
-
-  function updateUI() {
-    const playing = !videoEl.paused;
-    if (playing) {
-      bigPlay.classList.add('playing');
-      playBtn.innerHTML = VG_ICONS.pause;
-      overlay.classList.remove('always-show');
-    } else {
-      bigPlay.classList.remove('playing');
-      playBtn.innerHTML = VG_ICONS.play;
-      overlay.classList.add('always-show');
-    }
-    const pct = videoEl.duration ? (videoEl.currentTime / videoEl.duration) * 100 : 0;
-    fill.style.width = pct + '%';
-    timeEl.textContent = `${vgFmt(videoEl.currentTime)} / ${vgFmt(videoEl.duration)}`;
-  }
-
-  function togglePlay() {
-    if (videoEl.paused) {
-      _allVideoPlayers.forEach(p => { if (p.videoEl !== videoEl) p.videoEl.pause(); });
-      videoEl.play();
-    } else {
-      videoEl.pause();
-    }
-  }
-
-  bigPlay.addEventListener('click', e => { e.stopPropagation(); togglePlay(); });
-  playBtn.addEventListener('click', e => { e.stopPropagation(); togglePlay(); });
-
-  videoEl.addEventListener('play', updateUI);
-  videoEl.addEventListener('pause', updateUI);
-  videoEl.addEventListener('ended', updateUI);
-  videoEl.addEventListener('timeupdate', () => { if (!scrubbing) updateUI(); });
-  videoEl.addEventListener('loadedmetadata', updateUI);
-
-  // Scrubber
-  prog.addEventListener('mousedown', e => {
-    e.stopPropagation();
-    scrubbing = true;
-    seek(e);
-    overlay.classList.add('always-show');
-  });
-  document.addEventListener('mousemove', e => { if (scrubbing) seek(e); });
-  document.addEventListener('mouseup', () => { if (scrubbing) { scrubbing = false; updateUI(); } });
-  function seek(e) {
-    const rect = prog.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    if (videoEl.duration) videoEl.currentTime = pct * videoEl.duration;
-    fill.style.width = (pct * 100) + '%';
-  }
-
-  // Volume
-  volSlider.addEventListener('input', e => {
-    e.stopPropagation();
-    videoEl.volume = parseFloat(volSlider.value);
-    videoEl.muted = videoEl.volume === 0;
-    volBtn.innerHTML = videoEl.muted ? VG_ICONS.volMute : VG_ICONS.volHigh;
-  });
-  volBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    videoEl.muted = !videoEl.muted;
-    volSlider.value = videoEl.muted ? 0 : videoEl.volume;
-    volBtn.innerHTML = videoEl.muted ? VG_ICONS.volMute : VG_ICONS.volHigh;
-  });
-
-  // Fullscreen button (card only)
-  if (!isFullscreen) {
-    fsBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      openVGFullscreen(videoEl, titleText || '');
-    });
-  }
-
-  // Initially show overlay (paused)
-  overlay.classList.add('always-show');
-  return overlay;
-}
-
-/* Fullscreen Modal */
-let _vgfModal = null;
-let _vgfSourceVideo = null;
-
-function ensureFullscreenModal() {
-  if (_vgfModal) return _vgfModal;
-
-  const modal = document.createElement('div');
-  modal.id = 'vg-fullscreen-modal';
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'vgf-backdrop';
-  backdrop.addEventListener('click', closeVGFullscreen);
-
-  const content = document.createElement('div');
-  content.className = 'vgf-content';
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'vgf-close';
-  closeBtn.innerHTML = VG_ICONS.close;
-  closeBtn.addEventListener('click', closeVGFullscreen);
-
-  const videoWrap = document.createElement('div');
-  videoWrap.className = 'vgf-video-wrap';
-
-  const video = document.createElement('video');
-  video.id = 'vgf-video';
-  video.preload = 'metadata';
-  video.setAttribute('playsinline', '');
-
-  const fsOverlay = buildVideoOverlay(video, '', true);
-  videoWrap.appendChild(video);
-  videoWrap.appendChild(fsOverlay);
-
-  // Click wrapper area to toggle play
-  videoWrap.addEventListener('click', e => {
-    if (e.target.closest('.vc-btn') || e.target.closest('.vc-big-play') ||
-        e.target.closest('.vc-progress') || e.target.closest('.vc-volume-wrap') ||
-        e.target === closeBtn) return;
-    if (video.paused) video.play(); else video.pause();
-  });
-
-  const footer = document.createElement('div');
-  footer.className = 'vgf-footer';
-  const titleEl = document.createElement('span');
-  titleEl.className = 'vgf-title';
-  footer.appendChild(titleEl);
-
-  content.appendChild(closeBtn);
-  content.appendChild(videoWrap);
-  content.appendChild(footer);
-
-  modal.appendChild(backdrop);
-  modal.appendChild(content);
-  document.body.appendChild(modal);
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modal.classList.contains('open')) closeVGFullscreen();
-  });
-
-  video._titleEl = titleEl;
-  _vgfModal = modal;
-  return modal;
-}
-
-function openVGFullscreen(sourceVideo, title) {
-  const modal = ensureFullscreenModal();
-  const vgfVid = modal.querySelector('#vgf-video');
-  if (vgfVid._titleEl) vgfVid._titleEl.textContent = title;
-
-  sourceVideo.pause();
-  _vgfSourceVideo = sourceVideo;
-
-  vgfVid.src = sourceVideo.src;
-  vgfVid.currentTime = sourceVideo.currentTime;
-  vgfVid.volume = sourceVideo.volume;
-  vgfVid.muted = sourceVideo.muted;
-
-  modal.classList.add('open');
-  vgfVid.play().catch(() => {});
-}
-
-function closeVGFullscreen() {
-  const modal = document.getElementById('vg-fullscreen-modal');
-  if (!modal) return;
-  const vgfVid = modal.querySelector('#vgf-video');
-  if (_vgfSourceVideo && vgfVid) {
-    _vgfSourceVideo.currentTime = vgfVid.currentTime;
-    vgfVid.pause();
-    vgfVid.src = '';
-  }
-  modal.classList.remove('open');
-  _vgfSourceVideo = null;
-}
-
-/* Pause all videos on tab/window leave */
-function pauseAllVGVideos() {
-  _allVideoPlayers.forEach(p => p.videoEl.pause());
-  const modal = document.getElementById('vg-fullscreen-modal');
-  if (modal && modal.classList.contains('open')) {
-    const v = modal.querySelector('#vgf-video');
-    if (v) v.pause();
-  }
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pauseAllVGVideos();
-});
-
-// Pause when switching away from reference tab
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  if (btn.dataset.tab !== 'tab-reference') {
-    btn.addEventListener('click', pauseAllVGVideos);
-  }
-});
-
-// Pause when switching away from video guides subtab
-document.querySelectorAll('.subnav-btn').forEach(btn => {
-  if (btn.dataset.subtab !== 'tab-video-guides') {
-    btn.addEventListener('click', pauseAllVGVideos);
-  }
-});
-
-/* initVideoGuides — called after appState loads */
-function initVideoGuides() {
-  const uploadZone = document.getElementById('video-upload-zone');
-  const fileInput  = document.getElementById('video-file-input');
-  const emptyHint  = document.getElementById('video-empty-hint');
-
-  if (appState && appState.isAdmin) {
-    if (uploadZone) uploadZone.style.display = 'flex';
-    if (emptyHint)  emptyHint.style.display   = 'inline';
-  } else {
-    if (uploadZone) uploadZone.style.display = 'none';
-    if (emptyHint)  emptyHint.style.display   = 'none';
-  }
-
-  if (fileInput && !fileInput.dataset.bound) {
-    fileInput.dataset.bound = '1';
-    fileInput.addEventListener('change', handleVideoFileSelected);
-  }
-
-  loadVideoGuides();
-}
-
-/* loadVideoGuides */
-async function loadVideoGuides() {
-  const grid = document.getElementById('video-guides-grid');
-  if (!grid) return;
-  try {
-    const res  = await fetch('/api/videos');
-    const data = await res.json();
-    renderVideoGuides(data.videos || []);
-  } catch (e) {
-    console.error('Failed to load video guides', e);
-  }
-}
-
-/* renderVideoGuides */
-function renderVideoGuides(videos) {
-  const grid    = document.getElementById('video-guides-grid');
-  const emptyEl = document.getElementById('video-guides-empty');
-  if (!grid) return;
-
-  const isAdmin = !!(appState && appState.isAdmin);
-
-  // Pause and clear old players
-  _allVideoPlayers.forEach(p => p.videoEl.pause());
-  _allVideoPlayers = [];
-  Array.from(grid.children).forEach(c => { if (c !== emptyEl) grid.removeChild(c); });
-
-  if (!videos || videos.length === 0) {
-    if (emptyEl) emptyEl.style.display = 'flex';
-    return;
-  }
-  if (emptyEl) emptyEl.style.display = 'none';
-
-  videos.forEach(v => {
-    const card = document.createElement('div');
-    card.className = 'video-guide-card';
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'video-guide-wrapper';
-
-    const video = document.createElement('video');
-    video.className = 'video-guide-player';
-    video.preload   = 'metadata';
-    video.src       = v.url;
-    video.setAttribute('playsinline', '');
-
-    const overlay = buildVideoOverlay(video, v.title, false);
-
-    // Click wrapper to toggle play (not on control elements)
-    wrapper.addEventListener('click', e => {
-      if (e.target.closest('.vc-btn') || e.target.closest('.vc-big-play') ||
-          e.target.closest('.vc-progress') || e.target.closest('.vc-volume-wrap')) return;
-      if (video.paused) {
-        _allVideoPlayers.forEach(p => { if (p.videoEl !== video) p.videoEl.pause(); });
-        video.play();
-      } else {
-        video.pause();
-      }
-    });
-
-    wrapper.appendChild(video);
-    wrapper.appendChild(overlay);
-    _allVideoPlayers.push({ videoEl: video, overlayEl: overlay });
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.className = 'video-guide-footer';
-
-    const title = document.createElement('span');
-    title.className = 'video-guide-title';
-    title.textContent = v.title;
-    title.title       = v.title;
-
-    const dur = document.createElement('span');
-    dur.className = 'video-guide-duration';
-    dur.textContent = '';
-    video.addEventListener('loadedmetadata', () => { dur.textContent = vgFmt(video.duration); });
-
-    footer.appendChild(title);
-    footer.appendChild(dur);
-
-    if (isAdmin) {
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn-video-delete';
-      delBtn.title = 'Delete video';
-      delBtn.innerHTML = VG_ICONS.trash;
-      delBtn.addEventListener('click', () => handleVideoDelete(v.filename, card));
-      footer.appendChild(delBtn);
-    }
-
-    card.appendChild(wrapper);
-    card.appendChild(footer);
-    grid.appendChild(card);
-  });
-}
-
-/* Upload handler */
-function handleVideoFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  if (file.size > 100 * 1024 * 1024) {
-    showToast('Warning: Video is over 100MB. Online servers may reject large uploads.', 'warning');
-  }
-
-  const progressWrap = document.getElementById('video-upload-progress-wrap');
-  const progressBar  = document.getElementById('video-upload-progress-bar');
-  const label        = document.getElementById('video-upload-label');
-
-  const formData = new FormData();
-  formData.append('video', file);
-  const xhr = new XMLHttpRequest();
-
-  xhr.upload.addEventListener('progress', evt => {
-    if (evt.lengthComputable && progressBar)
-      progressBar.style.width = Math.round((evt.loaded / evt.total) * 100) + '%';
-  });
-  xhr.addEventListener('loadstart', () => {
-    if (progressWrap) progressWrap.style.display = 'block';
-    if (label) label.style.opacity = '0.6';
-  });
-  xhr.addEventListener('load', () => {
-    if (progressWrap) progressWrap.style.display = 'none';
-    if (progressBar)  progressBar.style.width    = '0%';
-    if (label) label.style.opacity = '1';
-    e.target.value = '';
-    if (xhr.status === 200) {
-      showToast('Video uploaded!', 'success');
-      loadVideoGuides();
-    } else {
-      let msg = 'Upload failed (HTTP ' + xhr.status + ').';
-      if (xhr.status === 413) {
-        msg = 'File is too large for the online server (HTTP 413). Try uploading a smaller video under 50MB-100MB.';
-      } else if (xhr.status === 403) {
-        msg = 'Permission denied: Admin access required.';
-      } else if (xhr.status === 500) {
-        msg = 'Server error (HTTP 500). Please check server permissions or storage limits.';
-      } else {
-        try {
-          const parsed = JSON.parse(xhr.responseText);
-          if (parsed.error) msg = parsed.error;
-        } catch(ex) {}
-      }
-      showToast(msg, 'error');
-    }
-  });
-  xhr.addEventListener('error', () => {
-    if (progressWrap) progressWrap.style.display = 'none';
-    if (label) label.style.opacity = '1';
-    showToast('Network error: Upload failed. Please check your connection.', 'error');
-  });
-  xhr.open('POST', '/api/videos/upload');
-  xhr.send(formData);
-}
-
-/* Delete handler */
-async function handleVideoDelete(filename, cardEl) {
-  const confirmed = await showModal({
-    title: 'Delete Video', subtitle: 'This cannot be undone',
-    message: 'Are you sure you want to permanently delete "' + filename + '"?',
-    type: 'error', isDanger: true, confirmText: 'Delete', cancelText: 'Cancel'
-  });
-  if (!confirmed) return;
-  try {
-    const res = await fetch('/api/videos/' + encodeURIComponent(filename), { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Video deleted.', 'success');
-      if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
-      const grid = document.getElementById('video-guides-grid');
-      if (grid && grid.querySelectorAll('.video-guide-card').length === 0) {
-        const emptyEl = document.getElementById('video-guides-empty');
-        if (emptyEl) emptyEl.style.display = 'flex';
-      }
-    } else { showToast('Failed to delete video.', 'error'); }
-  } catch(ex) { showToast('Error deleting video.', 'error'); }
-}
-
-// Reload video list every time the Reference tab is opened
-(function() {
-  const refTabBtn = document.querySelector('.tab-btn[data-tab="tab-reference"]');
-  if (refTabBtn) {
-    refTabBtn.addEventListener('click', () => loadVideoGuides());
-  }
-})();
-
-
-/* ─── PDF GUIDES & MANUALS MODULE ────────────────────────────────────────── */
-function initPdfGuides() {
-  const uploadZone = document.getElementById('pdf-upload-zone');
-  const fileInput  = document.getElementById('pdf-file-input');
-
-  if (appState && appState.isAdmin && uploadZone) {
-    uploadZone.style.display = 'inline-block';
-  }
-  if (fileInput) {
-    fileInput.addEventListener('change', handlePdfFileSelected);
-  }
-  loadPdfGuides();
-}
-
-async function loadPdfGuides() {
-  try {
-    const res  = await fetch('/api/pdfs');
-    if (!res.ok) return;
-    const data = await res.json();
-    renderPdfGuides(data.pdfs || []);
-  } catch(e) {
-    console.error('Failed to load PDF guides:', e);
-  }
-}
-
-function renderPdfGuides(pdfs) {
-  const grid = document.getElementById('ref-pdf-grid');
-  if (!grid) return;
-
-  // If no uploaded pdfs exist from API, keep fallback static card (Reference Card A5) if present
-  if (!pdfs || pdfs.length === 0) {
-    return;
-  }
-
-  grid.innerHTML = '';
-  pdfs.forEach(p => {
-    const tile = document.createElement('div');
-    tile.className = 'ref-pdf-tile';
-    tile.style.position = 'relative';
-    tile.style.display = 'flex';
-    tile.style.alignItems = 'center';
-    tile.style.gap = '12px';
-    tile.style.cursor = 'pointer';
-
-    tile.innerHTML = `
-      <a href="${p.url}" download style="display: flex; align-items: center; gap: 12px; flex: 1; text-decoration: none; color: inherit;">
-        <div class="pdf-icon"><i data-lucide="file-text"></i></div>
-        <span style="font-weight: 500; font-size: 0.95rem;">${p.title}</span>
-      </a>
-    `;
-
-    if (appState && appState.isAdmin) {
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn-delete-video';
-      delBtn.style.position = 'static';
-      delBtn.style.marginLeft = 'auto';
-      delBtn.title = 'Delete PDF Manual';
-      delBtn.innerHTML = '<i data-lucide="trash-2"></i>';
-      delBtn.onclick = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        handlePdfDelete(p.filename, tile);
-      };
-      tile.appendChild(delBtn);
-    }
-
-    grid.appendChild(tile);
-  });
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function handlePdfFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const progressWrap = document.getElementById('pdf-upload-progress-wrap');
-  const progressBar  = document.getElementById('pdf-upload-progress-bar');
-  const label        = document.getElementById('pdf-upload-label');
-
-  const formData = new FormData();
-  formData.append('pdf', file);
-  const xhr = new XMLHttpRequest();
-
-  xhr.upload.addEventListener('progress', evt => {
-    if (evt.lengthComputable && progressBar)
-      progressBar.style.width = Math.round((evt.loaded / evt.total) * 100) + '%';
-  });
-  xhr.addEventListener('loadstart', () => {
-    if (progressWrap) progressWrap.style.display = 'block';
-    if (label) label.style.opacity = '0.6';
-  });
-  xhr.addEventListener('load', () => {
-    if (progressWrap) progressWrap.style.display = 'none';
-    if (progressBar)  progressBar.style.width = '0%';
-    if (label) label.style.opacity = '1';
-    e.target.value = '';
-    if (xhr.status === 200) {
-      showToast('PDF manual uploaded!', 'success');
-      loadPdfGuides();
-    } else {
-      let msg = 'Upload failed (HTTP ' + xhr.status + ').';
-      try {
-        const parsed = JSON.parse(xhr.responseText);
-        if (parsed.error) msg = parsed.error;
-      } catch(ex) {}
-      showToast(msg, 'error');
-    }
-  });
-  xhr.addEventListener('error', () => {
-    if (progressWrap) progressWrap.style.display = 'none';
-    if (label) label.style.opacity = '1';
-    showToast('Network error: PDF upload failed.', 'error');
-  });
-  xhr.open('POST', '/api/pdfs/upload');
-  xhr.send(formData);
-}
-
-async function handlePdfDelete(filename, tileEl) {
-  const confirmed = await showModal({
-    title: 'Delete PDF Manual', subtitle: 'This cannot be undone',
-    message: 'Are you sure you want to permanently delete "' + filename + '"?',
-    type: 'error', isDanger: true, confirmText: 'Delete', cancelText: 'Cancel'
-  });
-  if (!confirmed) return;
-  try {
-    const res = await fetch('/api/pdfs/' + encodeURIComponent(filename), { method: 'DELETE' });
-    if (res.ok) {
-      showToast('PDF manual deleted.', 'success');
-      if (tileEl && tileEl.parentNode) tileEl.parentNode.removeChild(tileEl);
-      loadPdfGuides();
-    } else { showToast('Failed to delete PDF manual.', 'error'); }
-  } catch(ex) { showToast('Error deleting PDF manual.', 'error'); }
-}
-
-// Reload PDF list when Reference tab is clicked
-(function() {
-  const refTabBtn = document.querySelector('.tab-btn[data-tab="tab-reference"]');
-  if (refTabBtn) {
-    refTabBtn.addEventListener('click', () => loadPdfGuides());
-  }
-})();
-

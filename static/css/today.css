@@ -1,347 +1,360 @@
 /* =====================================================
-   TODAY TAB - FRESH STYLES
+   TODAY TAB — Unified 5-Card Top + 3 Accordions
 ===================================================== */
-
-/* Stretch the active tab to fill the screen */
-#tab-today.active {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - var(--header-height, 70px) - 3rem);
-}
 
 .today-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  flex: 1; /* Grow to fill the `#tab-today` container */
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
-/* --- Hero Card (Card 1) --- */
-.today-hero-card {
-  position: relative;
-  overflow: hidden;
-  padding: 1.5rem 2rem;
-  border-radius: 20px;
+/* ── HEADER ROW ── */
+.today-header-row {
+  display: flex; justify-content: space-between; align-items: center;
 }
+.today-header-text { display: flex; flex-direction: column; gap: 0.2rem; }
+#today-date-heading { font-size: 1.6rem; font-weight: 800; margin: 0; color: var(--text-primary); letter-spacing: -0.02em; }
+.today-header-sub { font-size: 0.9rem; color: var(--text-muted); margin: 0; font-weight: 600; }
+.btn-today-log {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 1.2rem; border-radius: 999px; font-size: 0.9rem; font-weight: 700;
+  color: #fff; background: var(--primary); border: none; cursor: pointer;
+  transition: transform 0.2s; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+}
+.btn-today-log:hover { transform: translateY(-2px); }
 
-.today-hero-glow {
-  position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(var(--primary-rgb), 0) 70%);
-  filter: blur(40px);
-  pointer-events: none;
-}
+/* ── REUSABLE UI ELEMENTS ── */
+.core-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.icon-reading  { background: rgba(var(--primary-rgb), 0.15); color: var(--primary); }
+.icon-waking   { background: rgba(var(--info-rgb), 0.15);    color: var(--info); }
+.icon-barrier  { background: rgba(var(--danger-rgb), 0.15);  color: var(--danger); }
+.icon-journal  { background: rgba(var(--success-rgb), 0.15); color: var(--success); }
+.icon-memory   { background: rgba(var(--primary-rgb), 0.15); color: var(--primary-hover); }
+.icon-questions{ background: rgba(var(--later-read-rgb), 0.15); color: var(--later-read); }
+.icon-psalm    { background: rgba(var(--later-read-rgb), 0.15); color: var(--later-read); }
+.icon-pe       { background: rgba(var(--morning-read-rgb), 0.15); color: var(--morning-read); }
 
-.hero-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-}
-
-.hero-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.hero-badge {
-  display: inline-block;
-  align-self: flex-start;
-  padding: 0.25rem 0.7rem;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: var(--primary);
-  border-radius: 9999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-}
-body.light-mode .hero-badge { color: var(--primary); }
-
-#today-date-heading {
-  font-size: 1.7rem;
-  font-weight: 800;
-  margin: 0 0 0.2rem 0;
-  letter-spacing: -0.02em;
-  color: var(--text-color);
-}
-
-.hero-sub {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0;
-  font-weight: 500;
-}
-
-.btn-today-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.4rem;
-  border-radius: 12px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--panel-bg-solid);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-}
-.btn-today-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary) 100%);
-}
-
-/* --- Activities Container (Desktop: Grid of Cards) --- */
-.today-activities-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-/* --- Individual Activity Item (Desktop: Glass Card) --- */
-.today-activity-item {
-  padding: 1.5rem;
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.today-activity-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
-}
-body.light-mode .today-activity-item:hover {
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-}
-
-.activity-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.activity-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.icon-reading { background: rgba(var(--primary-rgb), 0.12); color: var(--primary-hover); border-color: rgba(var(--primary-rgb), 0.25); }
-.icon-journal { background: rgba(var(--success-rgb), 0.12); color: var(--success); border-color: rgba(var(--success-rgb), 0.25); }
-.icon-waking  { background: rgba(var(--primary-rgb), 0.12); color: var(--primary); border-color: rgba(var(--primary-rgb), 0.25); }
-.icon-barrier { background: rgba(var(--danger-rgb), 0.12);  color: var(--danger); border-color: rgba(var(--danger-rgb), 0.25); }
-.icon-psalm   { background: rgba(var(--later-read-rgb), 0.12); color: var(--later-read); border-color: rgba(var(--later-read-rgb), 0.25); }
-.icon-pe      { background: rgba(var(--info-rgb), 0.12);  color: var(--info); border-color: rgba(var(--info-rgb), 0.25); }
-
-.activity-titles {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.activity-titles h4 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-color);
-  line-height: 1.2;
-}
-
-.activity-target {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.activity-status {
-  margin-left: auto;
-  padding: 0.3rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.72rem;
+.core-status {
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
   font-weight: 700;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
-.activity-status.pending   { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border: 1px solid rgba(148, 163, 184, 0.3); }
-.activity-status.completed { background: rgba(var(--success-rgb), 0.15); color: var(--success); border: 1px solid rgba(var(--success-rgb), 0.3); }
-.activity-status.partial   { background: rgba(var(--primary-rgb),0.15); color: var(--primary-hover); border: 1px solid rgba(var(--primary-rgb),0.4); }
-.activity-status.late      { background: rgba(var(--danger-rgb), 0.15);  color: var(--danger); border: 1px solid rgba(var(--danger-rgb), 0.3);  }
-.activity-status.clear     { background: rgba(var(--success-rgb), 0.1);  color: var(--success); }
-.activity-status.bonus     { background: rgba(var(--later-read-rgb), 0.15); color: var(--later-read); border: 1px solid rgba(var(--later-read-rgb), 0.3); }
-.activity-status.reminder  { background: rgba(var(--primary-rgb), 0.15); color: var(--primary); }
-
-.activity-desc {
-  font-size: 0.88rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin: 0;
+/* Pending / Not Logged → amber */
+.core-status.pending  {
+  background: rgba(251,191,36,0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(251,191,36,0.35);
+}
+/* Completed / Done / Recited → green */
+.core-status.completed {
+  background: rgba(var(--success-rgb),0.18);
+  color: var(--success);
+  border: 1px solid rgba(var(--success-rgb),0.4);
+}
+/* Partial → blue */
+.core-status.partial {
+  background: rgba(var(--primary-rgb),0.18);
+  color: var(--primary-hover);
+  border: 1px solid rgba(var(--primary-rgb),0.4);
+}
+/* Late → red */
+.core-status.late {
+  background: rgba(var(--danger-rgb),0.18);
+  color: var(--danger);
+  border: 1px solid rgba(var(--danger-rgb),0.4);
+}
+/* Clear → green */
+.core-status.clear {
+  background: rgba(var(--success-rgb),0.18);
+  color: var(--success);
+  border: 1px solid rgba(var(--success-rgb),0.4);
+}
+/* Bonus → purple (keep as is, user likes this) */
+.core-status.bonus {
+  background: rgba(var(--later-read-rgb),0.18);
+  color: var(--later-read);
+  border: 1px solid rgba(var(--later-read-rgb),0.4);
+}
+/* Reminder / Recorded → teal */
+.core-status.reminder {
+  background: rgba(var(--morning-read-rgb),0.18);
+  color: var(--morning-read);
+  border: 1px solid rgba(var(--morning-read-rgb),0.4);
 }
 
-.activity-details {
-  margin-top: 0.25rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
+/* ── today-status: mirrors core-status (set dynamically by today.js) ── */
+.today-status {
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.today-status.pending   { background: rgba(251,191,36,0.15); color: #f59e0b; border: 1px solid rgba(251,191,36,0.35); }
+.today-status.completed { background: rgba(var(--success-rgb),0.18); color: var(--success); border: 1px solid rgba(var(--success-rgb),0.4); }
+.today-status.partial   { background: rgba(var(--primary-rgb),0.18); color: var(--primary-hover); border: 1px solid rgba(var(--primary-rgb),0.4); }
+.today-status.late      { background: rgba(var(--danger-rgb),0.18); color: var(--danger); border: 1px solid rgba(var(--danger-rgb),0.4); }
+.today-status.clear     { background: rgba(var(--success-rgb),0.18); color: var(--success); border: 1px solid rgba(var(--success-rgb),0.4); }
+.today-status.bonus     { background: rgba(var(--later-read-rgb),0.18); color: var(--later-read); border: 1px solid rgba(var(--later-read-rgb),0.4); }
+.today-status.reminder  { background: rgba(var(--morning-read-rgb),0.18); color: var(--morning-read); border: 1px solid rgba(var(--morning-read-rgb),0.4); }
+
+/* ── TOP 5-CARD GRID ── */
+.today-core-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+}
+
+.core-card {
+  display: flex; flex-direction: column; padding: 0.85rem 1rem;
+  border-radius: 16px; position: relative; overflow: hidden; gap: 0.5rem;
+  min-height: 72px;
+}
+.core-card-top {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; gap: 0.5rem;
+}
+.core-info { display: flex; flex-direction: column; gap: 0.15rem; width: 100%; }
+.core-title { font-size: 0.94rem; font-weight: 700; color: var(--text-primary); line-height: 1.22; word-break: break-word; }
+.core-sub { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; line-height: 1.25; }
+.core-card .core-status { align-self: center; }
+.core-card .core-icon {
+  position: static;
+  width: 36px; height: 36px; border-radius: 10px;
+}
+.core-card .core-icon svg { width: 18px; height: 18px; }
+
+
+/* ── BOTTOM ACCORDIONS ── */
+.today-accord-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.today-accord {
   border-radius: 12px;
-  font-size: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  line-height: 1.5;
-  color: var(--text-color);
+  overflow: hidden;
 }
-body.light-mode .activity-details {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.05);
+.today-accord-header {
+  width: 100%; display: flex; align-items: center; padding: 0.85rem 1rem;
+  background: transparent; border: none; cursor: pointer; color: var(--text-primary);
+  text-align: left; transition: background 0.2s; min-height: 72px;
+}
+.today-accord-header:hover { background: rgba(255,255,255,0.03); }
+.accord-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0; }
+.accord-icon svg { width: 16px; height: 16px; }
+.accord-title { font-size: 0.95rem; font-weight: 700; flex: 1; }
+.accord-chevron { transition: transform 0.3s ease; color: var(--text-muted); }
+.accord-chevron.open { transform: rotate(180deg); }
+
+.today-accord-body {
+  border-top: 1px solid var(--border-color);
+}
+.accord-details {
+  padding: 1rem;
+  font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary);
+  background: rgba(0,0,0,0.02);
+}
+.empty-text { margin: 0; font-style: italic; opacity: 0.7; }
+
+/* Memory specific inside accordion */
+.verse-container {
+  display: flex; flex-direction: column; gap: 0.75rem;
+  padding: 1rem; border-radius: 10px;
+  background: rgba(var(--primary-rgb), 0.05); border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+.verse-ref { font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+.verse-text { margin: 0; font-size: 0.95rem; font-style: italic; color: var(--text-primary); line-height: 1.5; }
+.btn-download {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.9rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+  color: #fff; background: var(--primary); border: none; cursor: pointer; margin-top: 0.5rem;
+}
+.questions-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; }
+
+
+/* =========================================================
+   MOBILE: Clean single-breakpoint layout
+   Goal: 5 top cards + 3 accordions all visible without scroll
+   Using high-specificity (#tab-today .today-container) to
+   beat glass-panel and any other competing rules.
+   ========================================================= */
+
+/* On tablet (≤900px): switch to 2-column grid */
+@media (max-width: 900px) {
+  #tab-today .today-container { gap: 0.5rem; }
+  #tab-today .today-core-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  #tab-today .today-accord-grid { gap: 0.1rem; }
 }
 
-/* =====================================================
-   MOBILE VIEW (<= 768px): SUPER COMPACT TWO-CARD LAYOUT
-===================================================== */
-@media (max-width: 768px) {
-  #tab-today.active {
-    min-height: calc(100dvh - var(--header-height, 70px) - 2rem);
-  }
+/* On mobile (≤700px): tight layout, all cards visible */
+@media (max-width: 700px) {
+  /* ── Container: minimal section gaps ── */
+  #tab-today .today-container { gap: 0.3rem; }
 
-  .today-container {
-    gap: 0.4rem;
-    margin-bottom: 0;
-  }
-
-  /* Card 1: Hero Card (Super Compact, single row) */
-  .today-hero-card {
-    padding: 0.5rem 0.75rem;
-    border-radius: 12px;
-  }
-  
-  .hero-content {
-    flex-wrap: nowrap;
-    justify-content: space-between;
+  /* ── Top 5 Cards grid ── */
+  #tab-today .today-core-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.25rem;
+  }
+
+  /* ── Each top card: override glass-panel's 1.5rem padding ── */
+  #tab-today .today-core-grid .core-card {
+    padding: 0.7rem 0.85rem;
+    gap: 0.4rem;
+    min-height: 65px;
+    border-radius: 14px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* ── Card top row: icon + badge ── */
+  #tab-today .core-card-top {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
   }
-  
-  /* Hide extras to save massive vertical space */
-  .hero-badge, .hero-sub {
-    display: none;
-  }
-  
-  #today-date-heading {
-    font-size: 0.95rem;
-    margin: 0;
-  }
-  
-  .hero-action {
-    width: auto;
-  }
-  
-  .btn-today-primary {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.7rem;
+
+  /* ── Icon ── */
+  #tab-today .today-core-grid .core-card .core-icon {
+    position: static;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
-    width: auto;
-    gap: 0.2rem;
   }
-  .btn-today-primary svg {
-    width: 12px;
-    height: 12px;
+  #tab-today .today-core-grid .core-card .core-icon svg {
+    width: 15px;
+    height: 15px;
   }
 
-  /* Card 2: Container morphs into a single glass panel and fills remaining space */
-  .today-activities-container {
-    display: flex;
-    flex-direction: column;
-    flex: 1; /* ← Grow to fill all remaining vertical space */
-    gap: 0;
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    box-shadow: var(--shadow-md);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  /* Inside Card 2: Rows share the available height evenly */
-  .today-activity-item {
-    flex: 1; /* ← Each row takes an equal share of the height */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centre content vertically within its share */
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border-radius: 0;
-    padding: 0 0.6rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  /* ── Text: full width, no ellipsis ── */
+  #tab-today .core-card .core-info {
+    width: 100%;
     gap: 0.1rem;
   }
-  body.light-mode .today-activity-item {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  #tab-today .core-card .core-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.2;
+    word-break: break-word;
   }
-  
-  .today-activity-item:last-child {
-    border-bottom: none !important;
+  #tab-today .core-card .core-sub {
+    font-size: 0.72rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.2;
   }
 
-  /* Compact row headers */
-  .activity-header {
-    gap: 0.4rem;
+  /* ── Status badge ── */
+  #tab-today .today-core-grid .core-card .core-status {
+    font-size: 0.67rem;
+    padding: 0.15rem 0.5rem;
+    align-self: center;
   }
-  
-  .activity-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+
+  /* ── Card 5 (Consistency Barrier): full width ── */
+  #tab-today #today-card-barriers {
+    grid-column: 1 / -1;
   }
-  .activity-icon svg {
-    width: 16px;
-    height: 16px;
+
+  /* ── Bottom 3 Accordions: override glass-panel padding ── */
+  #tab-today .today-accord-grid { gap: 0.1rem; }
+
+  /* THIS is the real fix: glass-panel adds padding: 1.5rem to each accordion.
+     We zero it out so there's no dead space above/below the header button. */
+  #tab-today .today-accord-grid .today-accord {
+    padding: 0;
+    border-radius: 14px;
   }
-  
-  .activity-titles {
-    gap: 0;
+
+  #tab-today .today-accord-header {
+    padding: 0.6rem 0.85rem;
+    min-height: 62px;
+    height: auto;
   }
-  
-  .activity-titles h4 {
+
+  #tab-today .accord-title {
     font-size: 0.88rem;
+    white-space: normal;
   }
-  
-  .activity-target {
-    font-size: 0.68rem;
+  #tab-today .accord-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 0.65rem;
   }
-  
-  .activity-status {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.65rem;
+  #tab-today .accord-icon svg {
+    width: 15px;
+    height: 15px;
   }
-
-  /* Hide lengthy descriptions on mobile to keep the card compact and neat */
-  .activity-desc {
-    display: none;
-  }
-  
-  .activity-details {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.7rem;
-    margin-top: 0.1rem;
+  #tab-today .accord-details {
+    padding: 0.85rem;
+    font-size: 0.86rem;
   }
 }
+
+/* ── Bible Version Capsules / Tabs ── */
+.version-capsules-scroll {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.15rem 0.65rem 0.15rem;
+  margin-bottom: 0.65rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary, #d4af37) rgba(255, 255, 255, 0.05);
+  -webkit-overflow-scrolling: touch;
+}
+
+.version-capsules-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.version-capsules-scroll::-webkit-scrollbar-thumb {
+  background: var(--primary, #d4af37);
+  border-radius: 4px;
+}
+
+.version-capsule {
+  background: var(--surface-card, rgba(255, 255, 255, 0.06));
+  color: var(--text-muted, #9ca3af);
+  border: 1px solid var(--panel-border, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.version-capsule:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary, #ffffff);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.version-capsule.active {
+  background: var(--primary, #d4af37);
+  color: #000000;
+  border-color: var(--primary, #d4af37);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  font-weight: 800;
+}
+

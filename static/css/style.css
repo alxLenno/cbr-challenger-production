@@ -225,16 +225,19 @@ header {
   background: linear-gradient(135deg, var(--primary), var(--success));
   color: #0b0f19;
   font-weight: 800;
-  width: 42px;
+  min-width: 42px;
   height: 42px;
+  padding: 0 10px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
   box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.35);
   font-family: 'Outfit', sans-serif;
   flex-shrink: 0;
+  white-space: nowrap;
   transition: transform var(--transition-bounce);
 }
 
@@ -1189,6 +1192,12 @@ table.score-table tr.laxity-row {
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.14);
 }
 .form-group input[type="time"] { min-height: 38px; }
+
+/* Fix time input icon visibility on dark mode */
+.form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) brightness(1.2);
+  cursor: pointer;
+}
 .form-group textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
 
 .disciplines-checklist {
@@ -1474,7 +1483,7 @@ table.score-table tr.laxity-row {
 
   /* Ensure topbar fits on small phone screens without pushing hamburger icon */
   .header-inner { padding: 0 0.6rem; gap: 0.5rem; }
-  .logo-badge { width: 36px; height: 36px; font-size: 0.95rem; border-radius: 10px; flex-shrink: 0; }
+  .logo-badge { min-width: 32px; height: 32px; padding: 0 8px; font-size: 0.72rem; border-radius: 10px; flex-shrink: 0; }
   .brand-title { display: none !important; }
   .header-actions { gap: 0.4rem; flex-shrink: 0; }
   #topbar-profile-btn { padding: 0.35rem; width: 36px; height: 36px; justify-content: center; }
@@ -1563,9 +1572,13 @@ header {
 .logo-badge {
   background: var(--primary);
   color: #000;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0 8px;
+  min-width: 36px;
   border-radius: 8px;
   font-weight: 800;
+  white-space: nowrap;
   box-shadow: 0 2px 5px rgba(var(--primary-rgb),0.3);
 }
 .brand-title h1 {

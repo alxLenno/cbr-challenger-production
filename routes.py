@@ -41,6 +41,8 @@ def get_state():
         "profilePic": current_user.profile_pic or "",
         "contact": card_state.contact or "",
         "church": card_state.church or "",
+        "peg": card_state.peg or "",
+        "cohort": card_state.cohort or "",
         "currentCardId": card_state.current_card_id,
         "commencingDate": card_state.commencing_date,
         "theme": card_state.theme,
@@ -76,6 +78,10 @@ def get_state():
             "cbResolved": d.cb_resolved,
             "logTimestamp": d.log_timestamp,
             "studyMethod": d.study_method,
+            "difDiscovery": d.dif_discovery,
+            "difInsight": d.dif_insight,
+            "difFruit": d.dif_fruit,
+            "journalNotes": d.journal_notes,
             "openObservation": d.open_observation,
             "openPrinciples": d.open_principles,
             "openExperience": d.open_experience,
@@ -126,6 +132,8 @@ def save_state():
     card_state.theme = data.get("theme", "dark")
     card_state.contact = data.get("contact", "")
     card_state.church = data.get("church", "")
+    card_state.peg = data.get("peg", "")
+    card_state.cohort = data.get("cohort", "")
     
     Weakness.query.filter_by(card_state_id=card_state.id).delete()
     for w_data in data.get("weaknesses", []):
@@ -163,6 +171,10 @@ def save_state():
             cb_resolved=d_data.get("cbResolved", False),
             log_timestamp=d_data.get("logTimestamp"),
             study_method=d_data.get("studyMethod", "FID"),
+            dif_discovery=d_data.get("difDiscovery"),
+            dif_insight=d_data.get("difInsight"),
+            dif_fruit=d_data.get("difFruit"),
+            journal_notes=d_data.get("journalNotes"),
             open_observation=d_data.get("openObservation"),
             open_principles=d_data.get("openPrinciples"),
             open_experience=d_data.get("openExperience"),
@@ -579,4 +591,32 @@ def delete_pdf(filename):
         os.remove(path)
         return jsonify({"status": "deleted"})
     return jsonify({"error": "File not found"}), 404
+
+
+@api_bp.route('/bible/verse', methods=['GET'])
+@login_required
+def api_get_verse():
+    """Fetch exact scripture memory verse text across translations (Index-based)."""
+    from engine import get_verse_text
+    ref = request.args.get('ref', '').strip()
+    version = request.args.get('version', 'NIV').strip()
+    
+    text, actual_version, clean_ref, passages = get_verse_text(ref, version)
+    if not text:
+        return jsonify({"error": "Verse not found in translation", "ref": ref, "version": actual_version}), 404
+        
+    return jsonify({
+        "reference": clean_ref or ref,
+        "version": actual_version,
+        "text": text,
+        "passages": passages
+    })
+
+
+@api_bp.route('/bible/versions', methods=['GET'])
+@login_required
+def api_get_versions():
+    """Dynamically list available Bible translations discovered by engine."""
+    from engine import get_available_versions
+    return jsonify({"versions": get_available_versions()})
 

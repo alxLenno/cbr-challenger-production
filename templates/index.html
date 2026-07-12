@@ -3,19 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBR Challenger Card Digital Assistant</title>
-  <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBR) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
+  <title>CBRSM Challenger Card Digital Assistant</title>
+  <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBRSM) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
   <meta name="theme-color" content="#080d17" id="meta-theme-color">
   <!-- PWA Manifest & iOS Support -->
   <link rel="manifest" href="/static/manifest.json">
   <link rel="apple-touch-icon" href="/static/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="CBR Challenger">
+  <meta name="apple-mobile-web-app-title" content="CBRSM Challenger">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=50">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=46">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=47">
+  
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      alert("JS Error: " + message + " at " + source + ":" + lineno + ":" + colno);
+      return false; // let default handler run too
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+      alert("Unhandled Promise: " + (event.reason ? event.reason.message : event.reason));
+    });
+  </script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=57">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=80">
+
+
   <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}?v=51">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=6">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=47">
@@ -32,7 +44,7 @@
   <header id="main-header">
     <div class="header-inner">
       <div class="brand">
-        <div class="logo-badge">CBR</div>
+        <div class="logo-badge">CBRSM</div>
         <div class="brand-title">
           <h1>Challenger Card</h1>
           <p>Bible Reading Dashboard</p>
@@ -279,7 +291,7 @@
             </label>
             <label class="check-item">
               <input type="checkbox" id="prayer-10mins">
-              <span>Prayed for 10+ Minutes after CBR</span>
+              <span>Prayed for 10+ Minutes after CBRSM</span>
             </label>
             <label class="check-item valid-discipline" style="cursor: not-allowed; opacity: 0.85;" title="Automatically ticks when logged on the correct calendar day">
               <input type="checkbox" id="data-validity" disabled>
@@ -291,27 +303,37 @@
         <!-- Expanded Devotional notes input fields -->
         <div class="form-group" style="margin-bottom: 1rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
           <label id="label-devotion-header">Daily Devotion & Study Method</label>
+          
+          <div style="margin-top: 0.6rem; margin-bottom: 0.8rem; background: rgba(var(--primary-rgb, 212,175,55), 0.06); border: 1px dashed var(--panel-border); padding: 0.65rem; border-radius: var(--radius-sm);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.4rem; flex-wrap:wrap; gap:0.4rem;">
+              <span style="font-size:0.76rem; font-weight:700; color:var(--primary, #d4af37);">⚡ Quick Import / Paste Full Note (e.g. FACT / INSIGHT / DEED)</span>
+              <button type="button" onclick="parseQuickPasteJournal()" style="background:var(--primary, #d4af37); color:#fff; border:none; padding:0.25rem 0.65rem; border-radius:4px; font-size:0.72rem; font-weight:700; cursor:pointer;">Auto-Fill Fields</button>
+            </div>
+            <textarea id="quick-paste-journal" rows="3" style="width:100%; font-size:0.82rem; padding:0.45rem; border-radius:4px; border:1px solid var(--panel-border); background:var(--bg-main); color:var(--text-primary); font-family: inherit;" placeholder="Paste text here (e.g. Date 10-7-2026 / PEG 8 / Numbers 8,9&10 / FACT... / INSIGHT... / DEED...) and click Auto-Fill Fields"></textarea>
+          </div>
+
           <div style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-            <select id="study-method" style="width: 100%; padding: 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--panel-border); background: var(--panel-bg); color: var(--text-primary);">
-              <option value="FID">F.I.D. Method (Cards 1-3)</option>
-              <option value="OPEN">O.P.E.N. Method (Cards 4-7)</option>
-              <option value="PERSONS">P.E.R.S.O.N.S. Method (Cards 4-7)</option>
-            </select>
+            <div id="study-method-segmented" style="display: flex; background: var(--bg-main); border: 1px solid var(--panel-border); border-radius: var(--radius-sm); overflow: hidden;">
+              <button type="button" class="method-btn active" data-value="FID" style="flex: 1; padding: 0.65rem 0.25rem; font-size: 0.75rem; font-weight: 600; border: none; background: var(--primary, #d4af37); color: #fff; cursor: pointer; transition: all 0.2s;">F.I.D.</button>
+              <button type="button" class="method-btn" data-value="OPEN" style="flex: 1; padding: 0.65rem 0.25rem; font-size: 0.75rem; font-weight: 600; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; border-left: 1px solid var(--panel-border);">O.P.E.N.</button>
+              <button type="button" class="method-btn" data-value="PERSONS" style="flex: 1; padding: 0.65rem 0.25rem; font-size: 0.75rem; font-weight: 600; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; border-left: 1px solid var(--panel-border);">P.E.R.S.O.N.S.</button>
+            </div>
+            <input type="hidden" id="study-method" value="FID">
           </div>
 
           <!-- FID Fields -->
           <div id="fid-fields" style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.5rem;">
             <div class="form-group">
-              <label id="label-method-part1" for="fid-focus" style="font-size:0.7rem; color:var(--text-muted);">F - Focus (Key Verse / Subject Reference)</label>
-              <input type="text" id="fid-focus" placeholder="e.g. Genesis 1:1 - God created...">
+              <label id="label-method-part1" for="fid-focus" style="font-size:0.72rem; font-weight:700; color:var(--text-secondary);">FACT / FOCUS / DISCOVERY (Key Verse & Observation)</label>
+              <input type="text" id="fid-focus" placeholder="e.g. FACT Numbers 9;19 Even when the cloud continued...">
             </div>
             <div class="form-group">
-              <label id="label-method-part2" for="fid-insight" style="font-size:0.7rem; color:var(--text-muted);">I - Insights (Observations & Spiritual Lessons)</label>
-              <textarea id="fid-insight" rows="2" placeholder="What key insights did the Holy Spirit reveal to you?"></textarea>
+              <label id="label-method-part2" for="fid-insight" style="font-size:0.72rem; font-weight:700; color:var(--text-secondary);">INSIGHT (Spiritual Truth & Lessons)</label>
+              <textarea id="fid-insight" rows="2" placeholder="e.g. INSIGHT; God is working in the 'stay' seasons just as much as in the 'go' season."></textarea>
             </div>
             <div class="form-group">
-              <label id="label-method-part3" for="fid-doing" style="font-size:0.7rem; color:var(--text-muted);">D - Doing (Obedience Conviction / Application)</label>
-              <textarea id="fid-doing" rows="2" placeholder="Describe the specific action you are convicted to do today."></textarea>
+              <label id="label-method-part3" for="fid-doing" style="font-size:0.72rem; font-weight:700; color:var(--text-secondary);">DEED / DOING / FRUIT (Action Step & Obedience)</label>
+              <textarea id="fid-doing" rows="2" placeholder="e.g. DEED; I will watch God not the calendar"></textarea>
             </div>
           </div>
 
@@ -359,13 +381,16 @@
             </div>
             <div class="form-group">
               <label for="persons-note" style="font-size:0.7rem; color:var(--text-muted);">N - Note</label>
-              <textarea id="persons-note" rows="1" placeholder="Application for CBR discipline"></textarea>
+              <textarea id="persons-note" rows="1" placeholder="Application for CBRSM discipline"></textarea>
             </div>
             <div class="form-group">
               <label for="persons-stirring" style="font-size:0.7rem; color:var(--text-muted);">S - Stirring others</label>
               <input type="text" id="persons-stirring" placeholder="Who will you testify to?">
             </div>
           </div>
+
+          <!-- Additional Notes removed per user request (hidden input kept for script compatibility) -->
+          <input type="hidden" id="journal-notes" value="">
         </div>
 
         <!-- Scripture memorized & prayer topic inputs -->
@@ -445,9 +470,18 @@
 
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="{{ url_for('static', filename='js/data.js') }}?v=6"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=7"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=38"></script>
+  <script src="{{ url_for('static', filename='js/data.js') }}?v=7"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=8"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=49"></script>
+  <!-- Tab-specific JS modules (must load after app.js) -->
+  <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=23"></script>
+  <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/account.js') }}?v=4"></script>
+  <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=2"></script>
   <script>
     // Mobile sidebar hamburger toggle
     const hamburger = document.getElementById('hamburger-btn');

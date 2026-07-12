@@ -76,7 +76,7 @@ const CBR_DATA = {
       title: "Session 1 (Card 1)",
       activities: [
         { id: 1, text: "Read carefully all the information and instructions in the CBR manual." },
-        { id: 2, text: "Start using New FID during meditation and journaling in CBR." },
+        { id: 2, text: "Start using New FID during meditation and journaling in CBRSM." },
         { id: 3, text: "Memorize and Pray back Heb 12:11 and 1 Tim 4:15-16." },
         { id: 4, text: "Start Evaluating your Weekly Growth points on Challenger CARD." },
         { id: 5, text: "Discuss Lesson 1 and Study Questions with PE (see Questions Card)." },
@@ -87,7 +87,7 @@ const CBR_DATA = {
       cardIndex: 1,
       title: "Session 2 (Card 2)",
       activities: [
-        { id: 7, text: "Read and Finish The Power In CBR Discipline (PDF)." },
+        { id: 7, text: "Read and Finish The Power In CBRSM Discipline (PDF)." },
         { id: 8, text: "Use the OPEN Method to study Gal. 6:6-10 (page 6)." },
         { id: 9, text: "Memorize and pray back Gal. 6:6-10." },
         { id: 10, text: "Start forming principles against CBs and redeeming lost Growth Points." },
@@ -100,7 +100,7 @@ const CBR_DATA = {
       activities: [
         { id: 12, text: "Use the OPEN Method to study 2 Cor 9:6-15 (page 6)." },
         { id: 13, text: "Read and Finish the book Train Yourself to be Godly." },
-        { id: 14, text: "Analyze and start changing your Character during CBR (page 3)." },
+        { id: 14, text: "Analyze and start changing your Character during CBRSM (page 3)." },
         { id: 15, text: "Memorize and Pray back 1 Cor 9:24-27 and 1 Tim 4:7-8." },
         { id: 16, text: "Discuss Lesson 3 and Study Questions." }
       ]
@@ -121,7 +121,7 @@ const CBR_DATA = {
       title: "Session 5 (Card 5)",
       activities: [
         { id: 22, text: "Use the PERSONS method to study a some Faithfulness (page 7)." },
-        { id: 23, text: "Memorise the definition of CBR (see Reference Card)." },
+        { id: 23, text: "Memorise the definition of CBRSM (see Reference Card)." },
         { id: 24, text: "Write down practical principles against the listed CBs." },
         { id: 25, text: "Memorize and pray back Jos 1:8 and Rev 1:3." },
         { id: 26, text: "Discuss Lesson 5 and Study Questions." }
@@ -131,7 +131,7 @@ const CBR_DATA = {
       cardIndex: 5,
       title: "Session 6 (Card 6)",
       activities: [
-        { id: 27, text: "Complete analysis of Character Transformation through CBR (page 3)." },
+        { id: 27, text: "Complete analysis of Character Transformation through CBRSM (page 3)." },
         { id: 28, text: "Pray back the entire Psalm 119 (page 5)." },
         { id: 29, text: "Use PERSONS method to study Accountability (page 7)." },
         { id: 30, text: "Memorize and pray back Psalm 1:1-6." },
@@ -146,7 +146,7 @@ const CBR_DATA = {
         { id: 33, text: "Memorize and pray back Deut 6:6-9." },
         { id: 34, text: "Planning Church Presentation and Commissioning Details." },
         { id: 35, text: "Discuss Lesson 7 and Study Questions." },
-        { id: 36, text: "I have decided to PARTNER in extending CBR." }
+        { id: 36, text: "I have decided to PARTNER in extending CBRSM." }
       ]
     }
   ],
@@ -184,7 +184,7 @@ const CBR_DATA = {
         "In which areas of life have you succeeded simply because you were required to be consistent, whether willingly or unwillingly? How would your life be now if you had not strived to be consistent here?",
         "Why does God demand consistency as seen in the following Scriptures? (Deut 17:18-20; Jos 1:8; James 1:2-5)",
         "What price does God expect you to pay to develop discipline in Bible reading? (Heb 12:11; 1 Cor 9:27)",
-        "Which words are used in the following Scriptures to encourage us to avoid laxity in developing CBR discipline? (2 Chron 16:9; Col 3:23-24; James 4:17 and Jer 48:10)"
+        "Which words are used in the following Scriptures to encourage us to avoid laxity in developing CBRSM discipline? (2 Chron 16:9; Col 3:23-24; James 4:17 and Jer 48:10)"
       ]
     },
     {
@@ -201,9 +201,9 @@ const CBR_DATA = {
       lessonIndex: 3,
       title: "Lesson 3: The Power of Groups (PEGs)",
       questions: [
-        "Read Gen 11:1-10, Mat 18:18-20, Eccl 4:9-12 and Heb 10:23-25 to see the power in working in groups. What benefits are given for working in groups in each of the Scriptures? With this in mind, why is it vital for you to commit yourself to staying in this CBR class?",
-        "Compare physical and spiritual training as illustrated in 1 Cor 9:24-27. What specific principles in the sports world are applicable in doing godly training, such as CBR?",
-        "Write down at least five specific things God would expect you to do to ensure that every member of your group completes this CBR course successfully."
+        "Read Gen 11:1-10, Mat 18:18-20, Eccl 4:9-12 and Heb 10:23-25 to see the power in working in groups. What benefits are given for working in groups in each of the Scriptures? With this in mind, why is it vital for you to commit yourself to staying in this CBRSM class?",
+        "Compare physical and spiritual training as illustrated in 1 Cor 9:24-27. What specific principles in the sports world are applicable in doing godly training, such as CBRSM?",
+        "Write down at least five specific things God would expect you to do to ensure that every member of your group completes this CBRSM course successfully."
       ]
     },
     {
@@ -230,7 +230,7 @@ const CBR_DATA = {
       lessonIndex: 6,
       title: "Lesson 6: Character and Disciplines",
       questions: [
-        "Identify the most important things a believer stands to gain by reading and practicing God’s Word from the following Scriptures: Prov 2:1-6, Mat 7:24-27, Heb 5:11-14, and James 1:22-25. How does this truth help you to appreciate the devil’s opposition to CBR?",
+        "Identify the most important things a believer stands to gain by reading and practicing God’s Word from the following Scriptures: Prov 2:1-6, Mat 7:24-27, Heb 5:11-14, and James 1:22-25. How does this truth help you to appreciate the devil’s opposition to CBRSM?",
         "Developing the CBR discipline is significantly influenced by the following key factors: God, Satan and character.\n  i. Show from the Scriptures how these factors affect Bible-reading endeavours?\n  ii. How would you help believers overcome the challenges posed by these factors?\n  iii. Who is to blame for lack of character in our lives? (1 Tim 4:7, 12)\n  iv. In light of your new insights, how can you assist the church in developing the culture of CBR today?"
       ]
     },
