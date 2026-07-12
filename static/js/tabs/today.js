@@ -225,10 +225,26 @@ function downloadVerseCard() {
   ctx.fillText('CBRSM Challenger · Daily Scripture Memory', 110, H - 90);
 
   // Trigger Download
-  const link = document.createElement('a');
-  link.download = (refEl.textContent || 'verse').replace(/\s/g, '-') + '.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  const fileName = (refEl.textContent || 'verse').replace(/\s/g, '-') + '.png';
+  canvas.toBlob(blob => {
+    if (!blob) {
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = fileName;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 150);
+  }, 'image/png');
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -309,6 +325,15 @@ function _normalizeDayDataJournal(dayData) {
   return dayData;
 }
 
+// Helper: Returns current local YYYY-MM-DD instead of UTC (prevents lag after midnight)
+function _getLocalTodayStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // ── Render Today Tab ─────────────────────────────────────────────────────────
 function renderToday() {
   const data = window.getActiveData ? getActiveData() : null;
@@ -320,7 +345,7 @@ function renderToday() {
   if (!card) return;
 
   // ── Day Number ──────────────────────────────────────────────────────────────
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = _getLocalTodayStr();
   let dayNum = 1;
   if (data.commencingDate) {
     const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
@@ -421,17 +446,12 @@ function renderToday() {
   
   let readingDayIndex = dayNum;
   if (data && data.commencingDate) {
-    const cardStart = new Date(data.commencingDate);
-    const currentDate = new Date(cardStart);
-    currentDate.setDate(cardStart.getDate() + (dayNum - 1));
-    
-    const overrideStartDate = new Date("2026-07-13T00:00:00");
-    const overrideEndDate = new Date("2026-08-02T23:59:59");
-    
-    if (currentDate >= overrideStartDate && currentDate <= overrideEndDate) {
-        readingDayIndex = dayNum - 7; 
-    } else if (currentDate < overrideStartDate && cardStart < overrideEndDate) {
-        readingDayIndex = 0; 
+    const overrideStartStr = "2026-07-13";
+    const overrideEndStr = "2026-08-02";
+    if (todayStr >= overrideStartStr && todayStr <= overrideEndStr) {
+      readingDayIndex = Math.floor((new Date(todayStr) - new Date(overrideStartStr)) / 86400000) + 1;
+    } else if (todayStr < overrideStartStr && todayStr >= "2026-07-06") {
+      readingDayIndex = 0;
     }
   }
 
@@ -532,6 +552,9 @@ function renderToday() {
       ? CBR_DATA.lessons.find(l => l.lessonIndex === card.cardId)
       : null;
 
+    // Store for download function access
+    window._currentLesson = lesson;
+
     if (qHeaderTitle) {
       if (lesson && lesson.title) {
         qHeaderTitle.innerHTML = `<div style="font-size:0.96rem; font-weight:800; color:var(--text-primary); line-height:1.2;">Study Questions</div><div style="font-size:0.73rem; font-weight:600; color:var(--text-muted); line-height:1.25; margin-top:0.15rem;">${lesson.title}</div>`;
@@ -541,7 +564,18 @@ function renderToday() {
     }
 
     if (lesson && lesson.questions && lesson.questions.length > 0) {
-      qList.innerHTML = lesson.questions.map(q => `<li>${q}</li>`).join('');
+      qList.innerHTML = lesson.questions.map((q, qi) => {
+        const annotated = _annotateQuestionRefs(q, qi);
+        return `
+          <li style="list-style-type: decimal; padding: 0.1rem 0; line-height: 1.75; color: var(--text-primary); font-size: 0.9rem;">
+            <div class="q-text">${annotated}</div>
+            <div class="q-verse-panels" id="q-panels-${qi}"></div>
+            <button class="q-download-btn" onclick="downloadStudyQuestion(${qi})" title="Download Question ${qi+1} as PNG">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Q${qi+1}
+            </button>
+          </li>`;
+      }).join('');
     } else {
       qList.innerHTML = '<li style="list-style:none; color:var(--text-muted);">No questions available for this session.</li>';
     }
@@ -570,7 +604,7 @@ function _setStatus(id, [cls, text]) {
 function _getFormattedJournalText() {
   const data = window.getActiveData ? getActiveData() : null;
   if (!data) return "";
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = _getLocalTodayStr();
   let dayNum = 1;
   if (data.commencingDate) {
     const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
@@ -647,7 +681,7 @@ function downloadJournalImage() {
   const sectionCol = isDark ? '#38bdf8' : '#0284c7';
   const bodyCol = isDark ? '#e2e8f0' : '#1e293b';
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = _getLocalTodayStr();
   let dayNum = 1;
   if (data.commencingDate) {
     const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
@@ -793,10 +827,25 @@ function downloadJournalImage() {
   ctx.font = '500 20px system-ui, sans-serif';
   ctx.fillText(`Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 80, H - 70);
 
-  const link = document.createElement('a');
-  link.download = `cbr-journal-day-${dayNum}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  canvas.toBlob(blob => {
+    if (!blob) {
+      const link = document.createElement('a');
+      link.download = `cbr-journal-day-${dayNum}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `cbr-journal-day-${dayNum}.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 150);
+  }, 'image/png');
 }
 
 // ── Daily Chapter Reading Logic ──────────────────────────────────────────────
@@ -805,16 +854,13 @@ window.changeDailyChapter = function() {
   if (!input || !input.value.trim()) return;
   const val = input.value.trim();
   
-  // Save to state
   if (window.appState) {
     appState.dailyReadingChapter = val;
     if (window.saveState) saveState();
   }
   
-  // Re-run updateTodayTab to recalculate the reference
   if (window.updateTodayTab) updateTodayTab();
   
-  // Fetch immediately
   if (window.currentDailyRef) {
     fetchAndDisplayDailyVerse(window.currentDailyRef, 'NIV');
   }
@@ -848,7 +894,7 @@ async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
         vText.innerHTML = `<div style="display: flex; flex-direction: column; gap: 1.4rem; margin-top: 0.4rem; width: 100%;">` +
           data.passages.map(p => {
             const formattedText = p.verses_list && p.verses_list.length > 0
-              ? p.verses_list.map(v => `<span style="display: inline;"><strong style="color: var(--primary, #d4af37); font-style: normal; font-weight: 700; font-size: 0.83em; margin-right: 4px; user-select: none;">${v.num}</strong>${v.text}</span>`).join(' ')
+              ? p.verses_list.map(v => `<span class="verse-item" style="display: block; margin-bottom: 0.85rem; line-height: 1.75;"><strong class="verse-num" style="color: var(--primary, #d4af37); font-style: normal; font-weight: 800; font-size: 0.9em; margin-right: 12px; display: inline-block; min-width: 24px; user-select: none;">${v.num}</strong><span class="verse-text" style="font-style: normal; font-size: 1.05rem;">${v.text}</span></span>`).join('')
               : `"${p.text}"`;
             return `
               <div class="passage-block" style="border-left: 3px solid var(--primary, #d4af37); padding: 0.25rem 0 0.25rem 0.95rem; text-align: left;">
@@ -873,103 +919,620 @@ function downloadDailyCard() {
   const textEl  = document.getElementById('today-daily-text');
   if (!canvas || !refEl || !textEl) return;
 
-  const W = 1200;
+  const W = 1400;
   const isDark  = !document.body.classList.contains('light-mode');
-  const bg      = isDark ? '#080d17' : '#f0f4f8';
-  const accent  = '#f59e0b';
-  const textCol = isDark ? '#f0f4ff' : '#0f172a';
-  const mutedCol= isDark ? '#94a3b8' : '#475569';
+  const bg      = isDark ? '#060a12' : '#f8fafc';
+  const accent  = '#d4af37';
+  const textCol = isDark ? '#f1f5f9' : '#0f172a';
+  const mutedCol= isDark ? '#94a3b8' : '#64748b';
+  const boxBg   = isDark ? '#0f172a' : '#ffffff';
+  const boxBorder = isDark ? '#1e293b' : '#e2e8f0';
 
   const ctx = canvas.getContext('2d');
-  
-  // Extract text nodes safely
-  let passageTexts = [];
+  const cleanRefText = (refEl.innerText || '').replace(' (NIV)', '').trim();
+
+  // Extract passages & verses safely
+  let passageList = [];
   const blocks = textEl.querySelectorAll('.passage-block');
   if (blocks.length > 0) {
     blocks.forEach(b => {
-      const pRef = b.querySelector('div:first-child').innerText;
-      const pTxt = b.querySelector('div:last-child').innerText;
-      passageTexts.push({ ref: pRef, txt: pTxt });
+      const pRefEl = b.querySelector('div:first-child');
+      const pRef = pRefEl ? pRefEl.innerText.trim().replace(/^\[|\]$/g, '') : '';
+      const verseItems = b.querySelectorAll('.verse-item');
+      let verses = [];
+      if (verseItems.length > 0) {
+        verseItems.forEach(vi => {
+          const numEl = vi.querySelector('.verse-num');
+          const txtEl = vi.querySelector('.verse-text');
+          const num = numEl ? numEl.innerText.trim() : '';
+          const text = txtEl ? txtEl.innerText.trim() : vi.innerText.trim();
+          if (text) verses.push({ num, text });
+        });
+      } else {
+        const rawTxt = b.querySelector('div:last-child') ? b.querySelector('div:last-child').innerText : b.innerText;
+        const parts = rawTxt.split(/(?=\b\d+[A-Za-z]|\b\d+\s+[A-Za-z])/);
+        parts.forEach(p => {
+          const m = p.match(/^(\d+)\s*(.*)/);
+          if (m) {
+            verses.push({ num: m[1], text: m[2].trim() });
+          } else if (p.trim()) {
+            verses.push({ num: '', text: p.trim() });
+          }
+        });
+      }
+      passageList.push({ ref: pRef, verses });
     });
   } else {
-    passageTexts.push({ ref: '', txt: textEl.innerText });
+    const rawTxt = textEl.innerText;
+    const parts = rawTxt.split(/(?=\b\d+[A-Za-z]|\b\d+\s+[A-Za-z])/);
+    let verses = [];
+    parts.forEach(p => {
+      const m = p.match(/^(\d+)\s*(.*)/);
+      if (m) {
+        verses.push({ num: m[1], text: m[2].trim() });
+      } else if (p.trim()) {
+        verses.push({ num: '', text: p.trim() });
+      }
+    });
+    if (verses.length === 0 && rawTxt.trim()) verses.push({ num: '', text: rawTxt.trim() });
+    passageList.push({ ref: '', verses });
   }
 
-  // Measure pass 1 to determine height
-  ctx.font = '500 48px system-ui, sans-serif';
-  let measuredH = 300; 
-  const passLines = [];
-  
-  passageTexts.forEach(pt => {
-    if (pt.ref) measuredH += 60;
-    ctx.font = '500 48px system-ui, sans-serif';
-    const lines = getWrappedLinesList(ctx, pt.txt, W - 160);
-    passLines.push({ pt, lines });
-    measuredH += (lines.length * 68) + 40;
+  // Pre-calculate Box & Total Height
+  ctx.font = '500 42px Georgia, serif';
+  let boxInnerHeight = 0;
+  const renderPassages = [];
+
+  passageList.forEach(pl => {
+    const showRef = pl.ref && pl.ref.toLowerCase() !== cleanRefText.toLowerCase() && pl.ref.replace(/\s+/g, '') !== cleanRefText.replace(/\s+/g, '');
+    if (showRef) boxInnerHeight += 60;
+    
+    const renderedVerses = pl.verses.map(v => {
+      ctx.font = '500 42px Georgia, serif';
+      const maxW = v.num ? W - 340 : W - 260;
+      const lines = getWrappedLinesList(ctx, v.text, maxW);
+      boxInnerHeight += (lines.length * 58) + 26;
+      return { num: v.num, lines };
+    });
+    renderPassages.push({ ref: pl.ref, showRef, verses: renderedVerses });
   });
 
-  const H = Math.max(800, measuredH + 200);
+  const boxH = Math.max(300, boxInnerHeight + 80);
+  const H = Math.max(900, 310 + boxH + 130);
   canvas.width = W;
   canvas.height = H;
 
-  // Draw background
+  // Draw background & grid
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-  
-  // Outer border
-  ctx.strokeStyle = isDark ? '#1e293b' : '#cbd5e1';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(20, 20, W - 40, H - 40);
 
-  // Logo / Branding
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.018)' : 'rgba(15,23,42,0.025)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Top Gold Accent Strip
+  const topGrad = ctx.createLinearGradient(0, 0, W, 0);
+  topGrad.addColorStop(0, '#f59e0b');
+  topGrad.addColorStop(0.5, '#d4af37');
+  topGrad.addColorStop(1, '#b45309');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, W, 10);
+
+  // Brand Header
   ctx.fillStyle = accent;
-  ctx.font = 'bold 32px system-ui, sans-serif';
-  ctx.fillText('CBR CHALLENGER', 80, 90);
+  ctx.font = '800 28px system-ui, sans-serif';
+  ctx.fillText('CBR CHALLENGER · DAILY BIBLE READING', 70, 75);
 
-  // Card Type Tag
+  // Pill Badge
   ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
   ctx.beginPath();
-  ctx.roundRect(80, 140, 260, 50, 25);
+  roundRect(ctx, 70, 115, 290, 50, 25);
   ctx.fill();
   
-  ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
-  ctx.font = 'bold 22px system-ui, sans-serif';
-  ctx.fillText('DAILY CHAPTER READING', 105, 173);
+  ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+  ctx.font = '700 22px system-ui, sans-serif';
+  ctx.fillText('DAILY CHAPTER READING', 95, 148);
 
-  // Main Reference
+  // Main Reference Header
+  const titleText = cleanRefText.toUpperCase();
   ctx.fillStyle = textCol;
-  ctx.font = 'bold 72px system-ui, sans-serif';
-  ctx.fillText(refEl.innerText.replace(' (NIV)', ''), 80, 280);
-  ctx.fillStyle = accent;
-  ctx.font = 'bold 36px system-ui, sans-serif';
-  ctx.fillText('NIV', 80 + ctx.measureText(refEl.innerText.replace(' (NIV)', '')).width + 20, 275);
+  ctx.font = '800 68px system-ui, sans-serif';
+  ctx.fillText(titleText, 70, 245);
+  
+  if (cleanRefText !== 'Starts Tomorrow' && cleanRefText !== 'Loading...' && cleanRefText !== 'Click to Load Verses') {
+    const refW = ctx.measureText(titleText).width;
+    const badgeX = Math.min(W - 160, 70 + refW + 24);
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    roundRect(ctx, badgeX, 195, 100, 56, 16);
+    ctx.fill();
+    
+    ctx.fillStyle = '#000000';
+    ctx.font = '800 32px system-ui, sans-serif';
+    ctx.fillText('NIV', badgeX + 22, 235);
+  }
 
-  // Draw Verses
-  let currentY = 380;
-  passLines.forEach((pl, idx) => {
-    if (pl.pt.ref) {
+  // Scripture Card Box
+  const boxY = 290;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+  ctx.shadowBlur = 30;
+  ctx.shadowOffsetY = 15;
+  ctx.fillStyle = boxBg;
+  ctx.beginPath();
+  roundRect(ctx, 70, boxY, W - 140, boxH, 28);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = boxBorder;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  roundRect(ctx, 70, boxY, W - 140, boxH, 28);
+  ctx.stroke();
+
+  // Left Gold Accent inside Box
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  roundRect(ctx, 70, boxY, 8, boxH, [28, 0, 0, 28]);
+  ctx.fill();
+
+  // Draw Verses inside Box
+  let currentY = boxY + 65;
+  renderPassages.forEach(pl => {
+    if (pl.showRef) {
       ctx.fillStyle = accent;
-      ctx.font = 'bold 36px system-ui, sans-serif';
-      ctx.fillText(pl.pt.ref, 80, currentY);
+      ctx.font = '800 32px system-ui, sans-serif';
+      ctx.fillText(`[${pl.ref}]`, 130, currentY);
       currentY += 50;
     }
     
-    ctx.fillStyle = textCol;
-    ctx.font = '500 48px system-ui, sans-serif';
-    pl.lines.forEach(line => {
-      ctx.fillText(line, 80, currentY);
-      currentY += 68;
+    pl.verses.forEach(v => {
+      if (v.num) {
+        ctx.fillStyle = accent;
+        ctx.font = '800 34px system-ui, sans-serif';
+        ctx.fillText(v.num, 130, currentY);
+      }
+      
+      ctx.fillStyle = textCol;
+      ctx.font = '500 42px Georgia, serif';
+      const textStartX = v.num ? 200 : 130;
+      
+      v.lines.forEach(line => {
+        ctx.fillText(line, textStartX, currentY);
+        currentY += 58;
+      });
+      currentY += 26;
     });
-    currentY += 40; // spacing between passages
   });
 
   // Footer
   ctx.fillStyle = mutedCol;
-  ctx.font = '500 24px system-ui, sans-serif';
-  ctx.fillText(`Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 80, H - 60);
+  ctx.font = '600 24px system-ui, sans-serif';
+  ctx.fillText(`CBRSM Challenger · Daily Scripture Memory • Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 70, H - 55);
 
-  const link = document.createElement('a');
-  link.download = `cbr-daily-reading.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  canvas.toBlob(blob => {
+    if (!blob) {
+      const link = document.createElement('a');
+      link.download = `cbr-daily-reading.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `cbr-daily-reading.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 150);
+  }, 'image/png');
 }
+
+// ── Study Questions: Bible Reference Chips ───────────────────────────────────
+
+// Helper: returns strict regex matching only known Bible books + chapter:verse
+function _getBibleRefRegex() {
+  const BOOKS = [
+    '1 Chronicles','2 Chronicles','1 Corinthians','2 Corinthians',
+    '1 Kings','2 Kings','1 Peter','2 Peter','1 Samuel','2 Samuel',
+    '1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy',
+    '1 John','2 John','3 John','1 Jn','2 Jn','3 Jn',
+    'Song of Solomon','Song of Songs',
+    'Acts','Amos','Col','Colossians','Daniel','Dan',
+    'Deut','Deuteronomy','Eccl','Ecclesiastes','Ephesians','Eph',
+    'Esther','Exodus','Exod','Ezekiel','Ezra','Galatians','Gal',
+    'Genesis','Gen','Habakkuk','Hag','Haggai','Hebrews','Heb',
+    'Hosea','Isaiah','Isa','James','Jer','Jeremiah','Job',
+    'Joel','John','Jn','Jonah','Jos','Joshua','Jude',
+    'Judges','Lamentations','Lam','Leviticus','Lev','Luke','Lk',
+    'Malachi','Mark','Mk','Matt','Matthew','Mic','Micah',
+    'Nahum','Nehemiah','Neh','Num','Numbers','Obadiah',
+    'Philemon','Philippians','Phil','Phlm','Proverbs','Prov',
+    'Psalms','Psalm','Psa','Ps','Revelation','Rev',
+    'Romans','Rom','Ruth','Titus','Zechariah','Zech','Zeph','Zephaniah',
+    '1 Chron','2 Chron','1 Cor','2 Cor','1 Tim','2 Tim','1 Pet','2 Pet',
+    '1 Sam','2 Sam','1 Kgs','2 Kgs','1 Thess','2 Thess',
+  ].sort((a, b) => b.length - a.length);
+
+  const booksPattern = BOOKS.map(b => b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return new RegExp(`\\b(${booksPattern})\\s(\\d{1,3}:\\d{1,3}(?:-\\d{1,3})?)`, 'g');
+}
+
+// Detects Bible references in question text and wraps them in clickable chips.
+function _annotateQuestionRefs(text, qi) {
+  const bibleRefRegex = _getBibleRefRegex();
+
+  // Escape for safe HTML insertion then replace refs
+  let safeText = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+
+  let refIndex = 0;
+  safeText = safeText.replace(bibleRefRegex, (match, book, chapter) => {
+    const ref = `${book} ${chapter}`;
+    const chipId = `q-chip-${qi}-${refIndex}`;
+    const panelId = `q-panel-${qi}-${refIndex}`;
+    refIndex++;
+    return `<button 
+      class="q-ref-chip" 
+      id="${chipId}" 
+      onclick="toggleVersePanel('${ref}', '${panelId}', '${chipId}')"
+      title="Click to read ${ref}"
+    >${ref} <span style="font-size:0.7em; opacity:0.7;">▼</span></button><div class="q-verse-panel" id="${panelId}" style="display:none;"></div>`;
+  });
+
+  return safeText;
+}
+
+// Toggles a verse panel open/close and fetches verse text from the API.
+window.toggleVersePanel = async function(ref, panelId, chipId) {
+  const panel = document.getElementById(panelId);
+  const chip  = document.getElementById(chipId);
+  if (!panel) return;
+
+  // If already open, close it
+  if (panel.style.display !== 'none') {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    if (chip) chip.classList.remove('active');
+    return;
+  }
+
+  // Show loading state
+  panel.style.display = 'block';
+  panel.innerHTML = `<div class="q-verse-loading">Loading ${ref}...</div>`;
+  if (chip) chip.classList.add('active');
+
+  try {
+    const version = window.currentBibleVersion || 'NIV';
+    const res = await fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`);
+    
+    if (!res.ok) {
+      panel.innerHTML = `<div class="q-verse-error">Could not load <strong>${ref}</strong>. Try another translation.</div>`;
+      return;
+    }
+
+    const data = await res.json();
+    const versesHtml = (data.passages && data.passages.length > 0)
+      ? data.passages.map(p => {
+          const verses = p.verses_list && p.verses_list.length > 0
+            ? p.verses_list.map(v => `<span class="q-verse-num">${v.num}</span>${v.text} `).join('')
+            : p.text;
+          return `<div class="q-verse-ref-label">${p.reference}</div><div class="q-verse-body">${verses}</div>`;
+        }).join('')
+      : `<div class="q-verse-body">${data.text || 'No text found.'}</div>`;
+
+    panel.innerHTML = `
+      <div class="q-verse-card">
+        <div class="q-verse-translation">${data.version || version}</div>
+        ${versesHtml}
+      </div>`;
+  } catch (e) {
+    panel.innerHTML = `<div class="q-verse-error">Error loading verse. Please try again.</div>`;
+  }
+};
+
+// ── Study Question PNG Download ───────────────────────────────────────────────
+window.downloadStudyQuestion = async function(qi) {
+  const lesson = window._currentLesson;
+  if (!lesson || !lesson.questions || !lesson.questions[qi]) return;
+
+  const questionText = lesson.questions[qi];
+  const lessonTitle  = lesson.title || 'Study Questions';
+  const version      = window.currentBibleVersion || 'NIV';
+  const qNum         = qi + 1;
+
+  // Show a subtle loading state on the button
+  const btn = document.querySelector(`button[onclick="downloadStudyQuestion(${qi})"]`);
+  const origHTML = btn ? btn.innerHTML : '';
+  if (btn) btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating...`;
+
+  // Extract all Bible references from the question text
+  const bibleRefRegex = _getBibleRefRegex();
+  const refs = [];
+  let m;
+  while ((m = bibleRefRegex.exec(questionText)) !== null) {
+    refs.push(`${m[1]} ${m[2]}`);
+  }
+
+  // Fetch all refs in parallel
+  const fetchedVerses = {};
+  await Promise.all(refs.map(async ref => {
+    try {
+      const res = await fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`);
+      if (res.ok) {
+        const data = await res.json();
+        fetchedVerses[ref] = data;
+      }
+    } catch (_) {}
+  }));
+
+  if (btn) btn.innerHTML = origHTML;
+
+  // ── Canvas Rendering (Professional Layout) ──
+  const W       = 1600;
+  const isDark  = !document.body.classList.contains('light-mode');
+  const bg      = isDark ? '#0b1329' : '#f8fafc';
+  const accent  = '#d4af37';
+  const textCol = isDark ? '#f1f5f9' : '#0f172a';
+  const mutedCol= isDark ? '#94a3b8' : '#64748b';
+  const cardBg  = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.04)';
+  const borderCol = isDark ? 'rgba(212, 175, 55, 0.28)' : 'rgba(212, 175, 55, 0.35)';
+
+  // Use an offscreen canvas for measurement
+  const offscreen = document.createElement('canvas');
+  offscreen.width = W;
+  offscreen.height = 100;
+  const mctx = offscreen.getContext('2d');
+
+  const MARGIN = 100;
+  const CONTENT_W = W - MARGIN * 2; // 1400px
+
+  // Helper: word-wrap text and return array of lines
+  function wrapText(ctx, text, maxW, font) {
+    ctx.font = font;
+    const words = text.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const word of words) {
+      if (!word) continue;
+      const test = cur ? cur + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && cur) {
+        lines.push(cur);
+        cur = word;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  // Typography Tokens
+  const QFONT   = '700 46px system-ui, -apple-system, sans-serif';
+  const VFONT   = 'italic 40px system-ui, -apple-system, sans-serif';
+  const RFONT   = '800 34px system-ui, -apple-system, sans-serif';
+
+  // Wrap question text
+  const cleanQuestion = questionText.replace(/\n/g, ' ');
+  const qLines = wrapText(mctx, cleanQuestion, CONTENT_W, QFONT);
+
+  // Build verse blocks cleanly with structured lines
+  const verseBlocks = refs.map(ref => {
+    const data = fetchedVerses[ref];
+    if (!data) return { ref, lines: [{ text: '[Verse text unavailable]', isFirst: true }] };
+    
+    const verseLines = [];
+    if (data.passages && data.passages.length > 0) {
+      data.passages.forEach(p => {
+        if (p.verses_list && p.verses_list.length > 0) {
+          p.verses_list.forEach((v, vi) => {
+            const rawText = `[${v.num}] ${v.text}`;
+            const wrapped = wrapText(mctx, rawText, CONTENT_W - 80, VFONT);
+            wrapped.forEach((l, i) => {
+              verseLines.push({ text: l, isFirst: (vi === 0 && i === 0) });
+            });
+          });
+        } else {
+          const wrapped = wrapText(mctx, p.text || '', CONTENT_W - 80, VFONT);
+          wrapped.forEach((l, i) => verseLines.push({ text: l, isFirst: i === 0 }));
+        }
+      });
+    } else {
+      const wrapped = wrapText(mctx, data.text || '', CONTENT_W - 80, VFONT);
+      wrapped.forEach((l, i) => verseLines.push({ text: l, isFirst: i === 0 }));
+    }
+    return { ref, lines: verseLines };
+  });
+
+  // Measure exact total height needed
+  let totalH = 360; // Header & Spacing
+  totalH += qLines.length * 64 + 50; // Question section
+  verseBlocks.forEach(b => {
+    totalH += 90; // Ref header inside card
+    totalH += b.lines.length * 56 + 40; // Verse text + card padding
+  });
+  totalH += 140; // Footer & bottom padding
+
+  const H = Math.max(900, totalH);
+  const canvas = document.getElementById('today-daily-canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // 1. Base Background
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Subtle Grid Pattern
+  ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.022)' : 'rgba(15, 23, 42, 0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // 3. Top Accent Bar with Gradient
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, '#d4af37');
+  grad.addColorStop(0.5, '#f59e0b');
+  grad.addColorStop(1, '#d4af37');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, 8);
+
+  // 4. Header Section: Brand Title
+  ctx.fillStyle = accent;
+  ctx.font = '800 28px system-ui, -apple-system, sans-serif';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('CBR CHALLENGER · DAILY BIBLE STUDY', MARGIN, 85);
+  ctx.letterSpacing = '0px';
+
+  // Lesson Title Pill Badge
+  ctx.fillStyle = cardBg;
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = 1.5;
+  const pillW = Math.min(ctx.measureText(lessonTitle).width + 60, CONTENT_W);
+  ctx.beginPath();
+  ctx.roundRect(MARGIN, 115, pillW, 54, 27);
+  ctx.fill();
+  ctx.stroke();
+  
+  ctx.fillStyle = textCol;
+  ctx.font = '700 26px system-ui, -apple-system, sans-serif';
+  ctx.fillText(lessonTitle, MARGIN + 30, 151);
+
+  // 5. Question Number Badge
+  let currentY = 240;
+  ctx.fillStyle = 'rgba(212, 175, 55, 0.15)';
+  ctx.beginPath();
+  ctx.roundRect(MARGIN, currentY, 180, 48, 12);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.font = '800 24px system-ui, -apple-system, sans-serif';
+  ctx.fillText(`QUESTION ${qNum}`, MARGIN + 22, currentY + 32);
+
+  currentY += 86;
+
+  // 6. Question Text
+  ctx.fillStyle = textCol;
+  ctx.font = QFONT;
+  qLines.forEach(line => {
+    ctx.fillText(line, MARGIN, currentY);
+    currentY += 64;
+  });
+
+  currentY += 30;
+
+  // 7. Scripture Cards
+  verseBlocks.forEach(block => {
+    const cardH = block.lines.length * 56 + 110;
+    
+    // Card Container
+    ctx.fillStyle = cardBg;
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(MARGIN, currentY, CONTENT_W, cardH, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    // Gold Left Accent Stripe
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.roundRect(MARGIN, currentY, 8, cardH, [20, 0, 0, 20]);
+    ctx.fill();
+
+    // Scripture Header inside card
+    ctx.fillStyle = accent;
+    ctx.font = RFONT;
+    ctx.fillText(block.ref.toUpperCase(), MARGIN + 36, currentY + 54);
+
+    // Translation Pill
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.18)';
+    ctx.beginPath();
+    ctx.roundRect(MARGIN + CONTENT_W - 130, currentY + 24, 100, 40, 8);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.font = '800 20px system-ui, -apple-system, sans-serif';
+    ctx.fillText(version.toUpperCase(), MARGIN + CONTENT_W - 106, currentY + 51);
+
+    // Divider line inside card
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(MARGIN + 36, currentY + 76);
+    ctx.lineTo(MARGIN + CONTENT_W - 36, currentY + 76);
+    ctx.stroke();
+
+    // Verse Lines
+    let verseY = currentY + 124;
+    block.lines.forEach(({ text }) => {
+      // Highlight verse numbers [1], [2] in gold, rest in normal italic
+      const numMatch = text.match(/^(\[\d+\])\s*(.*)/);
+      if (numMatch) {
+        const [, numPart, restPart] = numMatch;
+        ctx.fillStyle = accent;
+        ctx.font = '800 32px system-ui, -apple-system, sans-serif';
+        ctx.fillText(numPart.replace('[','').replace(']',''), MARGIN + 36, verseY);
+        
+        const numW = ctx.measureText(numPart.replace('[','').replace(']','') + '  ').width;
+        ctx.fillStyle = textCol;
+        ctx.font = VFONT;
+        ctx.fillText(restPart, MARGIN + 36 + numW, verseY);
+      } else {
+        ctx.fillStyle = textCol;
+        ctx.font = VFONT;
+        ctx.fillText(text, MARGIN + 36, verseY);
+      }
+      verseY += 56;
+    });
+
+    currentY += cardH + 36;
+  });
+
+  // 8. Footer
+  ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(MARGIN, H - 90);
+  ctx.lineTo(W - MARGIN, H - 90);
+  ctx.stroke();
+
+  ctx.fillStyle = mutedCol;
+  ctx.font = '600 22px system-ui, -apple-system, sans-serif';
+  ctx.fillText('CBR Challenger · Community Bible Reading Study Guide', MARGIN, H - 42);
+  
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateW = ctx.measureText(dateStr).width;
+  ctx.fillText(dateStr, W - MARGIN - dateW, H - 42);
+
+  // ── Reliable Binary PNG Download (Prevents PDF/Preview issues in Safari & Mobile) ──
+  canvas.toBlob(blob => {
+    if (!blob) {
+      // Fallback
+      const link = document.createElement('a');
+      link.download = `cbr-study-q${qNum}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `cbr-study-q${qNum}.png`;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 150);
+  }, 'image/png');
+};
