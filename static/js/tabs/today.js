@@ -20,6 +20,9 @@ function toggleAccord(id) {
   if (!isOpen && id === 'memory' && window.currentMemoryRef) {
     fetchAndDisplayMemoryVerse(window.currentMemoryRef, window.currentBibleVersion || 'NIV');
   }
+  if (!isOpen && id === 'daily' && window.currentDailyRef) {
+    fetchAndDisplayDailyVerse(window.currentDailyRef, 'NIV');
+  }
 }
 
 // Legacy alias kept for backward compatibility
@@ -413,19 +416,22 @@ function renderToday() {
   _setStatus('today-status-barriers',
     dayData.cbId ? ['late', `CB ${dayData.cbId}`] : ['clear', 'Clear']);
 
-  // ── Psalm verse ──────────────────────────────────────────────────────────────
-  const pv = document.getElementById('today-psalm-verse');
-  if (pv) pv.textContent = `Psalm 119:${dayNum}`;
-
-  // ── Accordion details: Psalm ──────────────────────────────────────────────────
-  const detPsalm = document.getElementById('today-details-psalm');
-  if (detPsalm) {
-    if (dayData.scriptureMemorized) {
-      detPsalm.innerHTML = `<p style="font-style:italic; color:var(--text-primary); font-size:0.9rem; margin:0;">"${dayData.scriptureMemorized}"</p>`;
-    } else {
-      detPsalm.innerHTML = `<p class="today-accord-empty">Pray back <strong>Psalm 119:${dayNum}</strong> aloud today. It builds the scripture-prayer habit over 28 days.</p>`;
-    }
-  }
+  // ── Daily Chapter Reading ──────────────────────────────────────────────────
+  const storedChapter = appState.dailyReadingChapter || 'Psalm 119';
+  const startVerse = (dayNum - 1) * 7 + 1;
+  const endVerse = dayNum * 7;
+  const dailyRef = `${storedChapter}:${startVerse}-${endVerse}`;
+  
+  const dailyTitle = document.getElementById('today-daily-title');
+  const dailyTarget = document.getElementById('today-daily-target');
+  const dailyInput = document.getElementById('today-daily-chapter-input');
+  
+  window.currentDailyRef = dailyRef;
+  window.currentDailyChapter = storedChapter;
+  
+  if (dailyTitle) dailyTitle.textContent = storedChapter;
+  if (dailyTarget) dailyTarget.textContent = `Target: verses ${startVerse}-${endVerse}`;
+  if (dailyInput) dailyInput.value = storedChapter;
 
   // ── Accordion details: Prayer & Fellowship ────────────────────────────────────
   const detPe = document.getElementById('today-details-pe');
@@ -752,6 +758,181 @@ function downloadJournalImage() {
 
   const link = document.createElement('a');
   link.download = `cbr-journal-day-${dayNum}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── Daily Chapter Reading Logic ──────────────────────────────────────────────
+window.changeDailyChapter = function() {
+  const input = document.getElementById('today-daily-chapter-input');
+  if (!input || !input.value.trim()) return;
+  const val = input.value.trim();
+  
+  // Save to state
+  if (window.appState) {
+    appState.dailyReadingChapter = val;
+    if (window.saveState) saveState();
+  }
+  
+  // Re-run updateTodayTab to recalculate the reference
+  if (window.updateTodayTab) updateTodayTab();
+  
+  // Fetch immediately
+  if (window.currentDailyRef) {
+    fetchAndDisplayDailyVerse(window.currentDailyRef, 'NIV');
+  }
+};
+
+async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
+  if (!ref) return;
+  const vText = document.getElementById('today-daily-text');
+  const vRef  = document.getElementById('today-daily-ref');
+
+  if (vRef) vRef.textContent = "Loading...";
+  if (vText) vText.innerHTML = '<span class="loading-pulse">Fetching verses...</span>';
+
+  try {
+    const res = await fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`);
+    if (!res.ok) {
+      if (res.status === 404) {
+        if (vRef) vRef.textContent = `Completed`;
+        if (vText) vText.innerHTML = `<p class="today-accord-empty">Chapter Completed for this Card! Great job. You can update your Target Chapter to start a new one.</p>`;
+      } else {
+        throw new Error('Fetch failed');
+      }
+      return;
+    }
+    
+    const data = await res.json();
+    if (vRef) vRef.textContent = `${data.reference} (${data.version})`;
+    
+    if (data.passages && data.passages.length > 0) {
+      if (vText) {
+        vText.innerHTML = `<div style="display: flex; flex-direction: column; gap: 1.4rem; margin-top: 0.4rem; width: 100%;">` +
+          data.passages.map(p => {
+            const formattedText = p.verses_list && p.verses_list.length > 0
+              ? p.verses_list.map(v => `<span style="display: inline;"><strong style="color: var(--primary, #d4af37); font-style: normal; font-weight: 700; font-size: 0.83em; margin-right: 4px; user-select: none;">${v.num}</strong>${v.text}</span>`).join(' ')
+              : `"${p.text}"`;
+            return `
+              <div class="passage-block" style="border-left: 3px solid var(--primary, #d4af37); padding: 0.25rem 0 0.25rem 0.95rem; text-align: left;">
+                <div style="font-weight: 800; font-size: 0.96rem; color: var(--primary, #d4af37); margin-bottom: 0.45rem; letter-spacing: 0.02em;">[${p.reference}]</div>
+                <div style="font-style: italic; font-size: 0.95rem; line-height: 1.7; color: var(--text-primary);">${formattedText}</div>
+              </div>
+            `;
+          }).join('') + `</div>`;
+      }
+    } else {
+      if (vText) vText.textContent = `"${data.text}"`;
+    }
+  } catch (e) {
+    if (vRef) vRef.textContent = `${ref} (${version})`;
+    if (vText) vText.innerHTML = `<p class="today-accord-empty">Unable to load verses at this time.</p>`;
+  }
+}
+
+function downloadDailyCard() {
+  const canvas  = document.getElementById('today-daily-canvas');
+  const refEl   = document.getElementById('today-daily-ref');
+  const textEl  = document.getElementById('today-daily-text');
+  if (!canvas || !refEl || !textEl) return;
+
+  const W = 1200;
+  const isDark  = !document.body.classList.contains('light-mode');
+  const bg      = isDark ? '#080d17' : '#f0f4f8';
+  const accent  = '#f59e0b';
+  const textCol = isDark ? '#f0f4ff' : '#0f172a';
+  const mutedCol= isDark ? '#94a3b8' : '#475569';
+
+  const ctx = canvas.getContext('2d');
+  
+  // Extract text nodes safely
+  let passageTexts = [];
+  const blocks = textEl.querySelectorAll('.passage-block');
+  if (blocks.length > 0) {
+    blocks.forEach(b => {
+      const pRef = b.querySelector('div:first-child').innerText;
+      const pTxt = b.querySelector('div:last-child').innerText;
+      passageTexts.push({ ref: pRef, txt: pTxt });
+    });
+  } else {
+    passageTexts.push({ ref: '', txt: textEl.innerText });
+  }
+
+  // Measure pass 1 to determine height
+  ctx.font = '500 48px system-ui, sans-serif';
+  let measuredH = 300; 
+  const passLines = [];
+  
+  passageTexts.forEach(pt => {
+    if (pt.ref) measuredH += 60;
+    ctx.font = '500 48px system-ui, sans-serif';
+    const lines = getWrappedLinesList(ctx, pt.txt, W - 160);
+    passLines.push({ pt, lines });
+    measuredH += (lines.length * 68) + 40;
+  });
+
+  const H = Math.max(800, measuredH + 200);
+  canvas.width = W;
+  canvas.height = H;
+
+  // Draw background
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  
+  // Outer border
+  ctx.strokeStyle = isDark ? '#1e293b' : '#cbd5e1';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
+
+  // Logo / Branding
+  ctx.fillStyle = accent;
+  ctx.font = 'bold 32px system-ui, sans-serif';
+  ctx.fillText('CBR CHALLENGER', 80, 90);
+
+  // Card Type Tag
+  ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
+  ctx.beginPath();
+  ctx.roundRect(80, 140, 260, 50, 25);
+  ctx.fill();
+  
+  ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+  ctx.font = 'bold 22px system-ui, sans-serif';
+  ctx.fillText('DAILY CHAPTER READING', 105, 173);
+
+  // Main Reference
+  ctx.fillStyle = textCol;
+  ctx.font = 'bold 72px system-ui, sans-serif';
+  ctx.fillText(refEl.innerText.replace(' (NIV)', ''), 80, 280);
+  ctx.fillStyle = accent;
+  ctx.font = 'bold 36px system-ui, sans-serif';
+  ctx.fillText('NIV', 80 + ctx.measureText(refEl.innerText.replace(' (NIV)', '')).width + 20, 275);
+
+  // Draw Verses
+  let currentY = 380;
+  passLines.forEach((pl, idx) => {
+    if (pl.pt.ref) {
+      ctx.fillStyle = accent;
+      ctx.font = 'bold 36px system-ui, sans-serif';
+      ctx.fillText(pl.pt.ref, 80, currentY);
+      currentY += 50;
+    }
+    
+    ctx.fillStyle = textCol;
+    ctx.font = '500 48px system-ui, sans-serif';
+    pl.lines.forEach(line => {
+      ctx.fillText(line, 80, currentY);
+      currentY += 68;
+    });
+    currentY += 40; // spacing between passages
+  });
+
+  // Footer
+  ctx.fillStyle = mutedCol;
+  ctx.font = '500 24px system-ui, sans-serif';
+  ctx.fillText(`Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 80, H - 60);
+
+  const link = document.createElement('a');
+  link.download = `cbr-daily-reading.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
 }

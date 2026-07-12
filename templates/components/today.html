@@ -50,19 +50,19 @@
       </div>
     </div>
 
-    <!-- Psalm 119 Prayer -->
-    <div class="core-card glass-panel" id="today-card-psalm">
+    <!-- Daily Reading -->
+    <div class="core-card glass-panel" id="today-card-daily" style="cursor: pointer;" onclick="toggleAccord('daily')">
       <div class="core-card-top">
         <div class="core-icon icon-psalm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/><path d="M12 13v8"/><path d="M8 21h8"/>
           </svg>
         </div>
-        <span class="core-status bonus">Bonus</span>
+        <span class="core-status bonus" id="today-status-daily">Reading</span>
       </div>
       <div class="core-info">
-        <div class="core-title">Psalm 119</div>
-        <div class="core-sub">Pray assigned verse</div>
+        <div class="core-title" id="today-daily-title">Psalm 119</div>
+        <div class="core-sub" id="today-daily-target">Pray assigned verse</div>
       </div>
     </div>
 
@@ -177,7 +177,38 @@
         </div>
       </div>
     </div>
-
+    <!-- Daily Reading Accordion -->
+    <div class="today-accord glass-panel" id="today-accord-daily">
+      <button class="today-accord-header" onclick="toggleAccord('daily')">
+        <div class="accord-icon icon-psalm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/><path d="M12 13v8"/><path d="M8 21h8"/>
+          </svg>
+        </div>
+        <div class="accord-title" id="today-daily-header-title" style="text-align: left;">Daily Chapter Reading</div>
+        <span class="core-status pending" id="today-status-daily-accord" style="margin-left:auto; margin-right:0.5rem;">Read</span>
+        <svg class="accord-chevron" id="today-chevron-daily" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="today-accord-body" id="today-accord-body-daily" style="display:none;">
+        <div class="accord-details">
+          <div style="margin-bottom: 0.5rem; padding: 0.1rem 0.25rem;">
+            <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">Target Chapter</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="today-daily-chapter-input" value="Psalm 119" style="flex: 1; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-family: inherit; font-size: 0.9rem;" placeholder="e.g. Proverbs 3" />
+                <button onclick="changeDailyChapter()" style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer;">Save</button>
+            </div>
+          </div>
+          <div class="verse-container" id="today-daily-card">
+            <div class="verse-ref" id="today-daily-ref">Loading...</div>
+            <blockquote class="verse-text" id="today-daily-text">Loading verses...</blockquote>
+            <button class="btn-download" id="btn-download-daily" onclick="downloadDailyCard()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PNG
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Study Questions Accordion -->
     <div class="today-accord glass-panel" id="today-accord-questions">
       <button class="today-accord-header" onclick="toggleAccord('questions')">
@@ -201,4 +232,5 @@
   </div>
 
   <canvas id="today-verse-canvas" style="display:none;"></canvas>
+  <canvas id="today-daily-canvas" style="display:none;"></canvas>
 </div>
