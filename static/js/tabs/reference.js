@@ -257,6 +257,7 @@ function openVGFullscreen(sourceVideo, title) {
   vgfVid.muted = sourceVideo.muted;
 
   modal.classList.add('open');
+  modal.style.pointerEvents = ''; // clear any safety-net inline style from close
   vgfVid.play().catch(() => {});
 }
 
@@ -264,22 +265,30 @@ function closeVGFullscreen() {
   const modal = document.getElementById('vg-fullscreen-modal');
   if (!modal) return;
   const vgfVid = modal.querySelector('#vgf-video');
-  if (_vgfSourceVideo && vgfVid) {
-    _vgfSourceVideo.currentTime = vgfVid.currentTime;
+  if (vgfVid) {
     vgfVid.pause();
     vgfVid.src = '';
+    // Force load reset so browser releases the media resource
+    try { vgfVid.load(); } catch(_) {}
+  }
+  if (_vgfSourceVideo && vgfVid) {
+    _vgfSourceVideo.currentTime = vgfVid ? (vgfVid.currentTime || 0) : 0;
   }
   modal.classList.remove('open');
+  // Safety net: explicitly kill pointer-events so the invisible overlay
+  // can NEVER block clicks even if the CSS transition hasn't finished yet
+  modal.style.pointerEvents = 'none';
   _vgfSourceVideo = null;
 }
 
 /* Pause all videos on tab/window leave */
 function pauseAllVGVideos() {
   _allVideoPlayers.forEach(p => p.videoEl.pause());
+  // Always close the fullscreen modal when leaving — leaving it open with
+  // opacity:0 but pointer-events:auto would silently block the whole UI
   const modal = document.getElementById('vg-fullscreen-modal');
   if (modal && modal.classList.contains('open')) {
-    const v = modal.querySelector('#vgf-video');
-    if (v) v.pause();
+    closeVGFullscreen();
   }
 }
 
