@@ -120,7 +120,7 @@ function buildVideoOverlay(videoEl, titleText, isFullscreen) {
   function togglePlay() {
     if (videoEl.paused) {
       _allVideoPlayers.forEach(p => { if (p.videoEl !== videoEl) p.videoEl.pause(); });
-      videoEl.play();
+      videoEl.play().catch(() => {});
     } else {
       videoEl.pause();
     }
@@ -217,7 +217,7 @@ function ensureFullscreenModal() {
     if (e.target.closest('.vc-btn') || e.target.closest('.vc-big-play') ||
         e.target.closest('.vc-progress') || e.target.closest('.vc-volume-wrap') ||
         e.target === closeBtn) return;
-    if (video.paused) video.play(); else video.pause();
+    if (video.paused) video.play().catch(() => {}); else video.pause();
   });
 
   const footer = document.createElement('div');
@@ -376,7 +376,7 @@ function renderVideoGuides(videos) {
           e.target.closest('.vc-progress') || e.target.closest('.vc-volume-wrap')) return;
       if (video.paused) {
         _allVideoPlayers.forEach(p => { if (p.videoEl !== video) p.videoEl.pause(); });
-        video.play();
+        video.play().catch(() => {});
       } else {
         video.pause();
       }

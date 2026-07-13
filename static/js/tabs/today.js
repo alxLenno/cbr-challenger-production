@@ -1153,7 +1153,7 @@ function _getBibleRefRegex() {
     'Hosea','Isaiah','Isa','James','Jer','Jeremiah','Job',
     'Joel','John','Jn','Jonah','Jos','Joshua','Jude',
     'Judges','Lamentations','Lam','Leviticus','Lev','Luke','Lk',
-    'Malachi','Mark','Mk','Matt','Matthew','Mic','Micah',
+    'Malachi','Mark','Mk','Mat','Matt','Matthew','Mic','Micah',
     'Nahum','Nehemiah','Neh','Num','Numbers','Obadiah',
     'Philemon','Philippians','Phil','Phlm','Proverbs','Prov',
     'Psalms','Psalm','Psa','Ps','Revelation','Rev',
