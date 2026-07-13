@@ -256,8 +256,14 @@ function openVGFullscreen(sourceVideo, title) {
   vgfVid.volume = sourceVideo.volume;
   vgfVid.muted = sourceVideo.muted;
 
-  modal.classList.add('open');
-  modal.style.pointerEvents = ''; // clear any safety-net inline style from close
+  // Make element visible in layout first, THEN add 'open' so
+  // the CSS opacity transition actually plays (display:none skips transitions)
+  modal.style.display = 'flex';
+  modal.style.pointerEvents = '';
+  // rAF ensures the display change is painted before the class triggers opacity
+  requestAnimationFrame(() => {
+    modal.classList.add('open');
+  });
   vgfVid.play().catch(() => {});
 }
 
@@ -268,16 +274,21 @@ function closeVGFullscreen() {
   if (vgfVid) {
     vgfVid.pause();
     vgfVid.src = '';
-    // Force load reset so browser releases the media resource
     try { vgfVid.load(); } catch(_) {}
   }
   if (_vgfSourceVideo && vgfVid) {
     _vgfSourceVideo.currentTime = vgfVid ? (vgfVid.currentTime || 0) : 0;
   }
   modal.classList.remove('open');
-  // Safety net: explicitly kill pointer-events so the invisible overlay
-  // can NEVER block clicks even if the CSS transition hasn't finished yet
+  // Immediately block all pointer events — don't wait for the CSS fade-out
   modal.style.pointerEvents = 'none';
+  // After the CSS transition finishes (280ms), physically remove it from layout
+  // so it can NEVER be an invisible blocking layer over the page
+  setTimeout(() => {
+    if (!modal.classList.contains('open')) {
+      modal.style.display = 'none';
+    }
+  }, 310);
   _vgfSourceVideo = null;
 }
 
@@ -296,17 +307,18 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) pauseAllVGVideos();
 });
 
-// Pause when switching away from reference tab
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  if (btn.dataset.tab !== 'tab-reference') {
-    btn.addEventListener('click', pauseAllVGVideos);
+// Use event delegation on document instead of querySelectorAll at load time.
+// querySelectorAll runs once at script parse — if tab buttons are rendered
+// dynamically later, no listeners ever attach and the modal never closes.
+document.addEventListener('click', e => {
+  const tabBtn = e.target.closest('.tab-btn');
+  if (tabBtn && tabBtn.dataset.tab !== 'tab-reference') {
+    pauseAllVGVideos();
+    return;
   }
-});
-
-// Pause when switching away from video guides subtab
-document.querySelectorAll('.subnav-btn').forEach(btn => {
-  if (btn.dataset.subtab !== 'tab-video-guides') {
-    btn.addEventListener('click', pauseAllVGVideos);
+  const subBtn = e.target.closest('.subnav-btn');
+  if (subBtn && subBtn.dataset.subtab !== 'tab-video-guides') {
+    pauseAllVGVideos();
   }
 });
 
