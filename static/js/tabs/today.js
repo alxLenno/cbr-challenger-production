@@ -913,229 +913,321 @@ async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
   }
 }
 
-function downloadDailyCard() {
+async function downloadDailyCard() {
   const canvas  = document.getElementById('today-daily-canvas');
   const refEl   = document.getElementById('today-daily-ref');
   const textEl  = document.getElementById('today-daily-text');
   if (!canvas || !refEl || !textEl) return;
 
-  const W = 1400;
-  const isDark  = !document.body.classList.contains('light-mode');
-  const bg      = isDark ? '#060a12' : '#f8fafc';
-  const accent  = '#d4af37';
-  const textCol = isDark ? '#f1f5f9' : '#0f172a';
-  const mutedCol= isDark ? '#94a3b8' : '#64748b';
-  const boxBg   = isDark ? '#0f172a' : '#ffffff';
-  const boxBorder = isDark ? '#1e293b' : '#e2e8f0';
+  // Ensure Patrick Hand font is fully loaded across all sizes before canvas measures or draws
+  try {
+    if (document.fonts && document.fonts.load) {
+      await document.fonts.load('48px "Patrick Hand"');
+      await document.fonts.load('46px "Patrick Hand"');
+      await document.fonts.load('34px "Patrick Hand"');
+      await document.fonts.load('30px "Patrick Hand"');
+      await document.fonts.load('26px "Patrick Hand"');
+      await document.fonts.load('24px "Patrick Hand"');
+    }
+  } catch (e) {
+    console.warn("Could not load Patrick Hand font explicitly:", e);
+  }
 
-  const ctx = canvas.getContext('2d');
-  const cleanRefText = (refEl.innerText || '').replace(' (NIV)', '').trim();
+  // ── Extract reference ──────────────────────────────────────────────────────
+  const cleanRef = (refEl.innerText || '').replace(/\s*\(NIV\)/i, '').trim();
 
-  // Extract passages & verses safely
-  let passageList = [];
+  // ── Extract all verses from the DOM ───────────────────────────────────────
+  let allVerses = [];
   const blocks = textEl.querySelectorAll('.passage-block');
   if (blocks.length > 0) {
     blocks.forEach(b => {
-      const pRefEl = b.querySelector('div:first-child');
-      const pRef = pRefEl ? pRefEl.innerText.trim().replace(/^\[|\]$/g, '') : '';
       const verseItems = b.querySelectorAll('.verse-item');
-      let verses = [];
       if (verseItems.length > 0) {
         verseItems.forEach(vi => {
-          const numEl = vi.querySelector('.verse-num');
-          const txtEl = vi.querySelector('.verse-text');
-          const num = numEl ? numEl.innerText.trim() : '';
-          const text = txtEl ? txtEl.innerText.trim() : vi.innerText.trim();
-          if (text) verses.push({ num, text });
+          const num = (vi.querySelector('.verse-num')  || {}).innerText || '';
+          const txt = (vi.querySelector('.verse-text') || {}).innerText || vi.innerText;
+          if (txt.trim()) allVerses.push({ num: num.trim(), text: txt.trim() });
         });
       } else {
-        const rawTxt = b.querySelector('div:last-child') ? b.querySelector('div:last-child').innerText : b.innerText;
-        const parts = rawTxt.split(/(?=\b\d+[A-Za-z]|\b\d+\s+[A-Za-z])/);
-        parts.forEach(p => {
-          const m = p.match(/^(\d+)\s*(.*)/);
-          if (m) {
-            verses.push({ num: m[1], text: m[2].trim() });
-          } else if (p.trim()) {
-            verses.push({ num: '', text: p.trim() });
-          }
-        });
+        const raw = b.innerText.trim();
+        if (raw) allVerses.push({ num: '', text: raw });
       }
-      passageList.push({ ref: pRef, verses });
     });
   } else {
-    const rawTxt = textEl.innerText;
-    const parts = rawTxt.split(/(?=\b\d+[A-Za-z]|\b\d+\s+[A-Za-z])/);
-    let verses = [];
-    parts.forEach(p => {
-      const m = p.match(/^(\d+)\s*(.*)/);
-      if (m) {
-        verses.push({ num: m[1], text: m[2].trim() });
-      } else if (p.trim()) {
-        verses.push({ num: '', text: p.trim() });
-      }
-    });
-    if (verses.length === 0 && rawTxt.trim()) verses.push({ num: '', text: rawTxt.trim() });
-    passageList.push({ ref: '', verses });
+    const raw = textEl.innerText.trim();
+    if (raw) allVerses.push({ num: '', text: raw });
   }
 
-  // Pre-calculate Box & Total Height
-  ctx.font = '500 42px Georgia, serif';
-  let boxInnerHeight = 0;
-  const renderPassages = [];
+  // ── Dimensions & Table + Page Composition ──────────────────────────────────
+  const W         = 1280;
+  const SCALE     = 2;           // 2x for retina sharpness
+  const TABLE_PAD = 120;         // Generous desk margin surrounding the book page
+  const PAGE_X    = TABLE_PAD;
+  const PAGE_Y    = TABLE_PAD;
+  const PAGE_W    = W - TABLE_PAD * 2;
 
-  passageList.forEach(pl => {
-    const showRef = pl.ref && pl.ref.toLowerCase() !== cleanRefText.toLowerCase() && pl.ref.replace(/\s+/g, '') !== cleanRefText.replace(/\s+/g, '');
-    if (showRef) boxInnerHeight += 60;
-    
-    const renderedVerses = pl.verses.map(v => {
-      ctx.font = '500 42px Georgia, serif';
-      const maxW = v.num ? W - 340 : W - 260;
-      const lines = getWrappedLinesList(ctx, v.text, maxW);
-      boxInnerHeight += (lines.length * 58) + 26;
-      return { num: v.num, lines };
-    });
-    renderPassages.push({ ref: pl.ref, showRef, verses: renderedVerses });
+  const isDark    = !document.body.classList.contains('light-mode');
+
+  // Theme Palette:
+  // Light = Walnut wood desk + Cream physical notebook + Dark pen ink
+  // Dark  = Charcoal slate desk + Midnight slate notebook + Gold/White ink
+  const C_TABLE_BG    = isDark ? '#080d17' : '#231b15';   // Outer desk/table surface
+  const C_PAGE_BG     = isDark ? '#0b1220' : '#fdfcf8';   // Physical notebook paper
+  const C_RULE_LINE   = isDark ? 'rgba(255, 255, 255, 0.08)' : '#c3cedd'; // Horizontal ruled lines
+  const C_MARGIN_LINE = isDark ? '#e11d48' : '#d99a9a';   // Vertical pink/crimson margin line
+  const C_DOT_BG      = isDark ? '#1e293b' : '#eceadd';   // Spiral hole fill
+  const C_DOT_BORDER  = isDark ? '#334155' : '#cfc9b8';   // Spiral hole stroke
+  const C_VERSE_NUM   = isDark ? '#fbbf24' : '#9a3b3b';   // Terracotta / amber margin verse numbers
+  const C_INK_MAIN    = isDark ? '#f1f5f9' : '#1e293b';   // Primary handwriting ink (body & footer)
+  const C_INK_TOPIC   = isDark ? '#d4af37' : '#1e293b';   // Brand topic handwriting ink
+  const C_INK_SUB     = isDark ? '#94a3b8' : '#4b5563';   // Tracking & date ink
+  const C_BORDER      = isDark ? '#1e293b' : '#d9d4c4';   // Page edge border
+
+  // Layout within the open book page
+  const MARG_LINE_X = PAGE_X + 112;      // Vertical red line x position
+  const VERSE_X     = MARG_LINE_X + 16;  // Verse handwriting starts right of margin line
+  const DOTS_X      = PAGE_X + 44;       // Spiral holes x position
+  const FONT_HAND   = '"Patrick Hand", cursive';
+  const FONT_SANS   = 'system-ui, sans-serif';
+  const LINE_H      = 68;                // Ruled line row height
+
+  // Measure wrapped verse text inside the page bounds
+  const tempCtx = document.createElement('canvas').getContext('2d');
+  tempCtx.font = `48px ${FONT_HAND}`;
+  const TEXT_MAX_W = PAGE_W - (VERSE_X - PAGE_X) - 36;
+  function wrapWords(c, text, maxW) {
+    const words = text.split(' ');
+    const lines = []; let line = '';
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (c.measureText(t).width > maxW && line) { lines.push(line); line = w; }
+      else { line = t; }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  const renderedVerses = allVerses.map(v => {
+    const lines = wrapWords(tempCtx, v.text, TEXT_MAX_W);
+    return { num: v.num, lines };
   });
 
-  const boxH = Math.max(300, boxInnerHeight + 80);
-  const H = Math.max(900, 310 + boxH + 130);
-  canvas.width = W;
-  canvas.height = H;
+  // Calculate book page height based on verses + handwritten header & footer
+  const VERSE_AREA_H = renderedVerses.reduce((acc, v) => acc + v.lines.length * LINE_H + 6, 0);
+  const PAGE_H = 196 + Math.max(VERSE_AREA_H, 180) + 130;
+  const H = PAGE_H + TABLE_PAD * 2;
 
-  // Draw background & grid
-  ctx.fillStyle = bg;
+  // Set up canvas dimensions
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Helper: Round-rect path
+  function rrPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+  function fillRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.fill(); }
+  function strokeRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.stroke(); }
+
+  // ── 1. Realistic Outer Desk / Table Surface with 3D Wooden Planks ──────────
+  // Base background
+  ctx.fillStyle = C_TABLE_BG;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.018)' : 'rgba(15,23,42,0.025)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 50) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += 50) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
+  // Draw realistic 3D wooden desk planks across the table surface
+  const PLANK_H = 180;
+  for (let py = 0; py < H; py += PLANK_H) {
+    // Individual plank gradient: lighter top bevel smoothly fading to deeper shadow at bottom
+    const pGrad = ctx.createLinearGradient(0, py, 0, py + PLANK_H);
+    if (isDark) {
+      pGrad.addColorStop(0, '#0f172a');
+      pGrad.addColorStop(0.5, '#080d17');
+      pGrad.addColorStop(1, '#050811');
+    } else {
+      pGrad.addColorStop(0, '#2e241c');
+      pGrad.addColorStop(0.5, '#231b15');
+      pGrad.addColorStop(1, '#19130e');
+    }
+    ctx.fillStyle = pGrad;
+    ctx.fillRect(0, py, W, PLANK_H);
 
-  // Top Gold Accent Strip
-  const topGrad = ctx.createLinearGradient(0, 0, W, 0);
-  topGrad.addColorStop(0, '#f59e0b');
-  topGrad.addColorStop(0.5, '#d4af37');
-  topGrad.addColorStop(1, '#b45309');
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, W, 10);
+    // Deep plank seam gap between adjacent boards
+    if (py + PLANK_H < H) {
+      ctx.fillStyle = isDark ? '#020408' : '#0e0b09';
+      ctx.fillRect(0, py + PLANK_H - 3, W, 3);
+      // Soft light highlight right below the gap where the next plank catches ambient light
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+      ctx.fillRect(0, py + PLANK_H, W, 1);
+    }
 
-  // Brand Header
-  ctx.fillStyle = accent;
-  ctx.font = '800 28px system-ui, sans-serif';
-  ctx.fillText('CBR CHALLENGER · DAILY BIBLE READING', 70, 75);
-
-  // Pill Badge
-  ctx.fillStyle = isDark ? '#1e293b' : '#e2e8f0';
-  ctx.beginPath();
-  roundRect(ctx, 70, 115, 290, 50, 25);
-  ctx.fill();
-  
-  ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
-  ctx.font = '700 22px system-ui, sans-serif';
-  ctx.fillText('DAILY CHAPTER READING', 95, 148);
-
-  // Main Reference Header
-  const titleText = cleanRefText.toUpperCase();
-  ctx.fillStyle = textCol;
-  ctx.font = '800 68px system-ui, sans-serif';
-  ctx.fillText(titleText, 70, 245);
-  
-  if (cleanRefText !== 'Starts Tomorrow' && cleanRefText !== 'Loading...' && cleanRefText !== 'Click to Load Verses') {
-    const refW = ctx.measureText(titleText).width;
-    const badgeX = Math.min(W - 160, 70 + refW + 24);
-    ctx.fillStyle = accent;
-    ctx.beginPath();
-    roundRect(ctx, badgeX, 195, 100, 56, 16);
-    ctx.fill();
-    
-    ctx.fillStyle = '#000000';
-    ctx.font = '800 32px system-ui, sans-serif';
-    ctx.fillText('NIV', badgeX + 22, 235);
+    // Subtle tactile wood grain lines inside each plank
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.12)';
+    ctx.lineWidth = 1;
+    for (let gy = py + 22; gy < py + PLANK_H - 12; gy += 24) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
   }
 
-  // Scripture Card Box
-  const boxY = 290;
+  // Soft table studio vignette lighting
+  const vig = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.75);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── 2. Physical Book Page Thickness Stack & Dramatic 3D Shadow ────────────
+  // Underlying physical pages stack (to give the notebook real 3D pad thickness)
   ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 15;
-  ctx.fillStyle = boxBg;
-  ctx.beginPath();
-  roundRect(ctx, 70, boxY, W - 140, boxH, 28);
-  ctx.fill();
+  for (let pOffset = 8; pOffset >= 2; pOffset -= 2) {
+    ctx.fillStyle = isDark ? '#060a12' : '#ede9dd';
+    fillRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    strokeRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
+  }
   ctx.restore();
 
-  ctx.strokeStyle = boxBorder;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  roundRect(ctx, 70, boxY, W - 140, boxH, 28);
-  ctx.stroke();
+  // Main top notebook page with ambient drop shadow
+  ctx.save();
+  ctx.shadowColor   = isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.7)';
+  ctx.shadowBlur    = 54;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 24;
+  ctx.fillStyle     = C_PAGE_BG;
+  fillRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
+  ctx.restore();
 
-  // Left Gold Accent inside Box
-  ctx.fillStyle = accent;
-  ctx.beginPath();
-  roundRect(ctx, 70, boxY, 8, boxH, [28, 0, 0, 28]);
-  ctx.fill();
+  // Top page outer edge border
+  ctx.strokeStyle = C_BORDER; ctx.lineWidth = 1.5;
+  strokeRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
 
-  // Draw Verses inside Box
-  let currentY = boxY + 65;
-  renderPassages.forEach(pl => {
-    if (pl.showRef) {
-      ctx.fillStyle = accent;
-      ctx.font = '800 32px system-ui, sans-serif';
-      ctx.fillText(`[${pl.ref}]`, 130, currentY);
-      currentY += 50;
-    }
-    
-    pl.verses.forEach(v => {
-      if (v.num) {
-        ctx.fillStyle = accent;
-        ctx.font = '800 34px system-ui, sans-serif';
-        ctx.fillText(v.num, 130, currentY);
+  // Clip all interior lines and rings to the rounded book page boundary
+  ctx.save();
+  rrPath(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
+  ctx.clip();
+
+  // Continuous horizontal ruled lines across the entire page
+  ctx.strokeStyle = C_RULE_LINE; ctx.lineWidth = 1;
+  for (let ry = PAGE_Y + 70; ry < PAGE_Y + PAGE_H - 80; ry += LINE_H) {
+    ctx.beginPath(); ctx.moveTo(PAGE_X + 110, ry); ctx.lineTo(PAGE_X + PAGE_W - 24, ry); ctx.stroke();
+  }
+
+  // Continuous vertical red/crimson margin line from top to bottom edge
+  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y); ctx.lineTo(MARG_LINE_X, PAGE_Y + PAGE_H); ctx.stroke();
+
+  // Continuous spiral binding holes & 3D metallic wire rings along the left edge
+  for (let dy = PAGE_Y + 40; dy < PAGE_Y + PAGE_H - 30; dy += LINE_H) {
+    // 3D curved metallic binding ring looping out of the hole around the left edge
+    ctx.save();
+    ctx.shadowColor   = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur    = 6;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+    ctx.strokeStyle   = isDark ? '#475569' : '#94a3b8';
+    ctx.lineWidth     = 5;
+    ctx.lineCap       = 'round';
+    ctx.beginPath();
+    ctx.moveTo(DOTS_X - 4, dy);
+    ctx.bezierCurveTo(DOTS_X - 28, dy - 8, DOTS_X - 28, dy + 12, DOTS_X - 4, dy + 4);
+    ctx.stroke();
+    ctx.restore();
+
+    // Punched circular binder hole
+    ctx.fillStyle   = C_DOT_BG;
+    ctx.strokeStyle = C_DOT_BORDER;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath(); ctx.arc(DOTS_X, dy, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  // ── 3. Pure Handwritten Top Header Rows ───────────────────────────────────
+  // Row 1: Brand topic (left) & Date (right)
+  const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  ctx.fillStyle = C_INK_TOPIC;
+  ctx.font      = `400 32px ${FONT_HAND}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('CBR Challenger \u00b7 daily chapter reading', VERSE_X, PAGE_Y + 54);
+
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 26px ${FONT_HAND}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(todayDate, PAGE_X + PAGE_W - 36, PAGE_Y + 52);
+
+  // Row 2: Passage Title (left) & Tracking Badge (right)
+  const cycleSubEl = document.getElementById('today-cycle-sub');
+  const cycleText  = cycleSubEl ? cycleSubEl.innerText.replace(/Day (\d+) of \d+/, 'Day $1') : 'Day 1 \u00b7 Week 1 \u00b7 Card A';
+  ctx.fillStyle = C_INK_MAIN;
+  ctx.font      = `400 46px ${FONT_HAND}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(cleanRef, VERSE_X, PAGE_Y + 122);
+
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 26px ${FONT_HAND}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(cycleText, PAGE_X + PAGE_W - 36, PAGE_Y + 118);
+
+  // Double red separator rule right below the title row
+  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 148); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 148); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 154); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 154); ctx.stroke();
+
+  // ── 4. Handwritten Body Verses (Centered exactly between ruled lines) ─────
+  // First verse baseline sits exactly 16px above ry = PAGE_Y + 206
+  let verseY = PAGE_Y + 190;
+  renderedVerses.forEach(v => {
+    v.lines.forEach((line, li) => {
+      const lineY = verseY + li * LINE_H;
+      if (li === 0 && v.num) {
+        // Verse number completely handwritten in pen ink in the margin
+        ctx.fillStyle = C_VERSE_NUM;
+        ctx.font      = `400 30px ${FONT_HAND}`;
+        ctx.textAlign = 'right';
+        ctx.fillText(v.num, MARG_LINE_X - 12, lineY);
       }
-      
-      ctx.fillStyle = textCol;
-      ctx.font = '500 42px Georgia, serif';
-      const textStartX = v.num ? 200 : 130;
-      
-      v.lines.forEach(line => {
-        ctx.fillText(line, textStartX, currentY);
-        currentY += 58;
-      });
-      currentY += 26;
+      // Handwritten verse text sitting exactly centered inside the ruled row
+      ctx.fillStyle = C_INK_MAIN;
+      ctx.font      = `400 48px ${FONT_HAND}`;
+      ctx.textAlign = 'left';
+      const textIndent = (li === 0 && v.num) ? VERSE_X + 24 : VERSE_X;
+      ctx.fillText(line, textIndent, lineY);
     });
+    // Advance by exact multiples of LINE_H so every subsequent verse is locked to the center of the grid
+    verseY += v.lines.length * LINE_H;
   });
 
-  // Footer
-  ctx.fillStyle = mutedCol;
-  ctx.font = '600 24px system-ui, sans-serif';
-  ctx.fillText(`CBRSM Challenger · Daily Scripture Memory • Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 70, H - 55);
+  // ── 5. Handwritten Footer ─────────────────────────────────────────────────
+  const footerY = PAGE_Y + PAGE_H - 74;
+  ctx.fillStyle = C_INK_MAIN;
+  ctx.font      = `400 30px ${FONT_HAND}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Read \u00b7 meditate \u00b7 pray \u00b7 journal', PAGE_X + PAGE_W / 2, footerY);
 
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 24px ${FONT_HAND}`;
+  ctx.fillText('cbr-challenger.com \u00b7 Consistency Bible Reading Challenge', PAGE_X + PAGE_W / 2, footerY + 36);
+
+  ctx.restore();
+
+  // ── 6. Download PNG ───────────────────────────────────────────────────────
+  const safeRef = cleanRef.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
   canvas.toBlob(blob => {
-    if (!blob) {
-      const link = document.createElement('a');
-      link.download = `cbr-daily-reading.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      return;
-    }
-    const url = URL.createObjectURL(blob);
+    const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = `cbr-daily-reading.png`;
+    link.download = 'cbr-daily-' + safeRef + '.png';
     link.href = url;
     document.body.appendChild(link);
     link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 150);
+    setTimeout(() => { document.body.removeChild(link); if (blob) URL.revokeObjectURL(url); }, 150);
   }, 'image/png');
 }
-
 // ── Study Questions: Bible Reference Chips ───────────────────────────────────
 
 // Helper: returns strict regex matching only known Bible books + chapter:verse
