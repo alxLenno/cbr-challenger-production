@@ -668,19 +668,27 @@ function shareJournalWhatsApp() {
   window.open(url, '_blank');
 }
 
-function downloadJournalImage() {
+async function downloadJournalImage() {
   const canvas = document.getElementById('today-journal-canvas');
   const data = window.getActiveData ? getActiveData() : null;
   if (!canvas || !data) return;
 
-  const isDark = !document.body.classList.contains('light-mode');
-  const bg = isDark ? '#0b1120' : '#f8fafc';
-  const panelBg = isDark ? '#1e293b' : '#ffffff';
-  const textCol = isDark ? '#f0f4ff' : '#0f172a';
-  const headingCol = isDark ? '#f0f4ff' : '#0f172a';
-  const sectionCol = isDark ? '#38bdf8' : '#0284c7';
-  const bodyCol = isDark ? '#e2e8f0' : '#1e293b';
+  // Ensure Patrick Hand font is fully loaded across all sizes before canvas measures or draws
+  try {
+    if (document.fonts && document.fonts.load) {
+      await document.fonts.load('48px "Patrick Hand"');
+      await document.fonts.load('46px "Patrick Hand"');
+      await document.fonts.load('44px "Patrick Hand"');
+      await document.fonts.load('34px "Patrick Hand"');
+      await document.fonts.load('32px "Patrick Hand"');
+      await document.fonts.load('30px "Patrick Hand"');
+      await document.fonts.load('26px "Patrick Hand"');
+    }
+  } catch (e) {
+    console.warn("Could not load Patrick Hand font explicitly:", e);
+  }
 
+  const isDark = !document.body.classList.contains('light-mode');
   const todayStr = _getLocalTodayStr();
   let dayNum = 1;
   if (data.commencingDate) {
@@ -692,27 +700,10 @@ function downloadJournalImage() {
   const dayData = _normalizeDayDataJournal(dayDataRaw);
   const method = (dayData.studyMethod || 'FID').toUpperCase();
 
-  const W = 1080;
-  let lines = [];
-  
-  // Header section
-  lines.push({ text: `CBRSM CHALLENGER · DEVOTIONAL JOURNAL`, font: 'bold 20px system-ui, sans-serif', color: '#f59e0b', height: 20, spaceAfter: 25 });
-  
-  const userName = data.username && data.username !== "Trainee" ? data.username : "";
-  const userPeg = data.peg || "";
-  const userCohort = data.cohort || "";
-  let metaInfo = [userName, userPeg ? `PEG: ${userPeg}` : "", userCohort ? `Cohort: ${userCohort}` : ""].filter(Boolean).join("  •  ");
-  if (metaInfo) {
-    lines.push({ text: `Day ${dayNum} Reflection`, font: 'bold 42px system-ui, sans-serif', color: headingCol, height: 42, spaceAfter: 20 });
-    lines.push({ text: metaInfo, font: '600 24px system-ui, sans-serif', color: isDark ? '#94a3b8' : '#64748b', height: 24, spaceAfter: 50 });
-  } else {
-    lines.push({ text: `Day ${dayNum} Reflection`, font: 'bold 42px system-ui, sans-serif', color: headingCol, height: 42, spaceAfter: 50 });
-  }
-
+  let sections = [];
   const addSection = (label, val) => {
     if (!val) return;
-    lines.push({ text: label, font: 'bold 22px system-ui, sans-serif', color: sectionCol, isSectionLabel: true, height: 22, spaceAfter: 25 });
-    lines.push({ text: val, font: '28px Georgia, serif', color: bodyCol, wrap: true, height: 28, lineHeight: 42, spaceAfter: 45 });
+    sections.push({ label, text: val });
   };
 
   if (method === 'OPEN') {
@@ -734,117 +725,245 @@ function downloadJournalImage() {
     addSection('DEED / DOING (FRUIT)', dayData.difFruit || dayData.fidDoing);
   }
 
-  // Calculate exact height needed using top textBaseline
-  let dummyCanvas = document.createElement('canvas');
-  dummyCanvas.width = W;
-  let dCtx = dummyCanvas.getContext('2d');
-  dCtx.textBaseline = 'top';
-  
-  let totalH = 80; // Top margin
-  lines.forEach(l => {
-    if (l.wrap) {
-      dCtx.font = l.font;
-      const words = l.text.split(' ');
-      let curLine = '';
-      let lineCount = 1;
-      for (let i = 0; i < words.length; i++) {
-        let test = curLine + words[i] + ' ';
-        if (dCtx.measureText(test).width > W - 200 && i > 0) {
-          curLine = words[i] + ' ';
-          lineCount++;
-        } else {
-          curLine = test;
-        }
-      }
-      totalH += (lineCount * (l.lineHeight || 42)) + l.spaceAfter;
-    } else {
-      totalH += l.height + l.spaceAfter;
+  // ── Dimensions & Table + Page Composition ──────────────────────────────────
+  const W         = 1280;
+  const SCALE     = 2;
+  const TABLE_PAD = 120;
+  const PAGE_X    = TABLE_PAD;
+  const PAGE_Y    = TABLE_PAD;
+  const PAGE_W    = W - TABLE_PAD * 2;
+
+  const C_TABLE_BG    = isDark ? '#080d17' : '#231b15';
+  const C_PAGE_BG     = isDark ? '#0b1220' : '#fdfcf8';
+  const C_RULE_LINE   = isDark ? 'rgba(255, 255, 255, 0.08)' : '#c3cedd';
+  const C_MARGIN_LINE = isDark ? '#e11d48' : '#d99a9a';
+  const C_DOT_BG      = isDark ? '#1e293b' : '#eceadd';
+  const C_DOT_BORDER  = isDark ? '#334155' : '#cfc9b8';
+  const C_VERSE_NUM   = isDark ? '#fbbf24' : '#9a3b3b';
+  const C_INK_MAIN    = isDark ? '#f1f5f9' : '#1e293b';
+  const C_INK_TOPIC   = isDark ? '#d4af37' : '#1e293b';
+  const C_INK_SUB     = isDark ? '#94a3b8' : '#4b5563';
+  const C_BORDER      = isDark ? '#1e293b' : '#d9d4c4';
+
+  const MARG_LINE_X = PAGE_X + 112;
+  const VERSE_X     = MARG_LINE_X + 16;
+  const DOTS_X      = PAGE_X + 44;
+  const FONT_HAND   = '"Patrick Hand", cursive';
+  const LINE_H      = 68;
+
+  // Measure wrapped section text inside the page bounds
+  const tempCtx = document.createElement('canvas').getContext('2d');
+  tempCtx.font = `400 44px ${FONT_HAND}`;
+  const TEXT_MAX_W = PAGE_W - (VERSE_X - PAGE_X) - 36;
+  function wrapWords(c, text, maxW) {
+    const words = (text || '').split(' ');
+    const lines = []; let line = '';
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (c.measureText(t).width > maxW && line) { lines.push(line); line = w; }
+      else { line = t; }
     }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  const renderedSections = sections.map(s => {
+    return { label: s.label, lines: wrapWords(tempCtx, s.text, TEXT_MAX_W) };
   });
-  totalH += 100; // Bottom margin + footer
-  const H = Math.max(500, totalH);
 
-  canvas.width = W;
-  canvas.height = H;
+  // Calculate exact body row count so that top header and bottom footer are strictly 2 lines in height (136px = 2 * LINE_H) each
+  const numRows = Math.max(renderedSections.reduce((acc, s) => acc + (1 + s.lines.length + 1), 0), 4);
+  const PAGE_H = (2 + numRows + 2) * LINE_H; // Exactly 2 lines top header (136px) + body grid rows + 2 lines bottom footer (136px)
+  const H = PAGE_H + TABLE_PAD * 2;
+
+  canvas.width  = W * SCALE;
+  canvas.height = H * SCALE;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
-  ctx.textBaseline = 'top';
+  ctx.scale(SCALE, SCALE);
 
-  // Fill Page Background
-  ctx.fillStyle = bg;
+  function rrPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+  function fillRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.fill(); }
+  function strokeRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.stroke(); }
+
+  // 1. Desk background
+  ctx.fillStyle = C_TABLE_BG;
   ctx.fillRect(0, 0, W, H);
 
-  // Draw main document container
-  ctx.fillStyle = panelBg;
-  roundRect(ctx, 40, 40, W - 80, H - 80, 20);
-  ctx.fill();
-
-  // Top accent bar across the top edge of the document
-  ctx.fillStyle = '#f59e0b';
-  roundRect(ctx, 40, 40, W - 80, 8, [20, 20, 0, 0]);
-  ctx.fill();
-
-  let currentY = 80;
-  lines.forEach(l => {
-    if (l.isSectionLabel) {
-      ctx.font = l.font;
-      const textW = ctx.measureText(l.text).width || 200;
-      
-      // Draw small decorative pill around the section heading (centered vertically with top baseline)
-      ctx.fillStyle = isDark ? 'rgba(56,189,248,0.18)' : 'rgba(14,165,233,0.12)';
-      roundRect(ctx, 76, currentY - 6, textW + 28, l.height + 14, 8);
-      ctx.fill();
-
-      ctx.fillStyle = l.color;
-      ctx.fillText(l.text, 90, currentY);
-      currentY += l.height + l.spaceAfter;
-    } else if (l.wrap) {
-      ctx.fillStyle = l.color;
-      ctx.font = l.font;
-      const words = l.text.split(' ');
-      let curLine = '';
-      for (let i = 0; i < words.length; i++) {
-        let test = curLine + words[i] + ' ';
-        if (ctx.measureText(test).width > W - 200 && i > 0) {
-          ctx.fillText(curLine, 90, currentY);
-          curLine = words[i] + ' ';
-          currentY += (l.lineHeight || 42);
-        } else {
-          curLine = test;
-        }
-      }
-      ctx.fillText(curLine, 90, currentY);
-      currentY += l.height + l.spaceAfter;
+  const PLANK_H = 180;
+  for (let py = 0; py < H; py += PLANK_H) {
+    const pGrad = ctx.createLinearGradient(0, py, 0, py + PLANK_H);
+    if (isDark) {
+      pGrad.addColorStop(0, '#0f172a');
+      pGrad.addColorStop(0.5, '#080d17');
+      pGrad.addColorStop(1, '#050811');
     } else {
-      ctx.fillStyle = l.color;
-      ctx.font = l.font;
-      ctx.fillText(l.text, 80, currentY);
-      currentY += l.height + l.spaceAfter;
+      pGrad.addColorStop(0, '#2e241c');
+      pGrad.addColorStop(0.5, '#231b15');
+      pGrad.addColorStop(1, '#19130e');
     }
-  });
+    ctx.fillStyle = pGrad;
+    ctx.fillRect(0, py, W, PLANK_H);
 
-  // Footer inside bottom right of document
-  ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
-  ctx.font = '500 20px system-ui, sans-serif';
-  ctx.fillText(`Generated on ${new Date().toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}`, 80, H - 70);
+    if (py + PLANK_H < H) {
+      ctx.fillStyle = isDark ? '#020408' : '#0e0b09';
+      ctx.fillRect(0, py + PLANK_H - 3, W, 3);
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)';
+      ctx.fillRect(0, py + PLANK_H, W, 1);
+    }
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.12)';
+    ctx.lineWidth = 1;
+    for (let gy = py + 22; gy < py + PLANK_H - 12; gy += 24) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+  }
 
+  const vig = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.75);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+
+  // 2. Physical Book Page Thickness Stack
+  ctx.save();
+  for (let pOffset = 8; pOffset >= 2; pOffset -= 2) {
+    ctx.fillStyle = isDark ? '#060a12' : '#ede9dd';
+    fillRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 1;
+    strokeRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.shadowColor   = isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.7)';
+  ctx.shadowBlur    = 54;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 24;
+  ctx.fillStyle     = C_PAGE_BG;
+  fillRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
+  ctx.restore();
+
+  ctx.strokeStyle = C_BORDER; ctx.lineWidth = 1.5;
+  strokeRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
+
+  ctx.save();
+  rrPath(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
+  ctx.clip();
+
+  // Continuous horizontal ruled lines across the body writing area only (exactly numRows lines!)
+  // Top 2-line header space (136px) and bottom 2-line footer space (136px) are unruled
+  ctx.strokeStyle = C_RULE_LINE; ctx.lineWidth = 1;
+  for (let ry = PAGE_Y + 136 + LINE_H; ry <= PAGE_Y + 136 + numRows * LINE_H; ry += LINE_H) {
+    ctx.beginPath(); ctx.moveTo(PAGE_X + 110, ry); ctx.lineTo(PAGE_X + PAGE_W - 24, ry); ctx.stroke();
+  }
+
+  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y); ctx.lineTo(MARG_LINE_X, PAGE_Y + PAGE_H); ctx.stroke();
+
+  for (let dy = PAGE_Y + 40; dy < PAGE_Y + PAGE_H - 30; dy += LINE_H) {
+    ctx.save();
+    ctx.shadowColor   = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur    = 6;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+    ctx.strokeStyle   = isDark ? '#475569' : '#94a3b8';
+    ctx.lineWidth     = 5;
+    ctx.lineCap       = 'round';
+    ctx.beginPath();
+    ctx.moveTo(DOTS_X - 4, dy);
+    ctx.bezierCurveTo(DOTS_X - 28, dy - 8, DOTS_X - 28, dy + 12, DOTS_X - 4, dy + 4);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle   = C_DOT_BG;
+    ctx.strokeStyle = C_DOT_BORDER;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath(); ctx.arc(DOTS_X, dy, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+
+  // ── 3. Pure Handwritten Top Header Block (Two-Line Height Unruled Space = 136px) ──
+  const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  ctx.fillStyle = C_INK_TOPIC;
+  ctx.font      = `400 32px ${FONT_HAND}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('CBR Challenger \u00b7 devotional journal reflection', VERSE_X, PAGE_Y + 50);
+
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 26px ${FONT_HAND}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(todayDate, PAGE_X + PAGE_W - 36, PAGE_Y + 48);
+
+  ctx.fillStyle = C_INK_MAIN;
+  ctx.font      = `400 46px ${FONT_HAND}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(`Day ${dayNum} Reflection`, VERSE_X, PAGE_Y + 118);
+
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 26px ${FONT_HAND}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`Study Method: ${method}`, PAGE_X + PAGE_W - 36, PAGE_Y + 114);
+
+  // Double red separator rule forming the top horizontal border of the first text rule right at y = 130/136
+  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 130); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 130); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 136); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 136); ctx.stroke();
+
+  // ── 4. Handwritten Body Reflection Sections (Inside writing grid below double red rule) ──
+  let currY = PAGE_Y + 188;
+  if (renderedSections.length === 0) {
+    ctx.fillStyle = C_INK_SUB;
+    ctx.font      = `400 34px ${FONT_HAND}`;
+    ctx.fillText('No journal entries recorded for today.', VERSE_X, currY);
+  } else {
+    renderedSections.forEach(sec => {
+      ctx.fillStyle = C_VERSE_NUM;
+      ctx.font      = `400 32px ${FONT_HAND}`;
+      ctx.textAlign = 'left';
+      ctx.fillText(`\u25b6  ${sec.label}`, VERSE_X, currY);
+      currY += LINE_H;
+
+      ctx.fillStyle = C_INK_MAIN;
+      ctx.font      = `400 44px ${FONT_HAND}`;
+      sec.lines.forEach(lineText => {
+        ctx.fillText(lineText, VERSE_X + 24, currY);
+        currY += LINE_H;
+      });
+
+      currY += LINE_H;
+    });
+  }
+
+  // ── 5. Handwritten Footer (Exactly Two Lines in Height Unruled Space = 136px, Vertically & Horizontally Centered) ──
+  const colCenterX = MARG_LINE_X + (PAGE_X + PAGE_W - MARG_LINE_X) / 2;
+  ctx.fillStyle = C_INK_MAIN;
+  ctx.font      = `400 30px ${FONT_HAND}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Read \u00b7 meditate \u00b7 pray \u00b7 journal', colCenterX, PAGE_Y + PAGE_H - 82);
+
+  ctx.fillStyle = C_INK_SUB;
+  ctx.font      = `400 24px ${FONT_HAND}`;
+  ctx.fillText('cbr-challenger.com \u00b7 Consistency Bible Reading Challenge', colCenterX, PAGE_Y + PAGE_H - 42);
+
+  ctx.restore();
+
+  // ── 6. Download PNG ───────────────────────────────────────────────────────
   canvas.toBlob(blob => {
-    if (!blob) {
-      const link = document.createElement('a');
-      link.download = `cbr-journal-day-${dayNum}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      return;
-    }
-    const url = URL.createObjectURL(blob);
+    const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = `cbr-journal-day-${dayNum}.png`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 150);
+    setTimeout(() => { document.body.removeChild(link); if (blob) URL.revokeObjectURL(url); }, 150);
   }, 'image/png');
 }
 
@@ -1012,9 +1131,9 @@ async function downloadDailyCard() {
     return { num: v.num, lines };
   });
 
-  // Calculate book page height based on verses + handwritten header & footer
-  const VERSE_AREA_H = renderedVerses.reduce((acc, v) => acc + v.lines.length * LINE_H + 6, 0);
-  const PAGE_H = 196 + Math.max(VERSE_AREA_H, 180) + 130;
+  // Calculate exact body row count so that top header and bottom footer are strictly 2 lines in height (136px = 2 * LINE_H) each
+  const numRows = Math.max(renderedVerses.reduce((acc, v) => acc + v.lines.length, 0), 4);
+  const PAGE_H = (2 + numRows + 2) * LINE_H; // Exactly 2 lines top header (136px) + body grid rows + 2 lines bottom footer (136px)
   const H = PAGE_H + TABLE_PAD * 2;
 
   // Set up canvas dimensions
@@ -1114,9 +1233,10 @@ async function downloadDailyCard() {
   rrPath(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
   ctx.clip();
 
-  // Continuous horizontal ruled lines across the entire page
+  // Continuous horizontal ruled lines across the body writing area only (exactly numRows lines!)
+  // Top 2-line header space (136px) and bottom 2-line footer space (136px) are unruled
   ctx.strokeStyle = C_RULE_LINE; ctx.lineWidth = 1;
-  for (let ry = PAGE_Y + 70; ry < PAGE_Y + PAGE_H - 80; ry += LINE_H) {
+  for (let ry = PAGE_Y + 136 + LINE_H; ry <= PAGE_Y + 136 + numRows * LINE_H; ry += LINE_H) {
     ctx.beginPath(); ctx.moveTo(PAGE_X + 110, ry); ctx.lineTo(PAGE_X + PAGE_W - 24, ry); ctx.stroke();
   }
 
@@ -1148,40 +1268,40 @@ async function downloadDailyCard() {
     ctx.beginPath(); ctx.arc(DOTS_X, dy, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   }
 
-  // ── 3. Pure Handwritten Top Header Rows ───────────────────────────────────
-  // Row 1: Brand topic (left) & Date (right)
+  // ── 3. Pure Handwritten Top Header Block (Two-Line Height Unruled Space = 136px) ──
+  // Row 1: Brand topic (left) & Date (right) in upper half of 2-line header
   const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   ctx.fillStyle = C_INK_TOPIC;
   ctx.font      = `400 32px ${FONT_HAND}`;
   ctx.textAlign = 'left';
-  ctx.fillText('CBR Challenger \u00b7 daily chapter reading', VERSE_X, PAGE_Y + 54);
+  ctx.fillText('CBR Challenger \u00b7 daily chapter reading', VERSE_X, PAGE_Y + 50);
 
   ctx.fillStyle = C_INK_SUB;
   ctx.font      = `400 26px ${FONT_HAND}`;
   ctx.textAlign = 'right';
-  ctx.fillText(todayDate, PAGE_X + PAGE_W - 36, PAGE_Y + 52);
+  ctx.fillText(todayDate, PAGE_X + PAGE_W - 36, PAGE_Y + 48);
 
-  // Row 2: Passage Title (left) & Tracking Badge (right)
+  // Row 2: Passage Title (left) & Tracking Badge (right) right above the double red rule
   const cycleSubEl = document.getElementById('today-cycle-sub');
   const cycleText  = cycleSubEl ? cycleSubEl.innerText.replace(/Day (\d+) of \d+/, 'Day $1') : 'Day 1 \u00b7 Week 1 \u00b7 Card A';
   ctx.fillStyle = C_INK_MAIN;
   ctx.font      = `400 46px ${FONT_HAND}`;
   ctx.textAlign = 'left';
-  ctx.fillText(cleanRef, VERSE_X, PAGE_Y + 122);
+  ctx.fillText(cleanRef, VERSE_X, PAGE_Y + 118);
 
   ctx.fillStyle = C_INK_SUB;
   ctx.font      = `400 26px ${FONT_HAND}`;
   ctx.textAlign = 'right';
-  ctx.fillText(cycleText, PAGE_X + PAGE_W - 36, PAGE_Y + 118);
+  ctx.fillText(cycleText, PAGE_X + PAGE_W - 36, PAGE_Y + 114);
 
-  // Double red separator rule right below the title row
+  // Double red separator rule forming the top horizontal border of the first text rule right at y = 130/136
   ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 148); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 148); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 154); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 154); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 130); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 130); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 136); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 136); ctx.stroke();
 
-  // ── 4. Handwritten Body Verses (Centered exactly between ruled lines) ─────
-  // First verse baseline sits exactly 16px above ry = PAGE_Y + 206
-  let verseY = PAGE_Y + 190;
+  // ── 4. Handwritten Body Verses (Inside writing grid below double red rule) ──
+  // First verse baseline sits exactly 16px above the first blue ruled line (ry_1 = PAGE_Y + 204)
+  let verseY = PAGE_Y + 188;
   renderedVerses.forEach(v => {
     v.lines.forEach((line, li) => {
       const lineY = verseY + li * LINE_H;
@@ -1203,16 +1323,16 @@ async function downloadDailyCard() {
     verseY += v.lines.length * LINE_H;
   });
 
-  // ── 5. Handwritten Footer ─────────────────────────────────────────────────
-  const footerY = PAGE_Y + PAGE_H - 74;
+  // ── 5. Handwritten Footer (Exactly Two Lines in Height Unruled Space = 136px, Vertically & Horizontally Centered) ──
+  const colCenterX = MARG_LINE_X + (PAGE_X + PAGE_W - MARG_LINE_X) / 2;
   ctx.fillStyle = C_INK_MAIN;
   ctx.font      = `400 30px ${FONT_HAND}`;
   ctx.textAlign = 'center';
-  ctx.fillText('Read \u00b7 meditate \u00b7 pray \u00b7 journal', PAGE_X + PAGE_W / 2, footerY);
+  ctx.fillText('Read \u00b7 meditate \u00b7 pray \u00b7 journal', colCenterX, PAGE_Y + PAGE_H - 82);
 
   ctx.fillStyle = C_INK_SUB;
   ctx.font      = `400 24px ${FONT_HAND}`;
-  ctx.fillText('cbr-challenger.com \u00b7 Consistency Bible Reading Challenge', PAGE_X + PAGE_W / 2, footerY + 36);
+  ctx.fillText('cbr-challenger.com \u00b7 Consistency Bible Reading Challenge', colCenterX, PAGE_Y + PAGE_H - 42);
 
   ctx.restore();
 
