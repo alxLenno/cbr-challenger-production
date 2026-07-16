@@ -67,13 +67,13 @@ def serve_login():
 
 @app.route('/<path:filename>')
 def serve_root_files(filename):
-    """Serve static documents (PDFs, docs) requested from root URL or static/pdfs."""
-    if filename.lower().endswith(('.pdf', '.doc', '.docx', '.txt', '.zip')):
+    """Serve static documents (PDFs, docs, SVGs) requested from root URL or static/pdfs."""
+    if filename.lower().endswith(('.pdf', '.doc', '.docx', '.txt', '.zip', '.svg', '.png', '.jpg', '.jpeg')):
         pdfs_dir = os.path.join(basedir, 'static', 'pdfs')
         if os.path.exists(os.path.join(pdfs_dir, filename)):
             return send_from_directory(pdfs_dir, filename, as_attachment=True)
         if os.path.exists(os.path.join(basedir, filename)):
-            return send_from_directory(basedir, filename, as_attachment=True)
+            return send_from_directory(basedir, filename, as_attachment=False if filename.lower().endswith(('.svg', '.png', '.jpg', '.jpeg')) else True)
     abort(404)
 
 

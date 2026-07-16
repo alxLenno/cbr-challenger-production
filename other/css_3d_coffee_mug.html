@@ -1,0 +1,139 @@
+<style>
+.container {
+    position: relative;
+    top: 50px;
+}
+
+.coffe-cup {
+    height: 200px;
+    position: relative;
+    width: 250px;
+    background-color: #b80000;
+    border-radius: 20% 20% 70% 70%;
+    margin-top: 50px;
+    z-index: 999;
+}
+
+.coffe-cup::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    width: 220px;
+    height: 70px;
+    background-color: #6f4e37;
+    border-radius: 50%;
+    box-shadow: inset 0 0 15px #000, inset 15px 0px 15px #d7b787;
+    border: 15px solid #f1f1f1;
+}
+
+.coffe-cup::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: 30px;
+    width: 50px;
+    height: 75px;
+    transform: rotate(10deg);
+    border-radius: 50% 40% 120px 0;
+    border: 18px solid #b80000;
+}
+
+.plate {
+    position: absolute;
+    bottom: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 200px;
+    background: linear-gradient(to right, #f9f9f9, #e7e7e7);
+    border-radius: 50%;
+    box-shadow: 0 35px 35px rgba(0, 0, 0, 0.2);
+}
+
+.plate::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border-radius: 50%;
+    background: linear-gradient(to left, #f9f9f9, #e7e7e7);
+}
+
+.plate::after {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    right: 30px;
+    bottom: 30px;
+    border-radius: 50%;
+    background: radial-gradient(#f006 25%, transparent, transparent);
+}
+
+.vapour {
+    position: relative;
+    display: flex;
+    z-index: 1;
+    padding: 0 50px;
+}
+
+.vapour span {
+    position: relative;
+    bottom: 60px;
+    display: block;
+    margin: 0 2px 50px;
+    min-width: 8px;
+    height: 120px;
+    background: #fff;
+    border-radius: 50%;
+    animation: animate 5s linear infinite;
+    filter: blur(10px);
+}
+
+@keyframes animate {
+    0% {
+        transform: translateY(0) scaleX(1);
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    25% {
+        opacity: 0.5;
+    }
+    50% {
+        transform: translateY(-150px) scaleX(5);
+        opacity: 0.6;
+    }
+    95% {
+        opacity: 0.2;
+    }
+    100% {
+        transform: translateY(-300px) scaleX(10);
+        opacity: 0;
+    }
+}
+</style>
+<div style="background:#001c65;display:flex;justify-content:center;align-items:center;min-height:400px;padding-bottom:80px;">
+<div class="container">
+    <div class="plate"></div>
+    <div class="coffe-cup">
+        <div class="vapour">
+            <span style="animation-delay: calc(1* -0.5s);"></span>
+            <span style="animation-delay: calc(3* -0.5s);"></span>
+            <span style="animation-delay: calc(16* -0.5s);"></span>
+            <span style="animation-delay: calc(5* -0.5s);"></span>
+            <span style="animation-delay: calc(13* -0.5s);"></span>
+            <span style="animation-delay: calc(20* -0.5s);"></span>
+            <span style="animation-delay: calc(6* -0.5s);"></span>
+            <span style="animation-delay: calc(7* -0.5s);"></span>
+            <span style="animation-delay: calc(10* -0.5s);"></span>
+            <span style="animation-delay: calc(8* -0.5s);"></span>
+            <span style="animation-delay: calc(17* -0.5s);"></span>
+            <span style="animation-delay: calc(11* -0.5s);"></span>
+        </div>
+    </div>
+</div>
+</div>

@@ -477,6 +477,7 @@ function renderToday() {
   
   window.currentDailyRef = readingDayIndex > 0 ? dailyRef : null;
   window.currentDailyChapter = storedChapter;
+  window.readingDayIndex = readingDayIndex;
   
   if (dailyTitle) dailyTitle.textContent = storedChapter;
   if (dailyTarget) dailyTarget.textContent = targetText;
@@ -990,13 +991,33 @@ async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
   const vText = document.getElementById('today-daily-text');
   const vRef  = document.getElementById('today-daily-ref');
 
-  if (vRef) vRef.textContent = "Loading...";
-  if (vText) vText.innerHTML = '<span class="loading-pulse">Fetching verses...</span>';
+  if (vRef) vRef.textContent = "Loading 2-Page Spread...";
+  if (vText) vText.innerHTML = '<span class="loading-pulse">Fetching previous and current verses...</span>';
+
+  // Calculate previous reading reference for the left page
+  let prevRef = null;
+  if (window.readingDayIndex && window.readingDayIndex > 1 && window.currentDailyChapter) {
+    const prevStart = (window.readingDayIndex - 2) * 7 + 1;
+    const prevEnd   = (window.readingDayIndex - 1) * 7;
+    prevRef = `${window.currentDailyChapter}:${prevStart}-${prevEnd}`;
+  } else {
+    const m = ref.match(/^(.+?):(\d+)-(\d+)$/);
+    if (m && parseInt(m[2]) > 7) {
+      const book = m[1];
+      const start = parseInt(m[2]);
+      const end = parseInt(m[3]);
+      prevRef = `${book}:${Math.max(1, start - 7)}-${start - 1}`;
+    }
+  }
 
   try {
-    const res = await fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`);
-    if (!res.ok) {
-      if (res.status === 404) {
+    const [currentRes, prevRes] = await Promise.all([
+      fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`),
+      prevRef ? fetch(`/api/bible/verse?ref=${encodeURIComponent(prevRef)}&version=${encodeURIComponent(version)}`) : Promise.resolve(null)
+    ]);
+
+    if (!currentRes.ok) {
+      if (currentRes.status === 404) {
         if (vRef) vRef.textContent = `Completed`;
         if (vText) vText.innerHTML = `<p class="today-accord-empty">Chapter Completed for this Card! Great job. You can update your Target Chapter to start a new one.</p>`;
       } else {
@@ -1004,349 +1025,525 @@ async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
       }
       return;
     }
-    
-    const data = await res.json();
-    if (vRef) vRef.textContent = `${data.reference} (${data.version})`;
-    
-    if (data.passages && data.passages.length > 0) {
-      if (vText) {
-        vText.innerHTML = `<div style="display: flex; flex-direction: column; gap: 1.4rem; margin-top: 0.4rem; width: 100%;">` +
+
+    const currentData = await currentRes.json();
+    let prevData = null;
+    if (prevRes && prevRes.ok) {
+      prevData = await prevRes.json();
+    } else {
+      prevData = {
+        reference: `${window.currentDailyChapter || ref.split(':')[0]} · Chapter Start`,
+        version: version,
+        passages: [{
+          reference: 'Divine Encounter · Step 1',
+          text: `Welcome to ${window.currentDailyChapter || ref.split(':')[0]}! As you read today's passage on the right page, let this open notebook spread be your sacred meeting place with God. Meditate deeply, observe key principles, and prepare your heart for daily renewal.`
+        }]
+      };
+    }
+
+    window.currentDailyData = currentData;
+    window.prevDailyData    = prevData;
+
+    if (vRef) vRef.textContent = `${currentData.reference} (${currentData.version || version})`;
+
+    function _formatPassagesHTML(data) {
+      if (!data) return '<p class="today-accord-empty">No text available.</p>';
+      if (data.passages && data.passages.length > 0) {
+        return `<div style="display: flex; flex-direction: column; gap: 1.2rem; width: 100%;">` +
           data.passages.map(p => {
-            const formattedText = p.verses_list && p.verses_list.length > 0
-              ? p.verses_list.map(v => `<span class="verse-item" style="display: block; margin-bottom: 0.85rem; line-height: 1.75;"><strong class="verse-num" style="color: var(--primary, #d4af37); font-style: normal; font-weight: 800; font-size: 0.9em; margin-right: 12px; display: inline-block; min-width: 24px; user-select: none;">${v.num}</strong><span class="verse-text" style="font-style: normal; font-size: 1.05rem;">${v.text}</span></span>`).join('')
-              : `"${p.text}"`;
+            let formattedText = '';
+            if (p.verses_list && p.verses_list.length > 0) {
+              formattedText = p.verses_list.map(v => `<span class="verse-item" style="display: block; margin-bottom: 0.75rem; line-height: 1.75;"><strong class="verse-num" style="color: var(--primary, #d4af37); font-weight: 800; font-size: 0.9em; margin-right: 10px; display: inline-block; min-width: 22px; user-select: none;">${v.num}</strong><span class="verse-text" style="font-size: 1.03rem;">${v.text}</span></span>`).join('');
+            } else if (p.text && p.text.trim()) {
+              const rawText = p.text.trim();
+              const verseMatches = Array.from(rawText.matchAll(/(?:^|\s)\[?(\d{1,3})\]?\s+([^\d\[].*?(?=(?:\s\[?\d{1,3}\]?\s)|$))/gs));
+              if (verseMatches.length > 0) {
+                formattedText = verseMatches.map(m => `<span class="verse-item" style="display: block; margin-bottom: 0.75rem; line-height: 1.75;"><strong class="verse-num" style="color: var(--primary, #d4af37); font-weight: 800; font-size: 0.9em; margin-right: 10px; display: inline-block; min-width: 22px; user-select: none;">${m[1]}</strong><span class="verse-text" style="font-size: 1.03rem;">${m[2].trim()}</span></span>`).join('');
+              } else {
+                const leadMatch = rawText.match(/^\[?(\d{1,3})\]?\s+(.*)/s);
+                if (leadMatch) {
+                  formattedText = `<span class="verse-item" style="display: block; margin-bottom: 0.75rem; line-height: 1.75;"><strong class="verse-num" style="color: var(--primary, #d4af37); font-weight: 800; font-size: 0.9em; margin-right: 10px; display: inline-block; min-width: 22px; user-select: none;">${leadMatch[1]}</strong><span class="verse-text" style="font-size: 1.03rem;">${leadMatch[2].trim()}</span></span>`;
+                } else {
+                  formattedText = `"${rawText}"`;
+                }
+              }
+            }
             return `
-              <div class="passage-block" style="border-left: 3px solid var(--primary, #d4af37); padding: 0.25rem 0 0.25rem 0.95rem; text-align: left;">
-                <div style="font-weight: 800; font-size: 0.96rem; color: var(--primary, #d4af37); margin-bottom: 0.45rem; letter-spacing: 0.02em;">[${p.reference}]</div>
-                <div style="font-style: italic; font-size: 0.95rem; line-height: 1.7; color: var(--text-primary);">${formattedText}</div>
+              <div class="passage-block" style="border-left: 3px solid var(--primary, #d4af37); padding: 0.2rem 0 0.2rem 0.85rem; text-align: left;">
+                <div style="font-weight: 800; font-size: 0.94rem; color: var(--primary, #d4af37); margin-bottom: 0.4rem; letter-spacing: 0.02em;">[${p.reference}]</div>
+                <div style="font-style: italic; font-size: 0.94rem; line-height: 1.7; color: var(--text-primary);">${formattedText}</div>
               </div>
             `;
           }).join('') + `</div>`;
       }
-    } else {
-      if (vText) vText.textContent = `"${data.text}"`;
+      return `"${data.text}"`;
     }
+
+    if (vText) {
+      vText.innerHTML = `
+        <div class="daily-spread-dom" style="background: var(--surface, rgba(30, 41, 59, 0.45)); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08)); margin-top: 0.5rem; width: 100%;">
+          <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary, #d4af37); margin-bottom: 1rem; border-bottom: 2px solid var(--primary, #d4af37); padding-bottom: 0.5rem;">${currentData.reference}</div>
+          <div class="passage-content">${_formatPassagesHTML(currentData)}</div>
+        </div>
+      `;
+    }
+
+    // Pre-build the exact vector SVG string asynchronously in background for instant downloading
+    _prepareDownloadableSpreadSvg(prevData, currentData);
   } catch (e) {
+    console.error("Error fetching daily verses:", e);
     if (vRef) vRef.textContent = `${ref} (${version})`;
     if (vText) vText.innerHTML = `<p class="today-accord-empty">Unable to load verses at this time.</p>`;
   }
 }
 
-async function downloadDailyCard() {
-  const canvas  = document.getElementById('today-daily-canvas');
-  const refEl   = document.getElementById('today-daily-ref');
-  const textEl  = document.getElementById('today-daily-text');
-  if (!canvas || !refEl || !textEl) return;
-
-  // Ensure Patrick Hand font is fully loaded across all sizes before canvas measures or draws
+async function _prepareDownloadableSpreadSvg(prevData, currentData) {
   try {
-    if (document.fonts && document.fonts.load) {
-      await document.fonts.load('48px "Patrick Hand"');
-      await document.fonts.load('46px "Patrick Hand"');
-      await document.fonts.load('34px "Patrick Hand"');
-      await document.fonts.load('30px "Patrick Hand"');
-      await document.fonts.load('26px "Patrick Hand"');
-      await document.fonts.load('24px "Patrick Hand"');
-    }
-  } catch (e) {
-    console.warn("Could not load Patrick Hand font explicitly:", e);
-  }
-
-  // ── Extract reference ──────────────────────────────────────────────────────
-  const cleanRef = (refEl.innerText || '').replace(/\s*\(NIV\)/i, '').trim();
-
-  // ── Extract all verses from the DOM ───────────────────────────────────────
-  let allVerses = [];
-  const blocks = textEl.querySelectorAll('.passage-block');
-  if (blocks.length > 0) {
-    blocks.forEach(b => {
-      const verseItems = b.querySelectorAll('.verse-item');
-      if (verseItems.length > 0) {
-        verseItems.forEach(vi => {
-          const num = (vi.querySelector('.verse-num')  || {}).innerText || '';
-          const txt = (vi.querySelector('.verse-text') || {}).innerText || vi.innerText;
-          if (txt.trim()) allVerses.push({ num: num.trim(), text: txt.trim() });
-        });
+    let svgTemplate = window.cachedDiaryNoMugSvg;
+    if (!svgTemplate) {
+      const res = await fetch('/realistic_diary_no_mug.svg');
+      if (res.ok) {
+        svgTemplate = await res.text();
+        window.cachedDiaryNoMugSvg = svgTemplate;
       } else {
-        const raw = b.innerText.trim();
-        if (raw) allVerses.push({ num: '', text: raw });
+        return;
       }
-    });
-  } else {
-    const raw = textEl.innerText.trim();
-    if (raw) allVerses.push({ num: '', text: raw });
-  }
-
-  // ── Dimensions & Table + Page Composition ──────────────────────────────────
-  const W         = 1280;
-  const SCALE     = 2;           // 2x for retina sharpness
-  const TABLE_PAD = 120;         // Generous desk margin surrounding the book page
-  const PAGE_X    = TABLE_PAD;
-  const PAGE_Y    = TABLE_PAD;
-  const PAGE_W    = W - TABLE_PAD * 2;
-
-  const isDark    = !document.body.classList.contains('light-mode');
-
-  // Theme Palette:
-  // Light = Walnut wood desk + Cream physical notebook + Dark pen ink
-  // Dark  = Charcoal slate desk + Midnight slate notebook + Gold/White ink
-  const C_TABLE_BG    = isDark ? '#080d17' : '#231b15';   // Outer desk/table surface
-  const C_PAGE_BG     = isDark ? '#0b1220' : '#fdfcf8';   // Physical notebook paper
-  const C_RULE_LINE   = isDark ? 'rgba(255, 255, 255, 0.08)' : '#c3cedd'; // Horizontal ruled lines
-  const C_MARGIN_LINE = isDark ? '#e11d48' : '#d99a9a';   // Vertical pink/crimson margin line
-  const C_DOT_BG      = isDark ? '#1e293b' : '#eceadd';   // Spiral hole fill
-  const C_DOT_BORDER  = isDark ? '#334155' : '#cfc9b8';   // Spiral hole stroke
-  const C_VERSE_NUM   = isDark ? '#fbbf24' : '#9a3b3b';   // Terracotta / amber margin verse numbers
-  const C_INK_MAIN    = isDark ? '#f1f5f9' : '#1e293b';   // Primary handwriting ink (body & footer)
-  const C_INK_TOPIC   = isDark ? '#d4af37' : '#1e293b';   // Brand topic handwriting ink
-  const C_INK_SUB     = isDark ? '#94a3b8' : '#4b5563';   // Tracking & date ink
-  const C_BORDER      = isDark ? '#1e293b' : '#d9d4c4';   // Page edge border
-
-  // Layout within the open book page
-  const MARG_LINE_X = PAGE_X + 112;      // Vertical red line x position
-  const VERSE_X     = MARG_LINE_X + 16;  // Verse handwriting starts right of margin line
-  const DOTS_X      = PAGE_X + 44;       // Spiral holes x position
-  const FONT_HAND   = '"Patrick Hand", cursive';
-  const FONT_SANS   = 'system-ui, sans-serif';
-  const LINE_H      = 68;                // Ruled line row height
-
-  // Measure wrapped verse text inside the page bounds
-  const tempCtx = document.createElement('canvas').getContext('2d');
-  tempCtx.font = `48px ${FONT_HAND}`;
-  const TEXT_MAX_W = PAGE_W - (VERSE_X - PAGE_X) - 36;
-  function wrapWords(c, text, maxW) {
-    const words = text.split(' ');
-    const lines = []; let line = '';
-    for (const w of words) {
-      const t = line ? line + ' ' + w : w;
-      if (c.measureText(t).width > maxW && line) { lines.push(line); line = w; }
-      else { line = t; }
     }
-    if (line) lines.push(line);
-    return lines;
-  }
 
-  const renderedVerses = allVerses.map(v => {
-    const lines = wrapWords(tempCtx, v.text, TEXT_MAX_W);
-    return { num: v.num, lines };
-  });
+    function extractVerseItems(dataObj) {
+      let items = [];
+      if (dataObj && dataObj.passages && dataObj.passages.length > 0) {
+        dataObj.passages.forEach(p => {
+          if (p.verses_list && p.verses_list.length > 0) {
+            p.verses_list.forEach(vi => {
+              const num = String(vi.num || '').trim();
+              const txt = String(vi.text || '').trim();
+              if (txt) items.push({ num, text: txt });
+            });
+          } else if (p.text && p.text.trim()) {
+            // If the API didn't provide a verses_list, the numbers might be embedded in the text.
+            // Let's try to extract them by splitting the text by verse numbers.
+            const rawText = p.text.trim();
+            const verseMatches = Array.from(rawText.matchAll(/(?:^|\s)\[?(\d{1,3})\]?\s+([^\d\[].*?(?=(?:\s\[?\d{1,3}\]?\s)|$))/gs));
+            
+            if (verseMatches.length > 0) {
+              verseMatches.forEach(m => {
+                items.push({ num: m[1], text: m[2].trim() });
+              });
+            } else {
+              // Fallback: Just look for a leading number
+              const leadMatch = rawText.match(/^\[?(\d{1,3})\]?\s+(.*)/s);
+              if (leadMatch) {
+                items.push({ num: leadMatch[1], text: leadMatch[2].trim() });
+              } else {
+                items.push({ num: '', text: rawText });
+              }
+            }
+          }
+        });
+      } else if (dataObj && dataObj.text && dataObj.text.trim()) {
+        const rawText = dataObj.text.trim();
+        const leadMatch = rawText.match(/^\[?(\d{1,3})\]?\s+(.*)/s);
+        if (leadMatch) {
+          items.push({ num: leadMatch[1], text: leadMatch[2].trim() });
+        } else {
+          items.push({ num: '', text: rawText });
+        }
+      }
+      return items;
+    }
 
-  // Calculate exact body row count so that top header and bottom footer are strictly 2 lines in height (136px = 2 * LINE_H) each
-  const numRows = Math.max(renderedVerses.reduce((acc, v) => acc + v.lines.length, 0), 4);
-  const PAGE_H = (2 + numRows + 2) * LINE_H; // Exactly 2 lines top header (136px) + body grid rows + 2 lines bottom footer (136px)
-  const H = PAGE_H + TABLE_PAD * 2;
+    const leftItems  = extractVerseItems(prevData);
+    const rightItems = extractVerseItems(currentData);
 
-  // Set up canvas dimensions
-  canvas.width  = W * SCALE;
-  canvas.height = H * SCALE;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(SCALE, SCALE);
+    function escapeXml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
 
-  // Helper: Round-rect path
-  function rrPath(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
-    ctx.closePath();
-  }
-  function fillRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.fill(); }
-  function strokeRR(x, y, w, h, r) { rrPath(x,y,w,h,r); ctx.stroke(); }
+    // Pixel-width aware text wrapping for Patrick Hand font.
+    // Widths calibrated at 16px for Patrick Hand — a narrow handwriting font.
+    // All values measured to fill lines to the SVG rule end before breaking.
+    const CHAR_WIDTHS_16 = {
+      ' ':4.0, 'f':4.5, 'i':3.5, 'j':3.5, 'l':3.8, 'r':4.5, 't':4.5,
+      '1':5.0, '!':3.5, ',':3.5, '.':3.5, ':':3.5, ';':3.5, "'":2.8, '"':4.5,
+      'm':10.5,'w':10.0,'M':11.0,'W':11.0,
+      'A':8.5, 'B':8.0, 'C':8.0, 'D':8.5, 'E':7.0, 'F':6.5, 'G':8.5,
+      'H':8.5, 'I':3.8, 'J':5.0, 'K':8.0, 'L':7.0, 'N':8.5, 'O':8.5,
+      'P':7.5, 'Q':8.5, 'R':8.0, 'S':7.0, 'T':7.0, 'U':8.0, 'V':8.0,
+      'X':7.5, 'Y':7.5, 'Z':7.5,
+      'a':6.5, 'b':7.0, 'c':6.0, 'd':7.0, 'e':6.0, 'g':7.0, 'h':7.0,
+      'k':6.5, 'n':7.0, 'o':7.0, 'p':7.0, 'q':7.0, 's':5.8, 'u':7.0,
+      'v':7.0, 'x':6.5, 'y':7.0, 'z':6.0
+    };
+    function charWidth(ch, fontSize) {
+      const base = CHAR_WIDTHS_16[ch] ?? 6.5;
+      return base * (fontSize / 16);
+    }
+    function measureWord(word, fontSize) {
+      let w = 0;
+      for (const ch of word) w += charWidth(ch, fontSize);
+      return w;
+    }
+    function wrapTextPixels(text, maxPx, fontSize) {
+      const spaceW = charWidth(' ', fontSize);
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      let lineW = 0;
+      for (const word of words) {
+        const wW = measureWord(word, fontSize);
+        if (line && lineW + spaceW + wW > maxPx) {
+          lines.push(line);
+          line = word;
+          lineW = wW;
+        } else {
+          if (line) {
+            lineW += spaceW + wW;
+            line += ' ' + word;
+          } else {
+            lineW = wW;
+            line = word;
+          }
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+    // Full ruled line lengths from the SVG:
+    // Left:  rule x1=210 x2=668, text starts at x=222 → usable = 668-222 = 446px
+    // Right: rule x1=752 x2=1190, text starts at x=762 → usable = 1190-762 = 428px
+    const LEFT_PX  = 446;
+    const RIGHT_PX = 428;
 
-  // ── 1. Realistic Outer Desk / Table Surface with 3D Wooden Planks ──────────
-  // Base background
-  ctx.fillStyle = C_TABLE_BG;
-  ctx.fillRect(0, 0, W, H);
 
-  // Draw realistic 3D wooden desk planks across the table surface
-  const PLANK_H = 180;
-  for (let py = 0; py < H; py += PLANK_H) {
-    // Individual plank gradient: lighter top bevel smoothly fading to deeper shadow at bottom
-    const pGrad = ctx.createLinearGradient(0, py, 0, py + PLANK_H);
-    if (isDark) {
-      pGrad.addColorStop(0, '#0f172a');
-      pGrad.addColorStop(0.5, '#080d17');
-      pGrad.addColorStop(1, '#050811');
+
+    const FONT_STACK = "'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', 'Bradley Hand', cursive, sans-serif";
+    let svgTextXml = `\n<!-- DYNAMIC 2-PAGE SCRIPTURE SPREAD -->\n<g id="dynamic-notebook-content">\n`;
+
+    const dayNum  = window.readingDayIndex || window.currentDayIndex || 11;
+    const prevDay = dayNum > 1 ? dayNum - 1 : 1;
+    const weekNum = Math.ceil(dayNum / 7) || 2;
+    const prevWeekNum = Math.ceil(prevDay / 7) || 2;
+    const cardId  = (window.currentActiveCard && window.currentActiveCard.cardId) ? window.currentActiveCard.cardId : (window.currentCardId || 3);
+
+    const prevProgressStr    = `Day ${prevDay} · Week ${prevWeekNum} · Card #${cardId}`;
+    const currentProgressStr = `Day ${dayNum} · Week ${weekNum} · Card #${cardId}`;
+    const fullDateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+    const leftVersion = prevData.version || window.currentBibleVersion || 'NIV';
+    const leftRef = prevData.reference || 'Previous Reading';
+    const leftTitleLength = prevData.reference ? leftRef.length + leftVersion.length + 1 : leftRef.length;
+    const leftFontSize = leftTitleLength > 22 ? 20 : (leftTitleLength > 16 ? 23 : 26);
+    const leftVersionSvg = prevData.reference ? `<tspan font-size="${Math.round(leftFontSize * 0.7)}" fill="#666666" font-weight="normal" dx="8">${escapeXml(leftVersion)}</tspan>` : '';
+    
+    svgTextXml += `
+  <text x="218" y="133" font-size="11" font-family="${FONT_STACK}" fill="#1a1a1a" letter-spacing="0.5" font-weight="bold">CBR Challenger · daily chapter reading</text>
+  <text x="654" y="133" font-size="11" font-family="${FONT_STACK}" fill="#666666" text-anchor="end">Previous Reading</text>
+  <text x="222" y="178" font-size="${leftFontSize}" font-family="${FONT_STACK}" font-weight="bold" fill="#cc0000">${escapeXml(leftRef)}${leftVersionSvg}</text>
+  <text x="654" y="175" font-size="12" font-family="${FONT_STACK}" fill="#666666" text-anchor="end">${escapeXml(prevProgressStr)}</text>
+`;
+
+    // Pre-wrap left lines and calculate scaling
+    const leftWrapped = [];
+    let leftTotalLines = 0;
+    leftItems.forEach(v => {
+      // Use 16px as initial estimate; recalc after we know spacing
+      const lines = wrapTextPixels(v.text, LEFT_PX, 16);
+      leftTotalLines += lines.length;
+      leftWrapped.push({ num: v.num, lines });
+    });
+
+    // Pre-wrap right lines and calculate scaling
+    const rightWrapped = [];
+    let rightTotalLines = 0;
+    rightItems.forEach(v => {
+      const lines = wrapTextPixels(v.text, RIGHT_PX, 16);
+      rightTotalLines += lines.length;
+      rightWrapped.push({ num: v.num, lines });
+    });
+
+    const maxTotalLines = Math.max(leftTotalLines, rightTotalLines);
+    const maxLinesNeededHeight = maxTotalLines * 21;
+    const extraHeight = maxLinesNeededHeight > 415 ? (maxLinesNeededHeight - 415 + 60) : 0;
+
+    // Standard reading zone ~415px. Scale font/spacing if too many lines.
+    const leftLineSpacing = leftTotalLines <= 13 ? 30 : Math.max(21, Math.floor(415 / leftTotalLines));
+    const leftVerseFontSize = leftTotalLines <= 13 ? 16 : Math.min(16, Math.max(13.5, leftLineSpacing * 0.72));
+    const leftNumFontSize = leftTotalLines <= 13 ? 13 : Math.min(13, Math.max(11, leftLineSpacing * 0.6));
+
+    const rightLineSpacing = rightTotalLines <= 13 ? 30 : Math.max(21, Math.floor(415 / rightTotalLines));
+    const rightVerseFontSize = rightTotalLines <= 13 ? 16 : Math.min(16, Math.max(13.5, rightLineSpacing * 0.72));
+    const rightNumFontSize = rightTotalLines <= 13 ? 13 : Math.min(13, Math.max(11, rightLineSpacing * 0.6));
+
+    // Re-wrap with accurate font size now that we know it
+    if (leftVerseFontSize < 16) {
+      leftWrapped.length = 0;
+      leftTotalLines = 0;
+      leftItems.forEach(v => {
+        const lines = wrapTextPixels(v.text, LEFT_PX, leftVerseFontSize);
+        leftTotalLines += lines.length;
+        leftWrapped.push({ num: v.num, lines });
+      });
+    }
+    if (rightVerseFontSize < 16) {
+      rightWrapped.length = 0;
+      rightTotalLines = 0;
+      rightItems.forEach(v => {
+        const lines = wrapTextPixels(v.text, RIGHT_PX, rightVerseFontSize);
+        rightTotalLines += lines.length;
+        rightWrapped.push({ num: v.num, lines });
+      });
+    }
+
+    let yL = 254;
+    leftWrapped.forEach(item => {
+      item.lines.forEach((lText, li) => {
+        svgTextXml += `  <line x1="210" y1="${yL}" x2="668" y2="${yL}" stroke="#e2dace" stroke-width="1"/>\n`;
+        if (li === 0 && item.num) {
+          svgTextXml += `  <text x="202" y="${yL}" font-size="${leftNumFontSize}" font-family="${FONT_STACK}" fill="#cc0000" font-weight="bold" text-anchor="end">${escapeXml(item.num)}</text>\n`;
+        }
+        svgTextXml += `  <text x="222" y="${yL}" font-size="${leftVerseFontSize}" font-family="${FONT_STACK}" fill="#0a3d91">${escapeXml(lText)}</text>\n`;
+        yL += leftLineSpacing;
+      });
+    });
+    while (yL <= 644 + extraHeight) {
+      svgTextXml += `  <line x1="210" y1="${yL}" x2="668" y2="${yL}" stroke="#e2dace" stroke-width="1"/>\n`;
+      yL += leftLineSpacing;
+    }
+
+    const rightVersion = currentData.version || window.currentBibleVersion || 'NIV';
+    const rightRef = currentData.reference || 'Current Reading';
+    const rightTitleLength = currentData.reference ? rightRef.length + rightVersion.length + 1 : rightRef.length;
+    const rightFontSize = rightTitleLength > 22 ? 20 : (rightTitleLength > 16 ? 23 : 26);
+    const rightVersionSvg = currentData.reference ? `<tspan font-size="${Math.round(rightFontSize * 0.7)}" fill="#666666" font-weight="normal" dx="8">${escapeXml(rightVersion)}</tspan>` : '';
+
+    svgTextXml += `
+  <text x="758" y="133" font-size="11" font-family="${FONT_STACK}" fill="#1a1a1a" letter-spacing="0.5" font-weight="bold">CBR Challenger · daily chapter reading</text>
+  <text x="1176" y="133" font-size="11" font-family="${FONT_STACK}" fill="#666666" text-anchor="end">${escapeXml(fullDateStr)}</text>
+  <text x="762" y="178" font-size="${rightFontSize}" font-family="${FONT_STACK}" font-weight="bold" fill="#cc0000">${escapeXml(rightRef)}${rightVersionSvg}</text>
+  <text x="1176" y="175" font-size="12" font-family="${FONT_STACK}" fill="#666666" text-anchor="end">${escapeXml(currentProgressStr)}</text>
+`;
+
+    let yR = 254;
+    rightWrapped.forEach(item => {
+      item.lines.forEach((lText, li) => {
+        // Rule drawn AT the text baseline so handwriting sits directly on the line
+        svgTextXml += `  <line x1="752" y1="${yR}" x2="1190" y2="${yR}" stroke="#e2dace" stroke-width="1"/>\n`;
+        if (li === 0 && item.num) {
+          svgTextXml += `  <text x="748" y="${yR}" font-size="${rightNumFontSize}" font-family="${FONT_STACK}" fill="#cc0000" font-weight="bold" text-anchor="end">${escapeXml(item.num)}</text>\n`;
+        }
+        svgTextXml += `  <text x="762" y="${yR}" font-size="${rightVerseFontSize}" font-family="${FONT_STACK}" fill="#0a3d91">${escapeXml(lText)}</text>\n`;
+        yR += rightLineSpacing;
+      });
+    });
+    while (yR <= 644 + extraHeight) {
+      svgTextXml += `  <line x1="752" y1="${yR}" x2="1190" y2="${yR}" stroke="#e2dace" stroke-width="1"/>\n`;
+      yR += rightLineSpacing;
+    }
+
+    const footerY1 = 706 + extraHeight;
+    const footerY2 = 732 + extraHeight;
+
+    svgTextXml += `
+  <text x="432" y="${footerY1}" font-size="15" font-family="${FONT_STACK}" fill="#1a1a1a" text-anchor="middle">Read  ·  Meditate  ·  Pray</text>
+  <text x="432" y="${footerY2}" font-size="13" font-family="${FONT_STACK}" fill="#666666" text-anchor="middle">Previous Daily Scripture Reading</text>
+  <text x="960" y="${footerY1}" font-size="15" font-family="${FONT_STACK}" fill="#1a1a1a" text-anchor="middle">Read  ·  Meditate  ·  Pray</text>
+  <text x="960" y="${footerY2}" font-size="13" font-family="${FONT_STACK}" fill="#666666" text-anchor="middle">Current Daily Scripture Reading</text>
+</g>
+`;
+
+    const markerStart = '<!-- 8. HEADER TEXT — Left Page (Scripture Reading) -->';
+    const markerEnd   = '<!-- 11. TWIN-WIRE O-RING BINDING — Pill holes -->';
+    const idxStart = svgTemplate.indexOf(markerStart);
+    const idxEnd   = svgTemplate.indexOf(markerEnd);
+
+    let finalSvg = svgTemplate;
+    if (idxStart !== -1 && idxEnd !== -1) {
+      finalSvg = svgTemplate.substring(0, idxStart) + svgTextXml + svgTemplate.substring(idxEnd);
     } else {
-      pGrad.addColorStop(0, '#2e241c');
-      pGrad.addColorStop(0.5, '#231b15');
-      pGrad.addColorStop(1, '#19130e');
-    }
-    ctx.fillStyle = pGrad;
-    ctx.fillRect(0, py, W, PLANK_H);
-
-    // Deep plank seam gap between adjacent boards
-    if (py + PLANK_H < H) {
-      ctx.fillStyle = isDark ? '#020408' : '#0e0b09';
-      ctx.fillRect(0, py + PLANK_H - 3, W, 3);
-      // Soft light highlight right below the gap where the next plank catches ambient light
-      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)';
-      ctx.fillRect(0, py + PLANK_H, W, 1);
+      finalSvg = svgTemplate.replace('</svg>', svgTextXml + '\n</svg>');
     }
 
-    // Subtle tactile wood grain lines inside each plank
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.12)';
-    ctx.lineWidth = 1;
-    for (let gy = py + 22; gy < py + PLANK_H - 12; gy += 24) {
-      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
-    }
-  }
-
-  // Soft table studio vignette lighting
-  const vig = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.25, W/2, H/2, Math.max(W,H)*0.75);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── 2. Physical Book Page Thickness Stack & Dramatic 3D Shadow ────────────
-  // Underlying physical pages stack (to give the notebook real 3D pad thickness)
-  ctx.save();
-  for (let pOffset = 8; pOffset >= 2; pOffset -= 2) {
-    ctx.fillStyle = isDark ? '#060a12' : '#ede9dd';
-    fillRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
-    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)';
-    ctx.lineWidth = 1;
-    strokeRR(PAGE_X + pOffset, PAGE_Y + pOffset, PAGE_W, PAGE_H, 16);
-  }
-  ctx.restore();
-
-  // Main top notebook page with ambient drop shadow
-  ctx.save();
-  ctx.shadowColor   = isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.7)';
-  ctx.shadowBlur    = 54;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 24;
-  ctx.fillStyle     = C_PAGE_BG;
-  fillRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
-  ctx.restore();
-
-  // Top page outer edge border
-  ctx.strokeStyle = C_BORDER; ctx.lineWidth = 1.5;
-  strokeRR(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
-
-  // Clip all interior lines and rings to the rounded book page boundary
-  ctx.save();
-  rrPath(PAGE_X, PAGE_Y, PAGE_W, PAGE_H, 16);
-  ctx.clip();
-
-  // Continuous horizontal ruled lines across the body writing area only (exactly numRows lines!)
-  // Top 2-line header space (136px) and bottom 2-line footer space (136px) are unruled
-  ctx.strokeStyle = C_RULE_LINE; ctx.lineWidth = 1;
-  for (let ry = PAGE_Y + 136 + LINE_H; ry <= PAGE_Y + 136 + numRows * LINE_H; ry += LINE_H) {
-    ctx.beginPath(); ctx.moveTo(PAGE_X + 110, ry); ctx.lineTo(PAGE_X + PAGE_W - 24, ry); ctx.stroke();
-  }
-
-  // Continuous vertical red/crimson margin line from top to bottom edge
-  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y); ctx.lineTo(MARG_LINE_X, PAGE_Y + PAGE_H); ctx.stroke();
-
-  // Continuous spiral binding holes & 3D metallic wire rings along the left edge
-  for (let dy = PAGE_Y + 40; dy < PAGE_Y + PAGE_H - 30; dy += LINE_H) {
-    // 3D curved metallic binding ring looping out of the hole around the left edge
-    ctx.save();
-    ctx.shadowColor   = 'rgba(0, 0, 0, 0.45)';
-    ctx.shadowBlur    = 6;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 4;
-    ctx.strokeStyle   = isDark ? '#475569' : '#94a3b8';
-    ctx.lineWidth     = 5;
-    ctx.lineCap       = 'round';
-    ctx.beginPath();
-    ctx.moveTo(DOTS_X - 4, dy);
-    ctx.bezierCurveTo(DOTS_X - 28, dy - 8, DOTS_X - 28, dy + 12, DOTS_X - 4, dy + 4);
-    ctx.stroke();
-    ctx.restore();
-
-    // Punched circular binder hole
-    ctx.fillStyle   = C_DOT_BG;
-    ctx.strokeStyle = C_DOT_BORDER;
-    ctx.lineWidth   = 1.5;
-    ctx.beginPath(); ctx.arc(DOTS_X, dy, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  }
-
-  // ── 3. Pure Handwritten Top Header Block (Two-Line Height Unruled Space = 136px) ──
-  // Row 1: Brand topic (left) & Date (right) in upper half of 2-line header
-  const todayDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  ctx.fillStyle = C_INK_TOPIC;
-  ctx.font      = `400 32px ${FONT_HAND}`;
-  ctx.textAlign = 'left';
-  ctx.fillText('CBR Challenger \u00b7 daily chapter reading', VERSE_X, PAGE_Y + 50);
-
-  ctx.fillStyle = C_INK_SUB;
-  ctx.font      = `400 26px ${FONT_HAND}`;
-  ctx.textAlign = 'right';
-  ctx.fillText(todayDate, PAGE_X + PAGE_W - 36, PAGE_Y + 48);
-
-  // Row 2: Passage Title (left) & Tracking Badge (right) right above the double red rule
-  const cycleSubEl = document.getElementById('today-cycle-sub');
-  const cycleText  = cycleSubEl ? cycleSubEl.innerText.replace(/Day (\d+) of \d+/, 'Day $1') : 'Day 1 \u00b7 Week 1 \u00b7 Card A';
-  ctx.fillStyle = C_INK_MAIN;
-  ctx.font      = `400 46px ${FONT_HAND}`;
-  ctx.textAlign = 'left';
-  ctx.fillText(cleanRef, VERSE_X, PAGE_Y + 118);
-
-  ctx.fillStyle = C_INK_SUB;
-  ctx.font      = `400 26px ${FONT_HAND}`;
-  ctx.textAlign = 'right';
-  ctx.fillText(cycleText, PAGE_X + PAGE_W - 36, PAGE_Y + 114);
-
-  // Double red separator rule forming the top horizontal border of the first text rule right at y = 130/136
-  ctx.strokeStyle = C_MARGIN_LINE; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 130); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 130); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(MARG_LINE_X, PAGE_Y + 136); ctx.lineTo(PAGE_X + PAGE_W - 24, PAGE_Y + 136); ctx.stroke();
-
-  // ── 4. Handwritten Body Verses (Inside writing grid below double red rule) ──
-  // First verse baseline sits exactly 16px above the first blue ruled line (ry_1 = PAGE_Y + 204)
-  let verseY = PAGE_Y + 188;
-  renderedVerses.forEach(v => {
-    v.lines.forEach((line, li) => {
-      const lineY = verseY + li * LINE_H;
-      if (li === 0 && v.num) {
-        // Verse number completely handwritten in pen ink in the margin
-        ctx.fillStyle = C_VERSE_NUM;
-        ctx.font      = `400 30px ${FONT_HAND}`;
-        ctx.textAlign = 'right';
-        ctx.fillText(v.num, MARG_LINE_X - 12, lineY);
+    // Strip static fixed rules from the template so only our dynamically aligned rules remain
+    finalSvg = finalSvg.replace(/<line[^>]+stroke="#e2dace"[^>]*>/gi, m => {
+      const matchY = m.match(/y1="([0-9]+)"/i);
+      if (matchY && parseInt(matchY[1], 10) >= 240) {
+        return '';
       }
-      // Handwritten verse text sitting exactly centered inside the ruled row
-      ctx.fillStyle = C_INK_MAIN;
-      ctx.font      = `400 48px ${FONT_HAND}`;
-      ctx.textAlign = 'left';
-      const textIndent = (li === 0 && v.num) ? VERSE_X + 24 : VERSE_X;
-      ctx.fillText(line, textIndent, lineY);
+      return m;
     });
-    // Advance by exact multiples of LINE_H so every subsequent verse is locked to the center of the grid
-    verseY += v.lines.length * LINE_H;
-  });
 
-  // ── 5. Handwritten Footer (Exactly Two Lines in Height Unruled Space = 136px, Vertically & Horizontally Centered) ──
-  const colCenterX = MARG_LINE_X + (PAGE_X + PAGE_W - MARG_LINE_X) / 2;
-  ctx.fillStyle = C_INK_MAIN;
-  ctx.font      = `400 30px ${FONT_HAND}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Read \u00b7 meditate \u00b7 pray \u00b7 journal', colCenterX, PAGE_Y + PAGE_H - 82);
+    if (extraHeight > 0) {
+      const newHeight = 900 + extraHeight;
+      finalSvg = finalSvg.replace(/<svg[^>]*viewBox="[^"]*"[^>]*>/i, m => {
+        return m.replace(/height="[0-9]+"/i, `height="${newHeight}"`)
+                .replace(/viewBox="0 0 1400 [0-9]+"/i, `viewBox="0 0 1400 ${newHeight}"`);
+      });
 
-  ctx.fillStyle = C_INK_SUB;
-  ctx.font      = `400 24px ${FONT_HAND}`;
-  ctx.fillText('cbr-challenger.com \u00b7 Consistency Bible Reading Challenge', colCenterX, PAGE_Y + PAGE_H - 42);
+      finalSvg = finalSvg.replace(/<rect([^>]+)height="6[78][0-9]"([^>]*)>/gi, (m, p1, p2) => {
+        const matchH = m.match(/height="([0-9]+)"/i);
+        if (matchH) {
+          const oldH = parseInt(matchH[1], 10);
+          return `<rect${p1}height="${oldH + extraHeight}"${p2}>`;
+        }
+        return m;
+      });
 
-  ctx.restore();
+      finalSvg = finalSvg.replace(/<rect([^>]+)y="7[78][0-9]"([^>]*)>/gi, (m, p1, p2) => {
+        const matchY = m.match(/y="([0-9]+)"/i);
+        if (matchY) {
+          const oldY = parseInt(matchY[1], 10);
+          return `<rect${p1}y="${oldY + extraHeight}"${p2}>`;
+        }
+        return m;
+      });
 
-  // ── 6. Download PNG ───────────────────────────────────────────────────────
-  const safeRef = cleanRef.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
-  canvas.toBlob(blob => {
-    const url = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
+      finalSvg = finalSvg.replace(/<line([^>]+)y2="([67][0-9]{2})"([^>]*)>/gi, (m, p1, oldY2, p3) => {
+        const y2Val = parseInt(oldY2, 10);
+        if (y2Val >= 650 && y2Val <= 780) {
+          return `<line${p1}y2="${y2Val + extraHeight}"${p3}>`;
+        }
+        return m;
+      });
+
+      let extraRingsXml = '\n<!-- Dynamically expanded spiral rings -->\n';
+      for (let yRing = 756; yRing < 756 + extraHeight - 10; yRing += 34) {
+        extraRingsXml += `
+        <rect x="673" y="${yRing}" width="8" height="18" rx="4" fill="#1a1210" opacity="0.8"/>
+        <rect x="719" y="${yRing}" width="8" height="18" rx="4" fill="#1a1210" opacity="0.8"/>
+        <path d="M 677,${yRing+4} C 690,${yRing-8} 710,${yRing-8} 723,${yRing+4}" fill="none" stroke="url(#ring_metal)" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 677,${yRing+12} C 690,${yRing} 710,${yRing} 723,${yRing+12}" fill="none" stroke="url(#ring_metal)" stroke-width="5" stroke-linecap="round"/>
+        `;
+      }
+
+      finalSvg = finalSvg.replace('<!-- 11. TWIN-WIRE O-RING BINDING — Pill holes -->', '<!-- 11. TWIN-WIRE O-RING BINDING — Pill holes -->');
+      if (finalSvg.includes('</svg>')) {
+        finalSvg = finalSvg.replace('</svg>', extraRingsXml + '\n</svg>');
+      }
+    }
+
+    // Embed base64 font right inside <style> so the SVG renders Patrick Hand natively inside Canvas Blob and web DOM without falling back to Georgia
+    const fontFaceCss = window.PATRICK_HAND_BASE64 ? `
+      @font-face {
+        font-family: 'Patrick Hand';
+        font-style: normal;
+        font-weight: 400;
+        src: url(data:font/woff2;base64,${window.PATRICK_HAND_BASE64}) format('woff2');
+      }
+    ` : '';
+
+    const customStyleTag = `
+      <style>
+        ${fontFaceCss}
+        text { font-family: 'Patrick Hand', 'Chalkboard SE', 'Comic Sans MS', cursive, sans-serif !important; }
+      </style>
+    `;
+
+    if (finalSvg.includes('<style')) {
+      finalSvg = finalSvg.replace(/<style[^>]*>/i, m => m + '\n' + fontFaceCss + '\ntext { font-family: "Patrick Hand", "Chalkboard SE", cursive, sans-serif !important; }\n');
+    } else {
+      finalSvg = finalSvg.replace(/<defs[^>]*>/i, m => m + customStyleTag);
+      if (!finalSvg.includes(customStyleTag)) {
+        finalSvg = finalSvg.replace(/<svg([^>]+)>/i, m => m + customStyleTag);
+      }
+    }
+
+    // Shift right page red margin vertical rule and double horizontal separator slightly right (734 -> 752) to give the verse numbers clean breathing room past the spiral
+    finalSvg = finalSvg.replace(/<line x1="734" y1="96" x2="734" y2="776"/g, '<line x1="752" y1="96" x2="752" y2="776"');
+    finalSvg = finalSvg.replace(/<line x1="734"/g, '<line x1="752"');
+
+    const finalH = 900 + (extraHeight || 0);
+    finalSvg = finalSvg.replace(/<svg([^>]+)>/i, (m, attrs) => {
+      let cleaned = attrs.replace(/\b(width|height|viewBox|style)="[^"]*"/gi, '');
+      return `<svg ${cleaned} width="1400" height="${finalH}" viewBox="0 0 1400 ${finalH}" style="display:block;">`;
+    });
+
+    window.currentDailySpreadSvg = finalSvg;
+  } catch (e) {
+    console.error("Could not prepare downloadable spread SVG:", e);
+  }
+}
+
+async function downloadDailyCard() {
+  const canvas = document.getElementById('today-daily-canvas');
+  if (!window.currentDailySpreadSvg) {
+    if (window.prevDailyData && window.currentDailyData) {
+      await _prepareDownloadableSpreadSvg(window.prevDailyData, window.currentDailyData);
+    } else {
+      await fetchAndDisplayDailyVerse(window.currentDailyRef || document.getElementById('today-daily-ref').innerText, 'NIV');
+    }
+  }
+
+  const svgStr = window.currentDailySpreadSvg;
+  if (!svgStr) {
+    alert("Still preparing your vector notebook card, please try again in a second.");
+    return;
+  }
+
+  const safeRef = (window.currentDailyData && window.currentDailyData.reference
+    ? window.currentDailyData.reference
+    : 'daily-spread').replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
+
+  const fullXmlSvg = svgStr.includes('<?xml')
+    ? svgStr
+    : `<?xml version="1.0" encoding="UTF-8"?>\n` + svgStr;
+
+  const blob = new Blob([fullXmlSvg], { type: 'image/svg+xml;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+
+  img.onload = () => {
+    if (canvas) {
+      canvas.width  = 2800;
+      canvas.height = 1800;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, 2800, 1800);
+
+      canvas.toBlob(pngBlob => {
+        const pngUrl = pngBlob ? URL.createObjectURL(pngBlob) : canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `cbr-daily-spread-${safeRef}.png`;
+        link.href = pngUrl;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          if (pngBlob) URL.revokeObjectURL(pngUrl);
+          URL.revokeObjectURL(url);
+        }, 150);
+      }, 'image/png');
+    } else {
+      const link = document.createElement('a');
+      link.download = `cbr-daily-spread-${safeRef}.svg`;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 150);
+    }
+  };
+
+  img.onerror = () => {
+    // Fallback: directly download the vector .svg file if browser blocks canvas draw
     const link = document.createElement('a');
-    link.download = 'cbr-daily-' + safeRef + '.png';
+    link.download = `cbr-daily-spread-${safeRef}.svg`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
-    setTimeout(() => { document.body.removeChild(link); if (blob) URL.revokeObjectURL(url); }, 150);
-  }, 'image/png');
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 150);
+  };
+
+  img.src = url;
 }
 // ── Study Questions: Bible Reference Chips ───────────────────────────────────
 
