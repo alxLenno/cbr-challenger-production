@@ -37,8 +37,18 @@
     display: block !important;
     width: 100%;
     background: #fff;
-    border: 2px solid #000;
+    border: none;
     padding: 0;
+  }
+
+  .cc-root {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .cc-session-evaluation-page {
+    break-before: page;
+    page-break-before: always;
   }
 }
 
@@ -697,4 +707,263 @@
   font-size: 4.5pt;
   color: #555;
   text-align: center;
+}
+
+/* ===== TEXT-BASED SESSION EVALUATION PRINT PAGE ===== */
+.cc-session-evaluation-page {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 18px;
+  background: #fff;
+  border: 2.5px solid #000;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+
+.cc-eval-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+}
+
+.cc-eval-kicker {
+  font-size: 6pt;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.cc-eval-header h1 {
+  font-size: 15pt;
+  letter-spacing: 0.7px;
+  margin: 2px 0 3px;
+}
+
+.cc-eval-header p,
+.cc-eval-reader-meta span {
+  font-size: 6.5pt;
+  margin: 0;
+}
+
+.cc-eval-reader-meta {
+  border: 1.5px solid #000;
+  display: flex;
+  flex-direction: column;
+  min-width: 145px;
+  padding: 7px 9px;
+  text-align: right;
+}
+
+.cc-eval-reader-meta strong {
+  font-size: 8pt;
+}
+
+.cc-eval-main-table,
+.cc-eval-bonus-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cc-eval-main-table th,
+.cc-eval-main-table td,
+.cc-eval-bonus-panel th,
+.cc-eval-bonus-panel td {
+  border: 1px solid #000;
+  font-size: 6.5pt;
+  line-height: 1.25;
+  padding: 4px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.cc-eval-main-table thead th {
+  background: #e8e8e8;
+  font-size: 6.5pt;
+  font-weight: 900;
+}
+
+.cc-eval-main-table .cc-eval-row-num {
+  border-right: none;
+  width: 18px;
+}
+
+.cc-eval-main-table .cc-eval-criterion {
+  border-left: none;
+  text-align: left;
+  width: 390px;
+}
+
+.cc-eval-main-table td:not(.cc-eval-criterion) {
+  width: 31px;
+}
+
+.cc-eval-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  font-size: 8pt;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.cc-eval-check.checked {
+  background: #000;
+  color: #fff;
+}
+
+.cc-eval-growth-row td,
+.cc-eval-score-row td {
+  font-weight: 800;
+}
+
+.cc-eval-growth-row td {
+  background: #f5f5f5;
+}
+
+.cc-eval-course-heading {
+  width: 54px;
+}
+
+.cc-eval-main-table .cc-eval-course-score {
+  background: #f2f2f2;
+  border-left-width: 2px;
+  padding: 5px 2px;
+  width: 54px;
+}
+
+.cc-eval-course-score span {
+  display: inline-block;
+  font-size: 7pt;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  margin-right: 5px;
+  transform: rotate(180deg);
+  writing-mode: vertical-rl;
+}
+
+.cc-eval-course-score strong {
+  display: block;
+  font-size: 12pt;
+  margin-top: 5px;
+}
+
+.cc-eval-lower-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.cc-eval-panel {
+  border: 1.5px solid #000;
+  padding: 7px;
+}
+
+.cc-eval-panel h2 {
+  background: #e8e8e8;
+  border-bottom: 1px solid #000;
+  font-size: 7pt;
+  letter-spacing: 0.3px;
+  margin: -7px -7px 6px;
+  padding: 5px 7px;
+}
+
+.cc-eval-panel ol {
+  font-size: 6pt;
+  line-height: 1.35;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.cc-eval-panel li {
+  margin-bottom: 2px;
+}
+
+.cc-eval-panel li:has(.cc-eval-note-box) {
+  padding-right: 16px;
+  position: relative;
+}
+
+.cc-eval-note-box {
+  border: 1px solid #000;
+  height: 8px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 12px;
+}
+
+.cc-eval-bonus-panel {
+  grid-row: span 2;
+}
+
+.cc-eval-bonus-panel th {
+  width: 18px;
+}
+
+.cc-eval-bonus-panel td:nth-child(2) {
+  text-align: left;
+}
+
+.cc-eval-bonus-check {
+  width: 28px;
+}
+
+.cc-eval-bonus-total-row th,
+.cc-eval-bonus-total-row td {
+  border-top-width: 2px;
+  font-weight: 900;
+}
+
+.cc-eval-bonus-total-row td:nth-child(2) {
+  text-align: right;
+}
+
+.cc-eval-laxity-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  font-size: 6pt;
+}
+
+.cc-eval-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 2px solid #000;
+  margin-top: 9px;
+}
+
+.cc-eval-totals > div {
+  align-items: center;
+  border-right: 1px solid #000;
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 9px;
+}
+
+.cc-eval-totals > div:last-child {
+  border-right: none;
+}
+
+.cc-eval-totals span {
+  font-size: 6pt;
+  font-weight: 800;
+}
+
+.cc-eval-totals strong {
+  font-size: 13pt;
+}
+
+.cc-eval-totals .grand {
+  background: #000;
+  color: #fff;
 }

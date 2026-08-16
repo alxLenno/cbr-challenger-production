@@ -4,7 +4,7 @@ function renderScoringTable() {
   
   const headerRow = document.getElementById('score-table-header-row');
   if (headerRow) {
-    headerRow.innerHTML = '<th>CBRSM Discipline Description</th>';
+    headerRow.innerHTML = '<th>CBR Discipline Description</th>';
     for (let w = 1; w <= stats.weeks.length; w++) {
       headerRow.innerHTML += `<th class="text-center" style="width: 12%;">Week ${w}</th>`;
     }
@@ -14,7 +14,7 @@ function renderScoringTable() {
   const disciplines = [
     { name: 'Perseverance (Chapters Read)', key: 'perseverance', max: 3, desc: 'Read ALL set chapters each day' },
     { name: 'Commitment (Early Rising)', key: 'commitment', max: 2, desc: 'Woke up at set ERT each day' },
-    { name: 'Prayerfulness (CBRSM Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBRSM each day' },
+    { name: 'Prayerfulness (CBR Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBR each day' },
     { name: 'Scripture Memory (Recitations)', key: 'memory', max: 1, desc: 'Recited the memory scripture each day' },
     { name: 'Meditation (Journal Notes)', key: 'meditation', max: 1, desc: 'Wrote method journal notes each day' },
     { name: 'Accountability (Sharing / PE Meeting)', key: 'accountability', max: 1, desc: 'Sharing & PE meeting once a week' }
@@ -56,7 +56,7 @@ function renderScoringTable() {
   const trTotal = document.createElement('tr');
   trTotal.className = 'total-row';
   const tdTotalLabel = document.createElement('td');
-  tdTotalLabel.innerText = 'CBRSM GROWTH POINTS (Total Weekly Score)';
+  tdTotalLabel.innerText = 'CBR GROWTH POINTS (Total Weekly Score)';
   trTotal.appendChild(tdTotalLabel);
   
   for (let w = 0; w < stats.weeks.length; w++) {

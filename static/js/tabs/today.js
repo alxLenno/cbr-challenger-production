@@ -222,7 +222,7 @@ function downloadVerseCard() {
   // Footer inside the box at the bottom
   ctx.fillStyle = mutedCol;
   ctx.font = '500 24px system-ui, sans-serif';
-  ctx.fillText('CBRSM Challenger · Daily Scripture Memory', 110, H - 90);
+  ctx.fillText('CBR Challenger · Daily Scripture Memory', 110, H - 90);
 
   // Trigger Download
   const fileName = (refEl.textContent || 'verse').replace(/\s/g, '-') + '.png';
@@ -616,7 +616,7 @@ function _getFormattedJournalText() {
   const dayData = _normalizeDayDataJournal(dayDataRaw);
   const method = (dayData.studyMethod || 'FID').toUpperCase();
   
-  let text = `*CBRSM Challenger Devotional Journal - Day ${dayNum}*\n`;
+  let text = `*CBR Challenger Devotional Journal - Day ${dayNum}*\n`;
   const name = data.username && data.username !== "Trainee" ? data.username : "";
   const peg = data.peg || "";
   const cohort = data.cohort || "";

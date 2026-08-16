@@ -3,6 +3,7 @@ let seInitialized = false;
 let seCurrentViewSession = 1;
 
 async function initSessionEval() {
+  seBindPrintButton();
   if (seInitialized) {
     seRenderSelector();
     seRenderSessionView(seCurrentViewSession);
@@ -20,18 +21,6 @@ async function initSessionEval() {
       seData[sNum] = sessions[sNum];
     }
     
-    // Also pull growth points from saved cards in appState
-    if (appState && appState.savedCards) {
-      appState.savedCards.forEach(card => {
-        const cardId = card.currentCardId || card.cardId;
-        if (cardId && card.totalScore !== undefined) {
-          const sKey = String(cardId);
-          if (!seData[sKey]) seData[sKey] = { diligence: {}, bonus: {}, growthPoints: 0 };
-          seData[sKey].growthPoints = card.totalScore;
-        }
-      });
-    }
-    
     // Default to the user's current card session
     seCurrentViewSession = appState && appState.currentCardId ? appState.currentCardId : 1;
     
@@ -40,10 +29,87 @@ async function initSessionEval() {
     seRenderSessionView(seCurrentViewSession);
     seBindSelector();
     seBindCheckboxes();
-    seRecalcGrandTotals();
   } catch(e) {
     console.error('Session eval load error', e);
   }
+}
+
+function seBindPrintButton() {
+  const button = document.getElementById('se-print-card-btn');
+  if (!button || button.dataset.bound === '1') return;
+  button.dataset.bound = '1';
+  button.addEventListener('click', () => printChallengerCard(getActiveData()));
+}
+
+function seGetLatestArchivedCard(sessionNum) {
+  const cards = appState && Array.isArray(appState.savedCards)
+    ? appState.savedCards.filter(card => Number(card.currentCardId || card.cardId) === Number(sessionNum))
+    : [];
+
+  return cards.reduce((latest, card) => {
+    if (!latest) return card;
+    const latestTime = Date.parse(latest.savedAt || '') || 0;
+    const cardTime = Date.parse(card.savedAt || '') || 0;
+    return cardTime >= latestTime ? card : latest;
+  }, null);
+}
+
+function seGetSessionGrowthPoints(sessionNum) {
+  const currentCard = Number(appState && appState.currentCardId) || 1;
+  if (Number(sessionNum) > currentCard) return 0;
+  if (Number(sessionNum) === currentCard && appState) {
+    return calculateScoresForData(appState).totalScore;
+  }
+
+  const archivedCard = seGetLatestArchivedCard(sessionNum);
+  if (archivedCard) {
+    if (Array.isArray(archivedCard.days) && Array.isArray(archivedCard.weeks)) {
+      return calculateScoresForData(archivedCard).totalScore;
+    }
+    if (archivedCard.totalScore !== undefined) {
+      return Number(archivedCard.totalScore) || 0;
+    }
+  }
+
+  const stored = seData[String(sessionNum)] || {};
+  return Number(stored.growthPoints) || 0;
+}
+
+function seGetSessionScores(sessionNum) {
+  const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {} };
+  let diligence = 0;
+  let bonus = 0;
+
+  for (let criterion = 1; criterion <= 6; criterion++) {
+    if (sData.diligence && sData.diligence[String(criterion)]) diligence += 10;
+  }
+  if (Number(sessionNum) === 7) {
+    for (let criterion = 7; criterion <= 12; criterion++) {
+      if (sData.bonus && sData.bonus[String(criterion)]) bonus += 50;
+    }
+  }
+
+  const growth = seGetSessionGrowthPoints(sessionNum);
+  return { diligence, growth, bonus, total: diligence + growth + bonus };
+}
+
+function seRenderSelectedSessionSummary(sessionNum) {
+  const currentCard = Number(appState && appState.currentCardId) || 1;
+  const isFuture = Number(sessionNum) > currentCard;
+  const scores = isFuture
+    ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
+    : seGetSessionScores(sessionNum);
+  const label = document.getElementById('se-selected-session-label');
+  const target = document.getElementById('se-target-label');
+
+  if (label) label.textContent = `Session ${sessionNum}`;
+  if (document.getElementById('se-total-diligence')) document.getElementById('se-total-diligence').textContent = isFuture ? '—' : scores.diligence;
+  if (document.getElementById('se-total-growth')) document.getElementById('se-total-growth').textContent = isFuture ? '—' : scores.growth;
+  if (document.getElementById('se-total-bonus')) document.getElementById('se-total-bonus').textContent = isFuture ? '—' : scores.bonus;
+  if (document.getElementById('se-total-all')) document.getElementById('se-total-all').textContent = isFuture ? '—' : scores.total;
+  if (target) target.textContent = Number(sessionNum) === 7
+    ? 'Diligence + growth + final bonus'
+    : 'Diligence + growth';
 }
 
 function seRenderSelector() {
@@ -87,6 +153,9 @@ function seRenderSessionView(sessionNum) {
   const isCurrent = sessionNum === currentCard;
   const isFuture = sessionNum > currentCard;
   const isEditable = isCurrent; // Only the current session is editable
+  const sessionScores = isFuture
+    ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
+    : seGetSessionScores(sessionNum);
   
   // Update badge
   const badge = document.getElementById('se-status-badge');
@@ -106,7 +175,6 @@ function seRenderSessionView(sessionNum) {
   if (window.lucide) lucide.createIcons();
 
   // Diligence Checkboxes
-  let currentDiligenceScore = 0;
   document.querySelectorAll('.diligence-cb').forEach(cb => {
     const num = cb.dataset.num;
     const isChecked = sData.diligence[num] || false;
@@ -114,21 +182,15 @@ function seRenderSessionView(sessionNum) {
     cb.classList.toggle('checked', isChecked);
     cb.classList.toggle('locked', !isEditable);
     
-    if (isChecked) currentDiligenceScore += 10;
   });
   
   const scoreEl = document.getElementById('se-current-diligence-score');
-  if (scoreEl) scoreEl.textContent = `${currentDiligenceScore} / 60`;
+  if (scoreEl) scoreEl.textContent = `${sessionScores.diligence} / 60`;
   
   // Growth Points
   const gpEl = document.getElementById('se-current-growth-points');
   if (gpEl) {
-    let gp = sData.growthPoints || 0;
-    if (isCurrent && appState) {
-      const stats = calculateScores();
-      gp = stats.totalScore;
-    }
-    gpEl.textContent = isFuture ? '—' : gp;
+    gpEl.textContent = isFuture ? '—' : sessionScores.growth;
   }
   
   // Bonus (Only show on Session 7)
@@ -137,7 +199,6 @@ function seRenderSessionView(sessionNum) {
     bonusSection.style.display = (sessionNum === 7) ? 'block' : 'none';
   }
   
-  let currentBonusScore = 0;
   if (sessionNum === 7) {
     document.querySelectorAll('.bonus-cb').forEach(cb => {
       const num = cb.dataset.num;
@@ -146,19 +207,20 @@ function seRenderSessionView(sessionNum) {
       cb.classList.toggle('checked', isChecked);
       cb.classList.toggle('locked', !isEditable);
       
-      if (isChecked) currentBonusScore += 50;
     });
     
     const bonusScoreEl = document.getElementById('se-current-bonus-score');
-    if (bonusScoreEl) bonusScoreEl.textContent = `${currentBonusScore} / 300`;
+    if (bonusScoreEl) bonusScoreEl.textContent = `${sessionScores.bonus} / 300`;
   }
   
-  // Total preview
-  const gpPreview = isFuture ? 0 : (isCurrent ? calculateScores().totalScore : (sData.growthPoints || 0));
-  const sessionTotal = currentDiligenceScore + gpPreview + currentBonusScore;
+  seRenderSelectedSessionSummary(sessionNum);
+
+  // Per-session total: Reference Card diligence + this session's Challenger Card growth.
   const previewEl = document.getElementById('se-session-total-preview');
   if (previewEl) {
-    previewEl.innerHTML = `Session Total: <strong>${sessionTotal} pts</strong>`;
+    previewEl.innerHTML = isFuture
+      ? 'Session Total: <strong>—</strong>'
+      : `Session ${sessionNum} Total: <strong>${sessionScores.total} pts</strong>`;
   }
 }
 
@@ -182,59 +244,9 @@ function seBindCheckboxes() {
       }
       
       seRenderSessionView(sessionNum);
-      seRecalcGrandTotals();
       debounceSeAutoSave(sessionNum);
     });
   });
-}
-
-function seRecalcGrandTotals() {
-  const currentCard = appState ? appState.currentCardId : 1;
-  let totalDiligence = 0;
-  let totalGrowth = 0;
-  let totalBonus = 0;
-
-  for (let s = 1; s <= 7; s++) {
-    const sData = seData[String(s)] || { diligence: {}, bonus: {}, growthPoints: 0 };
-    
-    // Only count accessible sessions (past + current)
-    if (s <= currentCard) {
-      // Diligence
-      for (let d = 1; d <= 6; d++) {
-        if (sData.diligence[String(d)]) totalDiligence += 10;
-      }
-      
-      // Growth
-      let gp = sData.growthPoints || 0;
-      if (s === currentCard && appState) {
-        gp = calculateScores().totalScore;
-      }
-      totalGrowth += gp;
-      
-      // Bonus (assumes bonus is saved in session 7)
-      if (s === 7) {
-        for (let b = 7; b <= 12; b++) {
-          if (sData.bonus[String(b)]) totalBonus += 50;
-        }
-      }
-    }
-  }
-  
-  const grandTotal = totalDiligence + totalGrowth + totalBonus;
-  
-  // Update DOM
-  const elD = document.getElementById('se-total-diligence');
-  const elG = document.getElementById('se-total-growth');
-  const elB = document.getElementById('se-total-bonus');
-  const elA = document.getElementById('se-total-all');
-  
-  if (elD) elD.textContent = totalDiligence;
-  if (elG) elG.textContent = totalGrowth;
-  if (elB) elB.textContent = totalBonus;
-  if (elA) {
-    elA.textContent = grandTotal;
-    elA.style.color = grandTotal >= 600 ? 'var(--success)' : 'var(--primary)';
-  }
 }
 
 let seSaveTimers = {};
@@ -252,10 +264,8 @@ function debounceSeAutoSave(sessionNum) {
 async function saveSessionEval(sessionNum) {
   const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
   
-  let growthPoints = sData.growthPoints || 0;
-  if (sessionNum === (appState && appState.currentCardId)) {
-    growthPoints = calculateScores().totalScore;
-  }
+  const growthPoints = seGetSessionGrowthPoints(sessionNum);
+  sData.growthPoints = growthPoints;
   
   try {
     await fetch('/api/session_eval', {
@@ -272,7 +282,3 @@ async function saveSessionEval(sessionNum) {
     console.error('Session eval save error', e);
   }
 }
-
-
-
-

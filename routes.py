@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required
@@ -32,7 +32,13 @@ def get_state():
     card_state = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
     
     if not card_state:
-        return jsonify({"status": "no_active_card"}), 404
+        return jsonify({
+            "status": "no_active_card",
+            "username": current_user.name or current_user.email,
+            "email": current_user.email,
+            "isAdmin": is_admin_user(),
+            "profilePic": current_user.profile_pic or ""
+        }), 404
 
     state = {
         "username": current_user.name or current_user.email,
@@ -134,6 +140,33 @@ def save_state():
     card_state.church = data.get("church", "")
     card_state.peg = data.get("peg", "")
     card_state.cohort = data.get("cohort", "")
+
+    # Validity is automatic for trainees and manually reviewable by admins.
+    # Preserve earlier valid days when a trainee later edits other fields.
+    existing_validity = {
+        day.day_number: bool(day.data_validity) for day in card_state.days
+    }
+    admin_user = is_admin_user()
+    server_today = date.today()
+
+    def resolve_data_validity(day_data):
+        if admin_user:
+            return bool(day_data.get("dataValidity", False))
+
+        try:
+            day_number = int(day_data.get("dayNumber"))
+        except (TypeError, ValueError):
+            return False
+
+        if existing_validity.get(day_number, False):
+            return True
+
+        try:
+            start_date = date.fromisoformat(card_state.commencing_date)
+            scheduled_date = start_date + timedelta(days=day_number - 1)
+            return scheduled_date == server_today
+        except (TypeError, ValueError):
+            return False
     
     Weakness.query.filter_by(card_state_id=card_state.id).delete()
     for w_data in data.get("weaknesses", []):
@@ -159,7 +192,7 @@ def save_state():
             recited_memory=d_data.get("recitedMemory", False),
             fid_journaling=d_data.get("fidJournaling", False),
             prayer_10mins=d_data.get("prayer10mins", False),
-            data_validity=d_data.get("dataValidity", False),
+            data_validity=resolve_data_validity(d_data),
             fid_focus=d_data.get("fidFocus"),
             fid_insight=d_data.get("fidInsight"),
             fid_doing=d_data.get("fidDoing"),
@@ -269,7 +302,7 @@ def get_leaderboard():
         4: {"chapters": 4, "ert": 5.0},    # 05:00 = 5.0
         5: {"chapters": 5, "ert": 4.75},   # 04:45 = 4.75
         6: {"chapters": 6, "ert": 4.5},    # 04:30 = 4.5
-        7: {"chapters": 7, "ert": 4.0},    # 04:00 = 4.0
+        7: {"chapters": 7, "ert": 4.25},   # 04:15 = 4.25
     }
     
     def time_to_decimal(t_str):
@@ -619,4 +652,3 @@ def api_get_versions():
     """Dynamically list available Bible translations discovered by engine."""
     from engine import get_available_versions
     return jsonify({"versions": get_available_versions()})
-

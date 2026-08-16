@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CBRSM Challenger Card Digital Assistant</title>
-  <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBRSM) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
+  <title>CBR Challenger Card Digital Assistant</title>
+  <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBR) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
   <meta name="theme-color" content="#080d17" id="meta-theme-color">
   <!-- PWA Manifest & iOS Support -->
   <link rel="manifest" href="/static/manifest.json">
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/static/icon-192.png?v=2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="CBRSM Challenger">
+  <meta name="apple-mobile-web-app-title" content="CBR Challenger">
   <meta name="mobile-web-app-capable" content="yes">
   
   <script>
@@ -34,12 +34,12 @@
 
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}?v=51">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=6">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=47">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=9">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=48">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=45">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=46">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=44">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=48">
 </head>
 <body>
   <!-- Mobile Sidebar Overlay -->
@@ -49,7 +49,7 @@
   <header id="main-header">
     <div class="header-inner">
       <div class="brand">
-        <div class="logo-badge">CBRSM</div>
+        <div class="logo-badge">CBR</div>
         <div class="brand-title">
           <h1>Challenger Card</h1>
           <p>Bible Reading Dashboard</p>
@@ -296,11 +296,11 @@
             </label>
             <label class="check-item">
               <input type="checkbox" id="prayer-10mins">
-              <span>Prayed for 10+ Minutes after CBRSM</span>
+              <span>Prayed for 10+ Minutes after CBR</span>
             </label>
-            <label class="check-item valid-discipline" style="cursor: not-allowed; opacity: 0.85;" title="Automatically ticks when logged on the correct calendar day">
+            <label id="data-validity-label" class="check-item valid-discipline" style="cursor: not-allowed; opacity: 0.85;" title="Automatically ticks when logged on the correct calendar day">
               <input type="checkbox" id="data-validity" disabled>
-              <span>Data Validity (Checked when logged on the same calendar day)</span>
+              <span id="data-validity-text">Data Validity (automatically checked for same-day logging)</span>
             </label>
           </div>
         </div>
@@ -386,7 +386,7 @@
             </div>
             <div class="form-group">
               <label for="persons-note" style="font-size:0.7rem; color:var(--text-muted);">N - Note</label>
-              <textarea id="persons-note" rows="1" placeholder="Application for CBRSM discipline"></textarea>
+              <textarea id="persons-note" rows="1" placeholder="Application for lifelong CBR discipline"></textarea>
             </div>
             <div class="form-group">
               <label for="persons-stirring" style="font-size:0.7rem; color:var(--text-muted);">S - Stirring others</label>
@@ -475,19 +475,19 @@
 
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="{{ url_for('static', filename='js/data.js') }}?v=7"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=8"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=49"></script>
+  <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=14"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=51"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->
   <script src="{{ url_for('static', filename='js/patrick_hand_font.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=34"></script>
-  <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=35"></script>
+  <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/tabs/account.js') }}?v=4"></script>
-  <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=3"></script>
   <script>
     // Mobile sidebar hamburger toggle
     const hamburger = document.getElementById('hamburger-btn');

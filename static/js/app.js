@@ -1,4 +1,4 @@
-// CBRSM Challenger Card Digital Assistant - Application Script
+// CBR Challenger Card Digital Assistant - Application Script
 
 // Global state variable
 let appState = null;
@@ -62,6 +62,8 @@ const elements = {
   inputPrayer10mins: document.getElementById('prayer-10mins'),
   inputPeMeeting: document.getElementById('pe-meeting'),
   inputDataValidity: document.getElementById('data-validity'),
+  dataValidityLabel: document.getElementById('data-validity-label'),
+  dataValidityText: document.getElementById('data-validity-text'),
   
   // Devotional Inputs
   inputStudyMethod: document.getElementById('study-method'),
@@ -639,7 +641,8 @@ async function loadState() {
       return;
     }
     if (response.status === 404) {
-      initDefaultState();
+      const seedState = await response.json();
+      initDefaultState(seedState);
       return;
     }
     
@@ -729,12 +732,15 @@ function saveState() {
 // Old duplicate resizeStateForNewTimeline removed (replaced by newer version below)
 
 // Create a blank default state
-function initDefaultState() {
-  const today = new Date().toISOString().split('T')[0];
+function initDefaultState(seedState = {}) {
+  const today = getLocalISODate();
   const timeline = calculateCardTimeline(today);
 
   appState = {
-    username: "Bible Reader",
+    username: seedState.username || "Bible Reader",
+    email: seedState.email || "",
+    isAdmin: Boolean(seedState.isAdmin),
+    profilePic: seedState.profilePic || "",
     contact: "",
     church: "",
     peg: "",
@@ -1162,6 +1168,13 @@ function addDays(dateStr, days) {
   return date.toISOString().split('T')[0];
 }
 
+function getLocalISODate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Format date nicely
 function formatDateLabel(dateStr) {
   const date = new Date(dateStr);
@@ -1307,7 +1320,7 @@ function openDayModal(dayNum) {
   elements.dayModalSub.innerText = `${dateLabel} (Card Target: ${card.chaptersTarget} ch / Waking: ${card.ertTarget})`;
   
   // Detect if logging today. Auto-detect time of logging.
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalISODate();
   const isToday = (dateStr === todayStr);
 
   let wakingTimeVal = dayData.wakingTime || "";
@@ -1406,10 +1419,24 @@ function openDayModal(dayNum) {
 function setFormDisabledState(disabled) {
   const selectors = '#day-form input, #day-form select, #day-form textarea';
   document.querySelectorAll(selectors).forEach(el => {
-    if (el.id !== 'data-validity') {
-      el.disabled = disabled;
-    }
+    el.disabled = el.id === 'data-validity'
+      ? (disabled || !(appState && appState.isAdmin))
+      : disabled;
   });
+
+  const adminCanEditValidity = !disabled && Boolean(appState && appState.isAdmin);
+  if (elements.dataValidityLabel) {
+    elements.dataValidityLabel.style.cursor = adminCanEditValidity ? 'pointer' : 'not-allowed';
+    elements.dataValidityLabel.style.opacity = adminCanEditValidity ? '1' : '0.85';
+    elements.dataValidityLabel.title = adminCanEditValidity
+      ? 'Admin override: verify or correct this day\'s validity'
+      : 'Automatically ticks when logged on the correct calendar day';
+  }
+  if (elements.dataValidityText) {
+    elements.dataValidityText.textContent = adminCanEditValidity
+      ? 'Data Validity (admin verification / override)'
+      : 'Data Validity (automatically checked for same-day logging)';
+  }
 }
 
 function closeModal() {
@@ -1517,7 +1544,7 @@ function saveDayLog() {
 
   const dayData = appState.days.find(d => d.dayNumber === currentEditingDayNum);
   const dayDate = addDays(appState.commencingDate, currentEditingDayNum - 1);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalISODate();
   
   dayData.wakingTime = elements.inputWakingTime.value;
   dayData.bibleBook = elements.inputBibleBook.value;
@@ -1529,9 +1556,10 @@ function saveDayLog() {
   dayData.fidJournaling = elements.inputFidJournaling.checked;
   dayData.prayer10mins = elements.inputPrayer10mins.checked;
   
-  // Data Validity Calculation
-  // If it was already validated as true on the correct day, keep it true even if edited later
-  if (dayData.dataValidity !== true) {
+  // Admins may verify/correct validity. Trainees retain automatic same-day validation.
+  if (appState && appState.isAdmin) {
+    dayData.dataValidity = elements.inputDataValidity.checked;
+  } else if (dayData.dataValidity !== true) {
     dayData.dataValidity = (todayStr === dayDate);
   }
   
@@ -1993,7 +2021,7 @@ function renderScoringTable() {
   
   const headerRow = document.getElementById('score-table-header-row');
   if (headerRow) {
-    headerRow.innerHTML = '<th>CBRSM Discipline Description</th>';
+    headerRow.innerHTML = '<th>CBR Discipline Description</th>';
     for (let w = 1; w <= stats.weeks.length; w++) {
       headerRow.innerHTML += `<th class="text-center" style="width: 12%;">Week ${w}</th>`;
     }
@@ -2003,7 +2031,7 @@ function renderScoringTable() {
   const disciplines = [
     { name: 'Perseverance (Chapters Read)', key: 'perseverance', max: 3, desc: 'Read ALL set chapters each day' },
     { name: 'Commitment (Early Rising)', key: 'commitment', max: 2, desc: 'Woke up at set ERT each day' },
-    { name: 'Prayerfulness (CBRSM Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBRSM each day' },
+    { name: 'Prayerfulness (CBR Prayer)', key: 'prayer', max: 2, desc: 'Prayed 10 mins after CBR each day' },
     { name: 'Scripture Memory (Recitations)', key: 'memory', max: 1, desc: 'Recited the memory scripture each day' },
     { name: 'Meditation (Journal Notes)', key: 'meditation', max: 1, desc: 'Wrote method journal notes each day' },
     { name: 'Accountability (Sharing / PE Meeting)', key: 'accountability', max: 1, desc: 'Sharing & PE meeting once a week' }
@@ -2045,7 +2073,7 @@ function renderScoringTable() {
   const trTotal = document.createElement('tr');
   trTotal.className = 'total-row';
   const tdTotalLabel = document.createElement('td');
-  tdTotalLabel.innerText = 'CBRSM GROWTH POINTS (Total Weekly Score)';
+  tdTotalLabel.innerText = 'CBR GROWTH POINTS (Total Weekly Score)';
   trTotal.appendChild(tdTotalLabel);
   
   for (let w = 0; w < stats.weeks.length; w++) {
@@ -2939,7 +2967,7 @@ function importData(e) {
         renderAll();
         showToast("Backup data imported successfully!", "success");
       } else {
-        showToast("Invalid backup file structure. Ensure it is a valid CBRSM backup JSON.", "error");
+        showToast("Invalid backup file structure. Ensure it is a valid CBR Challenger backup JSON.", "error");
       }
     } catch (err) {
       console.error(err);

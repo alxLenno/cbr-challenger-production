@@ -1,7 +1,11 @@
 <div class="content-header">
   <div class="title-text">
-    <h2>Session Evaluation <span class="se-subtitle">| Diligence in CBRSM Course</span></h2>
+    <h2>Session Evaluation <span class="se-subtitle">| Diligence in CBR Course</span></h2>
     <p>Filled at the end of each session (card archive day). Tracks your diligence, growth points, and bonus scores.</p>
+    <button type="button" id="se-print-card-btn" class="se-print-button">
+      <i data-lucide="file-down"></i>
+      Download Card + Evaluation PDF
+    </button>
   </div>
 </div>
 
@@ -23,30 +27,6 @@
     </div>
   </div>
 
-  <!-- Grand Total Summary -->
-  <div id="se-grand-summary" class="se-grand-summary">
-    <div class="se-grand-block">
-      <div class="se-grand-label">DILIGENCE SCORE</div>
-      <div class="se-grand-value" id="se-total-diligence">0</div>
-    </div>
-    <div class="se-grand-divider"></div>
-    <div class="se-grand-block">
-      <div class="se-grand-label">GROWTH POINTS</div>
-      <div class="se-grand-value" id="se-total-growth">0</div>
-    </div>
-    <div class="se-grand-divider"></div>
-    <div class="se-grand-block">
-      <div class="se-grand-label">BONUS SCORES</div>
-      <div class="se-grand-value" id="se-total-bonus">0</div>
-    </div>
-    <div class="se-grand-divider"></div>
-    <div class="se-grand-block primary">
-      <div class="se-grand-label">TOTAL POINTS</div>
-      <div class="se-grand-value" id="se-total-all">0</div>
-      <div class="se-grand-target" id="se-target-label">/ 600 target</div>
-    </div>
-  </div>
-
   <!-- Session Selector -->
   <div class="se-selector-bar">
     <div class="se-selector-group">
@@ -60,6 +40,37 @@
     </div>
     <div class="se-status-badge" id="se-status-badge">
       <!-- Status injected by JS -->
+    </div>
+  </div>
+
+  <!-- Selected Session Summary -->
+  <div class="se-summary-heading">
+    <div>
+      <span class="se-summary-kicker">Selected session score</span>
+      <strong id="se-selected-session-label">Session 1</strong>
+    </div>
+    <p>Reference Card diligence + the four-week cumulative growth points within this session's Challenger Card only.</p>
+  </div>
+  <div id="se-grand-summary" class="se-grand-summary">
+    <div class="se-grand-block">
+      <div class="se-grand-label">REFERENCE DILIGENCE</div>
+      <div class="se-grand-value" id="se-total-diligence">0</div>
+    </div>
+    <div class="se-grand-divider"></div>
+    <div class="se-grand-block">
+      <div class="se-grand-label">CHALLENGER GROWTH</div>
+      <div class="se-grand-value" id="se-total-growth">0</div>
+    </div>
+    <div class="se-grand-divider"></div>
+    <div class="se-grand-block">
+      <div class="se-grand-label">FINAL BONUS</div>
+      <div class="se-grand-value" id="se-total-bonus">0</div>
+    </div>
+    <div class="se-grand-divider"></div>
+    <div class="se-grand-block primary">
+      <div class="se-grand-label">SESSION TOTAL</div>
+      <div class="se-grand-value" id="se-total-all">0</div>
+      <div class="se-grand-target" id="se-target-label">Diligence + growth</div>
     </div>
   </div>
 
@@ -130,7 +141,7 @@
       <div class="se-criteria-item" data-num="6">
         <div class="se-criteria-info">
           <span class="se-num">6.</span>
-          <span class="se-criteria-text">I promoted CBRSM (I spoke to 3 people about CBRSM or loaned out a book)</span>
+          <span class="se-criteria-text">I promoted CBR (I spoke to 3 people about CBR or loaned out a book)</span>
         </div>
         <div class="se-checkbox-wrap">
           <div class="se-checkbox diligence-cb" id="se-cb-6" data-num="6"></div>
@@ -142,13 +153,13 @@
     <div class="se-section-title" style="margin-top: 1.5rem;">
       <div class="se-section-title-left">
         <i data-lucide="trending-up" style="color:var(--success);"></i> Growth Points
-        <span class="se-section-note">From archived card</span>
+        <span class="se-section-note">From this session's Challenger Card only</span>
       </div>
     </div>
     
     <div class="se-criteria-item growth-item">
       <div class="se-criteria-info">
-        <span class="se-criteria-text">My Total <strong>Growth Points</strong> (4 weeks) in CBRSM practice this session</span>
+        <span class="se-criteria-text">My Total <strong>Growth Points</strong> (4 weeks) in CBR practice this session</span>
       </div>
       <div class="se-growth-val" id="se-current-growth-points">0</div>
     </div>
@@ -177,7 +188,7 @@
         <div class="se-criteria-item bonus-item" data-num="8">
           <div class="se-criteria-info">
             <span class="se-num">8.</span>
-            <span class="se-criteria-text">I have practised CBRSM beyond 5 am and 5 chapters</span>
+            <span class="se-criteria-text">I have practised CBR beyond 5 am and 5 chapters</span>
           </div>
           <div class="se-checkbox-wrap">
             <span class="se-bonus-label">50 pts</span>
@@ -217,7 +228,7 @@
         <div class="se-criteria-item bonus-item" data-num="12">
           <div class="se-criteria-info">
             <span class="se-num">12.</span>
-            <span class="se-criteria-text">I attended ALL the training sessions of the CBRSM course</span>
+            <span class="se-criteria-text">I attended ALL the training sessions of the CBR course</span>
           </div>
           <div class="se-checkbox-wrap">
             <span class="se-bonus-label">50 pts</span>

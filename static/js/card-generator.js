@@ -58,7 +58,7 @@ function buildChallengerCardHTML(data) {
     // Header row
     rows += `<tr><th class="row-header">Chs</th>`;
     rows += buildDayHeaderCells();
-    rows += `<th style="border:none; background:transparent; font-size:4.5pt; text-align:left; padding-left:6px; line-height:1.1; vertical-align:bottom;">CBRSM VISION<br>IN 30 YEARS</th>`;
+    rows += `<th style="border:none; background:transparent; font-size:4.5pt; text-align:left; padding-left:6px; line-height:1.1; vertical-align:bottom;">CBR VISION<br>IN 30 YEARS</th>`;
     rows += `</tr>`;
 
     for (let speed = 8; speed >= 1; speed--) {
@@ -109,7 +109,7 @@ function buildChallengerCardHTML(data) {
           <div class="cc-speed-label-vert">BIBLE-READING SPEEDS</div>
           <div>
             <div style="text-align:center; font-size:7pt; font-weight:900; letter-spacing:1px; padding:2px 0; border-bottom:1px solid #aaa;">
-              CONSISTENT BIBLE READING (CBRSM)
+              CONSISTENT BIBLE READING (CBR)
             </div>
             <table class="cc-grid-table">${rows}</table>
           </div>
@@ -229,7 +229,7 @@ function buildChallengerCardHTML(data) {
       }
     }
     // Add right-side text immediately to the right of the table rows
-    rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBRSM<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
+    rows += `<td rowspan="6" style="border:none; background:transparent; font-size:4.5pt; font-weight:900; text-align:center; vertical-align:middle; line-height:1.4; padding-left:12px;">PRACTISE<br>THESE<br>IMPORTANT<br>CBR<br>SUPPORTING<br>DISCIPLINES<br>VERY<br>DILIGENTLY</td>`;
     rows += `</tr>`;
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -293,11 +293,11 @@ function buildChallengerCardHTML(data) {
     const rows = [
       { disc: 'PERSEVERANCE', desc: 'I Read ALL My Set Chapters Each Day', key: 'perseverance', max: 3 },
       { disc: 'COMMITMENT', desc: 'I Woke Up at My Set ER-Time Each Day', key: 'commitment', max: 2 },
-      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBRSM Each Day', key: 'prayer', max: 2 },
+      { disc: 'PRAYERFULNESS', desc: 'I Prayed 10min after CBR Each Day', key: 'prayer', max: 2 },
       { disc: 'SCRIPTURE MEMORY', desc: 'I Recited the Memory Scripture Each Day', key: 'memory', max: 1 },
       { disc: 'MEDITATION', desc: 'I Wrote FID Journal Notes Each Day', key: 'meditation', max: 1 },
       { disc: 'ACCOUNTABILITY', desc: 'I shared FID and Commented Each Week', key: 'accountability', max: 1 },
-      { disc: 'CBRSM GROWTH POINTS', desc: 'My Total Growth Points', key: 'total', max: 10, isTotalRow: true },
+      { disc: 'CBR GROWTH POINTS', desc: 'My Total Growth Points', key: 'total', max: 10, isTotalRow: true },
       { disc: 'LAXITY (Deviation)', desc: 'Points I have Lost', key: 'laxity', max: 0, isLaxityRow: true },
     ];
 
@@ -330,7 +330,7 @@ function buildChallengerCardHTML(data) {
 
     return `
       <div class="cc-growth-section">
-        <div class="cc-growth-title">WEEKLY CBRSM GROWTH POINTS ANALYSIS</div>
+        <div class="cc-growth-title">WEEKLY CBR GROWTH POINTS ANALYSIS</div>
         <table class="cc-growth-table">
           <thead>
             <tr class="header-row">
@@ -351,7 +351,7 @@ function buildChallengerCardHTML(data) {
   // ─────────────────────────────────────────────
   function buildInstructions() {
     const col1 = [
-      { n: '', t: '<b>Follow these INSTRUCTIONS in Filling your CBR, ERT and other pieces of information in this CARD to be able to Analyze your Weekly CBRSM GROWTH POINTS.</b>' }
+      { n: '', t: '<b>Follow these INSTRUCTIONS in filling your CBR, ERT and other pieces of information in this CARD to be able to analyze your Weekly CBR GROWTH POINTS.</b>' }
     ];
     const col2 = [
       { n: '1.', t: 'Circle the CARD number and write your <i>Name</i>, <i>Phone</i> number and the commencing <i>Date</i>.' },
@@ -363,9 +363,9 @@ function buildChallengerCardHTML(data) {
     const col3 = [
       { n: '6.', t: 'Use a <b>pencil</b> to record and analyze data on this CARD with absolute HONESTY.' },
       { n: '7.', t: 'Show your <b>Consistency Barriers</b> on the CARD.' },
-      { n: '8.', t: 'Calculate your <b>Weekly CBRSM Growth Points</b> and add them up to get total for the 4 weeks.' },
+      { n: '8.', t: 'Calculate your <b>Weekly CBR Growth Points</b> and add them up to get total for the 4 weeks.' },
       { n: '9.', t: '<b>Laxity:</b> Aim to keep your laxity at zero every week in order to improve your class ranking.' },
-      { n: '', t: '<hr/><b>DEVELOPING CBRSM SUCCESSFULLY</b><br>1. Sleep early to rise on time for CBRSM.<br>2. Do CBRSM and pray daily even during exams.<br>3. Model true christianity to all your friends by early-rising faithfully for CBRSM even on holidays.<br>4. Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBRSM years later.<br>5. You are required to share <b>1 FID Every Week</b>.<br>6. Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
+      { n: '', t: '<hr/><b>DEVELOPING CBR SUCCESSFULLY</b><br>1. Sleep early to rise on time for CBR.<br>2. Do CBR and pray daily even during exams.<br>3. Model true Christianity to all your friends by early-rising faithfully for CBR even on holidays.<br>4. Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBR years later.<br>5. You are required to share <b>1 FID Every Week</b>.<br>6. Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
     ];
 
     const renderCol = (items) => items.map(i => `<div class="inst-item"><span class="inst-num">${i.n}</span><span>${i.t}</span></div>`).join('');
@@ -459,8 +459,201 @@ function buildChallengerCardHTML(data) {
   ${buildInstructions()}
 
   <!-- FOOTER -->
-  <div class="cc-footer">© By CBRSM Discipline Challenger CARD, 19th Edition, January 2021 — Digital Assistant by The Word Feast</div>
+  <div class="cc-footer">© By CBR Discipline Challenger CARD, 19th Edition, January 2021 — Digital Assistant by The Word Feast</div>
 </div>`;
+}
+
+function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
+  const sessions = [];
+  const currentCardId = Number(cardData.currentCardId || cardData.cardId || 1);
+  const currentGrowth = cardData.days && cardData.weeks
+    ? calculateScoresForData(cardData).totalScore
+    : 0;
+
+  for (let sessionNumber = 1; sessionNumber <= 7; sessionNumber++) {
+    const stored = evaluationData[String(sessionNumber)] || evaluationData[sessionNumber] || {};
+    sessions.push({
+      sessionNumber,
+      diligence: stored.diligence || {},
+      bonus: stored.bonus || {},
+      growthPoints: sessionNumber === currentCardId
+        ? currentGrowth
+        : Number(stored.growthPoints || 0),
+    });
+  }
+
+  const diligenceCriteria = [
+    'I arrived for the Training Session on TIME',
+    'I completed ALL the listed session activities',
+    'I had at least THREE review meetings with my PEs',
+    'My faithfulness in Scripture Memory & Data Validity is at least 25 days each',
+    'I am ORDERLY (Mobile off & Verses written on cards or sticky notes)',
+    'I promoted CBR (I spoke to 3 people about CBR or loaned out a book)',
+  ];
+  const bonusCriteria = [
+    'I have listed over 10 people and shall bring at least 5 to the next class',
+    'I have practised CBR beyond 5 am and 5 chapters',
+    'I also prayed back the entire Psalm 119 successfully',
+    'I have done at least 7 recitation checks on all the course Scriptures',
+    'I completed writing principles for ALL the listed CBs',
+    'I attended ALL the training sessions of the CBR course',
+  ];
+
+  const checkMark = checked => `<span class="cc-eval-check${checked ? ' checked' : ''}">${checked ? '✓' : ''}</span>`;
+  const diligenceScore = session => diligenceCriteria.reduce((total, _, index) => (
+    total + (session.diligence[String(index + 1)] ? 10 : 0)
+  ), 0);
+  const finalSession = sessions[6];
+  const bonusScore = bonusCriteria.reduce((total, _, index) => (
+    total + (finalSession.bonus[String(index + 7)] ? 50 : 0)
+  ), 0);
+  const selectedSession = sessions.find(session => session.sessionNumber === currentCardId) || sessions[0];
+  const selectedDiligence = diligenceScore(selectedSession);
+  const selectedGrowth = selectedSession.growthPoints;
+  const selectedBonus = currentCardId === 7 ? bonusScore : 0;
+  // The reference card's "Total Sessions Score" is for the active session:
+  // that session's diligence plus that same Challenger Card's four-week growth.
+  const selectedSessionScore = selectedDiligence + selectedGrowth;
+  const selectedTotalPoints = selectedSessionScore + selectedBonus;
+
+  const diligenceRows = diligenceCriteria.map((criterion, index) => `
+    <tr>
+      <th class="cc-eval-row-num">${index + 1}.</th>
+      <td class="cc-eval-criterion">${criterion}</td>
+      ${sessions.map(session => `<td>${checkMark(Boolean(session.diligence[String(index + 1)]))}</td>`).join('')}
+      ${index === 0 ? `<td rowspan="${diligenceCriteria.length + 2}" class="cc-eval-course-score"><span>TOTAL SESSIONS SCORE</span><strong>${selectedSessionScore}</strong></td>` : ''}
+    </tr>`).join('');
+
+  const bonusRows = bonusCriteria.map((criterion, index) => {
+    const number = index + 7;
+    return `<tr>
+      <th>${number}.</th>
+      <td>${criterion}</td>
+      <td class="cc-eval-bonus-check">${checkMark(Boolean(finalSession.bonus[String(number)]))}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <section class="cc-session-evaluation-page" aria-label="CBR course session evaluation">
+    <header class="cc-eval-header">
+      <div>
+        <div class="cc-eval-kicker">THE CHALLENGER CARD · COURSE RECORD</div>
+        <h1>EVALUATION OF DILIGENCE IN CBR COURSE</h1>
+        <p>Generated from the editable Session Evaluation in the CBR Challenger app.</p>
+      </div>
+      <div class="cc-eval-reader-meta">
+        <strong>${cardData.username || 'Bible Reader'}</strong>
+        <span>Active Card ${currentCardId}</span>
+      </div>
+    </header>
+
+    <table class="cc-eval-main-table">
+      <thead>
+        <tr>
+          <th colspan="2">DILIGENCE CRITERIA</th>
+          ${sessions.map(session => `<th>S${session.sessionNumber}</th>`).join('')}
+          <th class="cc-eval-course-heading" aria-label="Total sessions score"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${diligenceRows}
+        <tr class="cc-eval-growth-row">
+          <th></th>
+          <td>My Total Growth Points (4 weeks) in CBR practice this session</td>
+          ${sessions.map(session => `<td>${session.growthPoints}</td>`).join('')}
+        </tr>
+        <tr class="cc-eval-score-row">
+          <th></th>
+          <td>DILIGENCE POINTS (REFERENCE CARD)</td>
+          ${sessions.map(session => `<td>${diligenceScore(session)}</td>`).join('')}
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cc-eval-lower-grid">
+      <section class="cc-eval-panel cc-eval-bonus-panel">
+        <h2>BONUS SCORING ASSIGNMENTS AT THE END OF THE COURSE</h2>
+        <table><tbody>
+          ${bonusRows}
+          <tr class="cc-eval-bonus-total-row">
+            <th></th>
+            <td>TOTAL BONUSES</td>
+            <td>${selectedBonus}</td>
+          </tr>
+        </tbody></table>
+      </section>
+
+      <section class="cc-eval-panel">
+        <h2>EVALUATION AND SCORING</h2>
+        <ol>
+          <li>Areas 1 to 6 each score 10 points during the session's DILIGENCE evaluation.</li>
+          <li>Areas 7 to 12 each earn 50 bonus points at the end of the course during the final evaluation.</li>
+          <li>You must score at least 600 points or meet any other criteria set by the course director to be commissioned as a Consistent Bible Reader.</li>
+        </ol>
+      </section>
+
+      <section class="cc-eval-panel">
+        <h2>PERMITTED LAXITY (DEVIATION) PER SESSION</h2>
+        <div class="cc-eval-laxity-grid">
+          ${[30, 25, 20, 15, 10, 5, 0].map((value, index) => `<span>Session ${index + 1}</span><strong>${value}</strong>`).join('')}
+        </div>
+      </section>
+
+      <section class="cc-eval-panel">
+        <h2>FOR EMPHASIS BY CBR FACILITATORS</h2>
+        <ol>
+          <li>Frequency of attending PE meetings <span class="cc-eval-note-box"></span></li>
+          <li>How to memorize Scriptures daily, bit by bit <span class="cc-eval-note-box"></span></li>
+          <li>System of CBR progression from Card 1 to 7 <span class="cc-eval-note-box"></span></li>
+          <li>How to make a Scripture recitation checklist <span class="cc-eval-note-box"></span></li>
+          <li>How to change your character through CBR <span class="cc-eval-note-box"></span></li>
+          <li>Recruiting and partnering in CBR ministry <span class="cc-eval-note-box"></span></li>
+          <li>Redemption of CB penalties allowed only once <span class="cc-eval-note-box"></span></li>
+          <li>Best disciple's award recognition <span class="cc-eval-note-box"></span></li>
+        </ol>
+      </section>
+    </div>
+
+    <footer class="cc-eval-totals">
+      <div><span>DILIGENCE SCORES</span><strong>${selectedSessionScore}</strong></div>
+      <div><span>BONUS SCORES</span><strong>${selectedBonus}</strong></div>
+      <div class="grand"><span>TOTAL POINTS</span><strong>${selectedTotalPoints}</strong></div>
+    </footer>
+  </section>`;
+}
+
+async function getSessionEvaluationsForPrint() {
+  let sessions = {};
+  try {
+    const response = await fetch('/api/session_eval');
+    if (response.ok) {
+      const payload = await response.json();
+      sessions = payload.sessions || {};
+    }
+  } catch (error) {
+    console.warn('Could not load saved session evaluations for print.', error);
+  }
+
+  // Prefer the in-memory values when the Session Evaluation tab has edits that
+  // are still inside its short auto-save window.
+  if (typeof seData !== 'undefined' && seData) {
+    Object.keys(seData).forEach(key => {
+      sessions[key] = seData[key];
+    });
+  }
+
+  // Each session gets the growth points from its corresponding Challenger
+  // Card; Reference Card diligence is added separately in the print table.
+  if (typeof seGetSessionGrowthPoints === 'function') {
+    for (let sessionNumber = 1; sessionNumber <= 7; sessionNumber++) {
+      const key = String(sessionNumber);
+      sessions[key] = {
+        ...(sessions[key] || {}),
+        growthPoints: seGetSessionGrowthPoints(sessionNumber),
+      };
+    }
+  }
+  return sessions;
 }
 
 // Helper: calculate scores using a given data object (handles both active & historical cards)
@@ -586,10 +779,17 @@ function renderChallengerCardInto(containerId, data) {
   setTimeout(() => drawERTGraph(containerId), 50);
 }
 
-// Main print trigger: generate card then call window.print()
-function printChallengerCard(data) {
+// Main print trigger: generate the card and its editable-data evaluation page.
+async function printChallengerCard(data) {
   const wrapper = document.getElementById('card-print-wrapper');
-  wrapper.innerHTML = buildChallengerCardHTML(data);
+  if (!wrapper) return;
+
+  if (typeof showToast === 'function') {
+    showToast('Preparing Challenger Card and Session Evaluation…', 'info', 1800);
+  }
+
+  const evaluationData = await getSessionEvaluationsForPrint();
+  wrapper.innerHTML = buildChallengerCardHTML(data) + buildSessionEvaluationPrintHTML(evaluationData, data);
 
   // Temporarily show to calculate SVG coordinates correctly
   const originalDisplay = wrapper.style.display;
@@ -601,5 +801,5 @@ function printChallengerCard(data) {
     wrapper.style.display = originalDisplay;
     wrapper.style.visibility = '';
     window.print();
-  }, 50);
+  }, 80);
 }
