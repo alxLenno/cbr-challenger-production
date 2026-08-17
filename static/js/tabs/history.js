@@ -164,6 +164,7 @@ async function restoreArchivedToActive(instanceId) {
 
     appState.currentCardId = cardId;
     appState.activeInstanceId = targetCard.instanceId;
+    appState.round = targetCard.round || 1;
     appState.commencingDate = targetCard.commencingDate;
     appState.days = JSON.parse(JSON.stringify(targetCard.days || []));
     appState.weeks = JSON.parse(JSON.stringify(targetCard.weeks || []));

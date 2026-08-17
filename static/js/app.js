@@ -318,12 +318,15 @@ async function checkAndAdvanceCompletedCard() {
 
   // The card selector persists whatever card you pick as "active," even if you
   // only meant to glance at an old one. Only auto-advance from your actual
-  // frontier (the highest card number you've ever reached) — otherwise merely
-  // browsing back to an earlier finished card would bump it forward by one and
-  // strand your real progress on a later card you'd already reached.
-  const knownCardIds = (appState.savedCards || []).map(c => Number(c.currentCardId || c.cardId) || 0);
-  const frontierCardId = Math.max(appState.currentCardId, ...knownCardIds);
-  if (appState.currentCardId < frontierCardId) return;
+  // frontier (the furthest round+card you've ever reached) — otherwise merely
+  // browsing back to an earlier finished card would bump it forward and
+  // strand your real progress on a card/round you'd already reached.
+  const rank = (round, cardId) => (Number(round) || 1) * 100 + (Number(cardId) || 0);
+  const currentRound = appState.round || 1;
+  const knownRanks = (appState.savedCards || []).map(c => rank(c.round || 1, c.currentCardId || c.cardId));
+  const currentRank = rank(currentRound, appState.currentCardId);
+  const frontierRank = Math.max(currentRank, ...knownRanks);
+  if (currentRank < frontierRank) return;
 
   const today = getLocalISODate();
   const timeline = calculateCardTimeline(appState.commencingDate);
@@ -342,8 +345,28 @@ async function checkAndAdvanceCompletedCard() {
   const archived = await archiveActiveCard(true); // silent archive of the finished card
   if (!archived) return; // couldn't save it — leave the card in place rather than risk losing it
 
-  const nextCardId = completedCardId < 7 ? completedCardId + 1 : 1;
-  await loadOrResetBoardForNewCard(nextCardId);
+  if (completedCardId >= 7) {
+    // Finishing Round N is a milestone — starting Round N+1 still requires an
+    // explicit decision, it just doesn't require digging for the button.
+    setTimeout(async () => {
+      const startNewRound = await showModal({
+        title: `Round ${currentRound} Complete!`,
+        subtitle: `Start Round ${currentRound + 1}?`,
+        message: `Card 7's timeframe ended, so it was archived to your history. Would you like to start Round ${currentRound + 1} from Card 1?`,
+        type: "info",
+        confirmText: `Start Round ${currentRound + 1}`,
+        cancelText: "Not Yet"
+      });
+      if (startNewRound) {
+        await loadOrResetBoardForNewCard(1, currentRound + 1);
+        renderAll();
+      }
+    }, 500);
+    return;
+  }
+
+  const nextCardId = completedCardId + 1;
+  await loadOrResetBoardForNewCard(nextCardId, currentRound);
 
   setTimeout(() => {
     showModal({
@@ -475,10 +498,13 @@ async function loadState() {
       });
     }
 
+    if (!appState.round) appState.round = 1;
+
     if (!appState.activeInstanceId) {
       const matchingSave = [...(appState.savedCards || [])]
         .filter(card =>
           Number(card.currentCardId || card.cardId) === Number(appState.currentCardId) &&
+          Number(card.round || 1) === Number(appState.round) &&
           card.commencingDate === appState.commencingDate
         )
         .sort((a, b) => (Date.parse(b.savedAt || '') || 0) - (Date.parse(a.savedAt || '') || 0))[0];
@@ -564,9 +590,16 @@ function formatDayReadingLabel(dayData) {
   return book ? `${book} · ${chapterLabel}` : chapterLabel;
 }
 
-function findLatestSavedCard(cardId) {
+// round is optional: pass it to scope the lookup to a specific round (e.g.
+// "does round 2's card 1 already exist?"). Omit it to match the card number
+// across any round — used by call sites that predate rounds existing.
+function findLatestSavedCard(cardId, round) {
   return [...(appState.savedCards || [])]
-    .filter(card => Number(card.currentCardId || card.cardId) === Number(cardId))
+    .filter(card => {
+      if (Number(card.currentCardId || card.cardId) !== Number(cardId)) return false;
+      if (round !== undefined && round !== null && Number(card.round || 1) !== Number(round)) return false;
+      return true;
+    })
     .sort((a, b) => {
       const aTime = Date.parse(a.savedAt || '') || 0;
       const bTime = Date.parse(b.savedAt || '') || 0;
@@ -588,6 +621,7 @@ function syncActiveCardToArchiveIfNeeded() {
     instanceId: instId,
     currentCardId: appState.currentCardId,
     cardId: appState.currentCardId,
+    round: appState.round || 1,
     commencingDate: appState.commencingDate,
     username: appState.username,
     contact: appState.contact,
@@ -657,6 +691,7 @@ function initDefaultState(seedState = {}) {
     ],
     currentCardId: 1,
     activeInstanceId: createCardInstanceId(1),
+    round: 1,
     commencingDate: timeline.startStr,
     days: [],
     weeks: [],
@@ -2228,9 +2263,10 @@ function renderLibraryList() {
       const pct = Math.round((card.totalScore / maxScore) * 100);
       const bar = document.createElement('div');
       bar.style.cssText = 'margin-bottom:0.4rem;';
+      const roundLabel = (card.round || 1) > 1 ? `Round ${card.round} · ` : '';
       bar.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-secondary);margin-bottom:2px;">
-          <span>Card ${card.cardId} · ${card.commencingDate}</span>
+          <span>${roundLabel}Card ${card.cardId} · ${card.commencingDate}</span>
           <span>${card.totalScore}/${maxScore} pts (${pct}%)</span>
         </div>
         <div style="background:rgba(var(--primary-rgb),0.12);border-radius:99px;height:6px;overflow:hidden;">
@@ -2246,9 +2282,10 @@ function renderLibraryList() {
   sorted.forEach(card => {
     const tr = document.createElement('tr');
     
-    // Card round
+    // Card number (and round, when the trainee has repeated the program)
     const tdCard = document.createElement('td');
-    tdCard.innerHTML = `<strong>Card ${card.cardId}</strong><br><span style="font-size:0.68rem;color:var(--text-muted);">${card.username}</span>`;
+    const cardRoundBadge = (card.round || 1) > 1 ? ` <span style="font-size:0.65rem;color:var(--text-muted);">(Round ${card.round})</span>` : '';
+    tdCard.innerHTML = `<strong>Card ${card.cardId}</strong>${cardRoundBadge}<br><span style="font-size:0.68rem;color:var(--text-muted);">${card.username}</span>`;
     tr.appendChild(tdCard);
     
     // Dates
@@ -2529,12 +2566,13 @@ function resizeStateForNewTimeline(newStartStr) {
   appState.commencingDate = newStartStr;
 }
 
-function resetActiveBoardForNewCard(newCardId) {
+function resetActiveBoardForNewCard(newCardId, newRound) {
   const today = new Date().toISOString().split('T')[0];
   const timeline = calculateCardTimeline(today);
 
   appState.currentCardId = newCardId;
   appState.activeInstanceId = createCardInstanceId(newCardId);
+  appState.round = newRound || appState.round || 1;
   appState.commencingDate = timeline.startStr;
   appState.days = [];
   appState.weeks = [];
@@ -2591,9 +2629,14 @@ async function refreshSavedCardsFromServer() {
   }
 }
 
-async function loadOrResetBoardForNewCard(newCardId) {
-  // Check for the most recently updated instance of this card.
-  let existingSave = findLatestSavedCard(newCardId);
+// round defaults to the trainee's current round — switching cards via the
+// selector stays within your current attempt. Pass an explicit round to
+// jump into a different one (used when manually starting the next round).
+async function loadOrResetBoardForNewCard(newCardId, round) {
+  const targetRound = round || appState.round || 1;
+
+  // Check for the most recently updated instance of this card within this round.
+  let existingSave = findLatestSavedCard(newCardId, targetRound);
 
   if (!existingSave) {
     // The local cache can lag the server (stale session, another tab, a missed
@@ -2601,7 +2644,7 @@ async function loadOrResetBoardForNewCard(newCardId) {
     // here would silently create a blank instance that shadows real progress
     // still sitting on the server under an instance this tab doesn't know about.
     await refreshSavedCardsFromServer();
-    existingSave = findLatestSavedCard(newCardId);
+    existingSave = findLatestSavedCard(newCardId, targetRound);
   }
 
   if (existingSave) {
@@ -2609,6 +2652,7 @@ async function loadOrResetBoardForNewCard(newCardId) {
     // Starting over remains available only through the explicit Reset action.
     appState.currentCardId = newCardId;
     appState.activeInstanceId = existingSave.instanceId;
+    appState.round = existingSave.round || targetRound;
     appState.commencingDate = existingSave.commencingDate;
     appState.days = JSON.parse(JSON.stringify(existingSave.days || []));
     appState.weeks = JSON.parse(JSON.stringify(existingSave.weeks || []));
@@ -2619,9 +2663,9 @@ async function loadOrResetBoardForNewCard(newCardId) {
     showToast(`Card ${newCardId} resumed with all saved progress.`, "success");
     return;
   }
-  
-  // This card has never been used, so create its first permanent instance.
-  await resetActiveBoardForNewCard(newCardId);
+
+  // This card has never been used in this round, so create its first permanent instance.
+  await resetActiveBoardForNewCard(newCardId, targetRound);
 }
 
 function autoArchiveIfNeeded() {
@@ -2657,6 +2701,7 @@ async function archiveActiveCard(silent = false) {
     instanceId: instId,
     currentCardId: cId,
     cardId: cId,
+    round: appState.round || 1,
     commencingDate: appState.commencingDate,
     username: appState.username,
     contact: appState.contact,
@@ -2670,10 +2715,10 @@ async function archiveActiveCard(silent = false) {
     totalLaxity: stats.totalLaxity,
     savedAt: new Date().toISOString()
   };
-  
-  const existingIdx = appState.savedCards.findIndex(c => 
-    c.instanceId === instId || 
-    ((c.currentCardId || c.cardId) === cId && c.commencingDate === appState.commencingDate)
+
+  const existingIdx = appState.savedCards.findIndex(c =>
+    c.instanceId === instId ||
+    ((c.currentCardId || c.cardId) === cId && Number(c.round || 1) === Number(appState.round || 1) && c.commencingDate === appState.commencingDate)
   );
   if (existingIdx >= 0) {
     archiveInstance.instanceId = appState.savedCards[existingIdx].instanceId;
@@ -2694,7 +2739,7 @@ async function archiveActiveCard(silent = false) {
       const upgrade = await showModal({
         title: "Upgrade Card?",
         subtitle: `Advance to Card ${appState.currentCardId + 1}`,
-        message: `Would you like to upgrade your active card to Card ${appState.currentCardId + 1} and start a fresh round?`,
+        message: `Would you like to upgrade your active card to Card ${appState.currentCardId + 1}?`,
         type: "info",
         confirmText: `Upgrade to Card ${appState.currentCardId + 1}`,
         cancelText: "Stay on Current"
@@ -2704,17 +2749,23 @@ async function archiveActiveCard(silent = false) {
         renderAll();
         return true;
       }
-    }
-    const reset = await showModal({
-      title: "Reset Card Logs?",
-      subtitle: "Start New Round",
-      message: "Would you like to reset/clear active card logs to start a new round?",
-      type: "info",
-      confirmText: "Reset Logs",
-      cancelText: "Keep Logs"
-    });
-    if (reset) {
-      resetActiveBoardForNewCard(appState.currentCardId);
+    } else {
+      // Card 7 archived — finishing a round is a milestone the trainee should
+      // decide on explicitly, not something that happens for them.
+      const currentRound = appState.round || 1;
+      const startNewRound = await showModal({
+        title: `Round ${currentRound} Complete!`,
+        subtitle: `Start Round ${currentRound + 1}?`,
+        message: `Card 7 is archived to your history. Would you like to start Round ${currentRound + 1} from Card 1?`,
+        type: "info",
+        confirmText: `Start Round ${currentRound + 1}`,
+        cancelText: "Not Yet"
+      });
+      if (startNewRound) {
+        await loadOrResetBoardForNewCard(1, currentRound + 1);
+        renderAll();
+        return true;
+      }
     }
     renderAll();
   }

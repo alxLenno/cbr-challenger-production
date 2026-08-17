@@ -800,10 +800,11 @@ async function printChallengerCard(data) {
   // per-card details instead of the static page title — otherwise every card
   // download looks identical regardless of which card or trainee it came from.
   const cardId = data.currentCardId || data.cardId || 1;
+  const roundNum = data.round || 1;
   const namePart = (data.username || 'Challenger').trim().replace(/[<>:"/\\|?*\s]+/g, '-');
   const datePart = data.commencingDate || '';
   const originalTitle = document.title;
-  document.title = `CBR-Card${cardId}-${namePart}${datePart ? `-${datePart}` : ''}`;
+  document.title = `CBR-R${roundNum}-Card${cardId}-${namePart}${datePart ? `-${datePart}` : ''}`;
 
   const restoreTitle = () => {
     document.title = originalTitle;

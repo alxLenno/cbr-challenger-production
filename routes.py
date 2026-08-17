@@ -53,6 +53,7 @@ def get_state():
         "cohort": card_state.cohort or "",
         "currentCardId": card_state.current_card_id,
         "activeInstanceId": card_state.active_instance_id,
+        "round": card_state.round or 1,
         "commencingDate": card_state.commencing_date,
         "theme": card_state.theme,
         "weaknesses": [
@@ -120,6 +121,7 @@ def get_state():
             snap["currentCardId"] = c_id
         inst_id = arch.instance_id or snap.get("instanceId") or f"card_{c_id}_{arch.id}"
         snap["instanceId"] = inst_id
+        snap["round"] = arch.round or snap.get("round") or 1
         state["savedCards"].append(snap)
         
     return jsonify(state)
@@ -142,6 +144,7 @@ def save_state():
         or card_state.active_instance_id
         or f"user_{current_user.id}_card_{data.get('currentCardId', 1)}_{uuid.uuid4().hex}"
     )
+    card_state.round = data.get("round") or card_state.round or 1
     card_state.commencing_date = data.get("commencingDate")
     card_state.theme = data.get("theme", "dark")
     card_state.contact = data.get("contact", "")
@@ -247,7 +250,7 @@ def save_state():
     snapshot_fields = (
         "currentCardId", "cardId", "commencingDate", "username", "contact",
         "church", "peg", "cohort", "weaknesses", "days", "weeks", "theme",
-        "totalScore", "totalLaxity", "savedAt",
+        "totalScore", "totalLaxity", "savedAt", "round",
     )
     snapshot = {
         key: copy.deepcopy(source.get(key))
@@ -261,6 +264,7 @@ def save_state():
     snapshot["savedAt"] = snapshot.get("savedAt") or datetime.utcnow().isoformat()
     snapshot["totalScore"] = snapshot.get("totalScore") or 0
     snapshot["totalLaxity"] = snapshot.get("totalLaxity") or 0
+    snapshot["round"] = snapshot.get("round") or card_state.round or 1
 
     archived_card = ArchivedCard.query.filter_by(
         user_id=current_user.id,
@@ -268,6 +272,7 @@ def save_state():
     ).first()
     if archived_card:
         archived_card.card_id = card_state.current_card_id
+        archived_card.round = snapshot["round"]
         archived_card.commencing_date = card_state.commencing_date
         archived_card.total_score = snapshot["totalScore"]
         archived_card.total_laxity = snapshot["totalLaxity"]
@@ -278,6 +283,7 @@ def save_state():
             user_id=current_user.id,
             instance_id=instance_id,
             card_id=card_state.current_card_id,
+            round=snapshot["round"],
             commencing_date=card_state.commencing_date,
             total_score=snapshot["totalScore"],
             total_laxity=snapshot["totalLaxity"],
@@ -293,21 +299,24 @@ def save_state():
 def archive_card():
     data = request.json
     c_id = data.get("currentCardId") or data.get("cardId")
+    round_num = data.get("round") or 1
     inst_id = data.get("instanceId") or (f"card_{c_id}_{data.get('commencingDate', '')}" if c_id else "archive_1")
     data["instanceId"] = inst_id
     if c_id:
         data["currentCardId"] = c_id
         data["cardId"] = c_id
-        
+    data["round"] = round_num
+
     existing = ArchivedCard.query.filter_by(user_id=current_user.id, instance_id=inst_id).first() if inst_id else None
     if not existing and c_id and data.get("commencingDate"):
         existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id, commencing_date=data.get("commencingDate")).first()
         if existing:
             inst_id = existing.instance_id
             data["instanceId"] = inst_id
-        
+
     if existing:
         existing.instance_id = inst_id
+        existing.round = round_num
         existing.commencing_date = data.get("commencingDate")
         existing.total_score = data.get("totalScore")
         existing.total_laxity = data.get("totalLaxity")
@@ -318,6 +327,7 @@ def archive_card():
             user_id=current_user.id,
             instance_id=inst_id,
             card_id=c_id,
+            round=round_num,
             commencing_date=data.get("commencingDate"),
             total_score=data.get("totalScore"),
             total_laxity=data.get("totalLaxity"),
@@ -335,6 +345,7 @@ def archive_card():
             existing = ArchivedCard.query.filter_by(user_id=current_user.id, card_id=c_id, commencing_date=data.get("commencingDate")).first()
         if existing:
             existing.instance_id = inst_id
+            existing.round = round_num
             existing.commencing_date = data.get("commencingDate")
             existing.total_score = data.get("totalScore")
             existing.total_laxity = data.get("totalLaxity")

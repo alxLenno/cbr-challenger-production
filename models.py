@@ -28,6 +28,7 @@ class CardState(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     current_card_id = db.Column(db.Integer, default=1)
     active_instance_id = db.Column(db.String(100), nullable=True)
+    round = db.Column(db.Integer, default=1)
     commencing_date = db.Column(db.String(20), nullable=False)
     theme = db.Column(db.String(10), default='dark')
     contact = db.Column(db.String(120), nullable=True)
@@ -115,6 +116,7 @@ class ArchivedCard(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     instance_id = db.Column(db.String(100), unique=True, nullable=False)
     card_id = db.Column(db.Integer, nullable=False)
+    round = db.Column(db.Integer, default=1)
     commencing_date = db.Column(db.String(20), nullable=False)
     total_score = db.Column(db.Integer, default=0)
     total_laxity = db.Column(db.Integer, default=0)
@@ -173,6 +175,12 @@ def auto_migrate_db(app):
                     db.session.execute(text("ALTER TABLE card_states ADD COLUMN peg VARCHAR(120)"))
                 if 'cohort' not in existing_cols:
                     db.session.execute(text("ALTER TABLE card_states ADD COLUMN cohort VARCHAR(120)"))
+                if 'round' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE card_states ADD COLUMN round INTEGER DEFAULT 1"))
+            if 'archived_cards' in inspector.get_table_names():
+                existing_cols = [c['name'] for c in inspector.get_columns('archived_cards')]
+                if 'round' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE archived_cards ADD COLUMN round INTEGER DEFAULT 1"))
             if 'daily_logs' in inspector.get_table_names():
                 existing_cols = [c['name'] for c in inspector.get_columns('daily_logs')]
                 if 'dif_discovery' not in existing_cols:
