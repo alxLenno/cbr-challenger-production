@@ -316,6 +316,15 @@ async function checkAndAdvanceCompletedCard() {
   if (isViewingHistory) return;
   if (!appState || !appState.days || appState.days.length === 0 || !appState.commencingDate) return;
 
+  // The card selector persists whatever card you pick as "active," even if you
+  // only meant to glance at an old one. Only auto-advance from your actual
+  // frontier (the highest card number you've ever reached) — otherwise merely
+  // browsing back to an earlier finished card would bump it forward by one and
+  // strand your real progress on a later card you'd already reached.
+  const knownCardIds = (appState.savedCards || []).map(c => Number(c.currentCardId || c.cardId) || 0);
+  const frontierCardId = Math.max(appState.currentCardId, ...knownCardIds);
+  if (appState.currentCardId < frontierCardId) return;
+
   const today = getLocalISODate();
   const timeline = calculateCardTimeline(appState.commencingDate);
   if (today <= timeline.endStr) return;
