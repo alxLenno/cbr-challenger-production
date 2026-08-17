@@ -796,6 +796,22 @@ async function printChallengerCard(data) {
   wrapper.style.display = 'block';
   wrapper.style.visibility = 'hidden'; // Avoid flicker if possible
 
+  // Browsers suggest document.title as the "Save as PDF" filename, so give it
+  // per-card details instead of the static page title — otherwise every card
+  // download looks identical regardless of which card or trainee it came from.
+  const cardId = data.currentCardId || data.cardId || 1;
+  const namePart = (data.username || 'Challenger').trim().replace(/[<>:"/\\|?*\s]+/g, '-');
+  const datePart = data.commencingDate || '';
+  const originalTitle = document.title;
+  document.title = `CBR-Card${cardId}-${namePart}${datePart ? `-${datePart}` : ''}`;
+
+  const restoreTitle = () => {
+    document.title = originalTitle;
+    window.removeEventListener('afterprint', restoreTitle);
+  };
+  window.addEventListener('afterprint', restoreTitle);
+  setTimeout(restoreTitle, 60000); // fallback if afterprint never fires
+
   setTimeout(() => {
     drawERTGraph('card-print-wrapper');
     wrapper.style.display = originalDisplay;
