@@ -276,5 +276,3 @@ function confirmDeleteArchivedCard() {
   renderLibraryList();
   closeDeleteConfirmModal();
 }
-
-// Trigger print process for the current active or loaded history card
