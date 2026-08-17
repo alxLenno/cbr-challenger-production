@@ -155,7 +155,11 @@ async function restoreArchivedToActive(instanceId) {
       if (elements.cardSelector) elements.cardSelector.disabled = false;
       if (elements.commencingDateInput) elements.commencingDateInput.disabled = false;
     } else {
-      autoArchiveIfNeeded();
+      const saved = await saveState();
+      if (!saved) {
+        showToast("Your current card could not be saved, so it was not replaced.", "error");
+        return;
+      }
     }
 
     appState.currentCardId = cardId;
@@ -170,8 +174,7 @@ async function restoreArchivedToActive(instanceId) {
     if (elements.cardSelector) elements.cardSelector.value = appState.currentCardId;
     if (elements.commencingDateInput) elements.commencingDateInput.value = appState.commencingDate;
 
-    syncAllTimelinesToFirstWeek();
-    saveState();
+    await saveState();
     initUI();
     renderAll();
 
@@ -248,6 +251,10 @@ function exitHistoricalView() {
 let pendingDeleteInstanceId = null;
 
 function deleteArchivedCard(instanceId) {
+  if (instanceId === appState.activeInstanceId) {
+    showToast("The active card's permanent snapshot cannot be deleted. Use Reset Card for an intentional restart.", "warning");
+    return;
+  }
   pendingDeleteInstanceId = instanceId;
   const modal = document.getElementById('delete-confirm-modal');
   if (modal) modal.classList.add('open');

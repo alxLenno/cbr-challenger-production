@@ -4,6 +4,8 @@
 let appState = null;
 let currentEditingDayNum = null;
 let currentWeekForChart = 1;
+let stateSaveQueue = Promise.resolve(true);
+let stateNeedsCleanup = false;
 
 // Read-only historical viewing mode states
 let isViewingHistory = false;
@@ -293,8 +295,9 @@ function showModal({ title, subtitle = '', message, type = 'info', confirmText =
 // Initialize Application
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
-  syncAllTimelinesToFirstWeek();
-  checkAndArchiveCompletedCard();
+  if (stateNeedsCleanup) await saveState();
+  // Reloading must preserve the exact active card instance. Card advancement is
+  // intentionally limited to explicit archive, upgrade, reset, or selector actions.
   initUI();
   setupEventListeners();
   renderAll();
@@ -304,38 +307,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initVideoGuides();
   initPdfGuides();
 });
-
-function checkAndArchiveCompletedCard() {
-  if (!appState || !appState.days || appState.days.length === 0) return;
-  const today = new Date().toISOString().split('T')[0];
-  const timeline = calculateCardTimeline(appState.commencingDate);
-  
-  if (today > timeline.endStr) {
-    if (hasAnyDataLogged()) {
-      archiveActiveCard(true); // silent archive
-      const newCardId = appState.currentCardId < 7 ? appState.currentCardId + 1 : 1;
-      resetActiveBoardForNewCard(newCardId);
-      
-      const newTimeline = calculateCardTimeline(today);
-      resizeStateForNewTimeline(newTimeline.startStr);
-      saveState();
-      setTimeout(() => {
-        showModal({
-          title: "Card Automatically Archived",
-          subtitle: "New Cycle Started",
-          message: "Your previous card timeframe ended and was automatically archived to history. Welcome to your new card!",
-          type: "info",
-          showCancel: false,
-          confirmText: "Get Started"
-        });
-      }, 500);
-    } else {
-      const newTimeline = calculateCardTimeline(today);
-      resizeStateForNewTimeline(newTimeline.startStr);
-      saveState();
-    }
-  }
-}
 
 // Date logic helpers for dynamic card timelines
 function getFirstSunday(year, monthIndex) {
@@ -679,6 +650,23 @@ async function loadState() {
         if (d.scriptureMemorized === undefined) d.scriptureMemorized = "";
         if (d.prayerTopic === undefined) d.prayerTopic = "";
       });
+
+      stateNeedsCleanup = clearLegacyPrefilledDays(appState);
+      appState.savedCards.forEach(card => {
+        stateNeedsCleanup = clearLegacyPrefilledDays(card) || stateNeedsCleanup;
+      });
+    }
+
+    if (!appState.activeInstanceId) {
+      const matchingSave = [...(appState.savedCards || [])]
+        .filter(card =>
+          Number(card.currentCardId || card.cardId) === Number(appState.currentCardId) &&
+          card.commencingDate === appState.commencingDate
+        )
+        .sort((a, b) => (Date.parse(b.savedAt || '') || 0) - (Date.parse(a.savedAt || '') || 0))[0];
+      appState.activeInstanceId = matchingSave
+        ? matchingSave.instanceId
+        : createCardInstanceId(appState.currentCardId);
     }
   } catch (e) {
     console.error("Error loading state, resetting.", e);
@@ -686,47 +674,146 @@ async function loadState() {
   }
 }
 
-function syncActiveCardToArchiveIfNeeded() {
-  if (!appState || !appState.savedCards || isViewingHistory) return;
-  const instId = appState.activeInstanceId || (`card_${appState.currentCardId}_${appState.commencingDate}`);
-  const existingIdx = appState.savedCards.findIndex(c => c.instanceId === instId);
-  if (existingIdx >= 0) {
-    const stats = calculateScores();
-    const syncedArchive = {
-      instanceId: instId,
-      currentCardId: appState.currentCardId,
-      cardId: appState.currentCardId,
-      commencingDate: appState.commencingDate,
-      username: appState.username,
-      contact: appState.contact,
-      church: appState.church,
-      peg: appState.peg || "",
-      cohort: appState.cohort || "",
-      weaknesses: JSON.parse(JSON.stringify(appState.weaknesses)),
-      days: JSON.parse(JSON.stringify(appState.days)),
-      weeks: JSON.parse(JSON.stringify(appState.weeks)),
-      totalScore: stats.totalScore,
-      totalLaxity: stats.totalLaxity,
-      savedAt: new Date().toISOString()
-    };
-    appState.savedCards[existingIdx] = syncedArchive;
-    fetch('/api/archive', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(syncedArchive)
-    }).catch(e => console.error("Failed to sync archive", e));
+function createCardInstanceId(cardId) {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return `card_${cardId}_${globalThis.crypto.randomUUID()}`;
   }
+  return `card_${cardId}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+function clearLegacyPrefilledDays(cardData) {
+  const days = cardData && Array.isArray(cardData.days) ? cardData.days : [];
+  if (days.length < 14) return false;
+
+  const isUnsubmittedPrefill = day => {
+    const hasCopiedTargets = Boolean(
+      day.wakingTime || day.bibleBook ||
+      Number(day.morningChapters || 0) || Number(day.laterChapters || 0)
+    );
+    const hasChapterRange = Number(day.startChapter || 0) > 0 || Number(day.endChapter || 0) > 0;
+    const hasRealEntry = Boolean(
+      day.logTimestamp || hasChapterRange || day.recitedMemory || day.fidJournaling ||
+      day.prayer10mins || day.cbResolved || day.fidFocus ||
+      day.fidInsight || day.fidDoing || day.openObservation || day.openPrinciples ||
+      day.openExperience || day.openNeed || day.personsPersonal || day.personsEnglish ||
+      day.personsReferences || day.personsSatan || day.personsObedience ||
+      day.personsNote || day.personsStirring || day.scriptureMemorized || day.prayerTopic
+    );
+    return hasCopiedTargets && !hasRealEntry;
+  };
+
+  const groups = new Map();
+  days.filter(isUnsubmittedPrefill).forEach(day => {
+    const signature = [
+      day.wakingTime || '',
+      day.bibleBook || '',
+      Number(day.morningChapters || 0),
+      Number(day.laterChapters || 0)
+    ].join('|');
+    if (!groups.has(signature)) groups.set(signature, []);
+    groups.get(signature).push(day);
+  });
+
+  const minimumRepeatedDays = Math.ceil(days.length * 0.8);
+  const legacyGroup = [...groups.values()].find(group => group.length >= minimumRepeatedDays);
+  if (!legacyGroup) return false;
+
+  legacyGroup.forEach(day => {
+    day.wakingTime = "";
+    day.bibleBook = "";
+    day.startChapter = 0;
+    day.endChapter = 0;
+    day.morningChapters = 0;
+    day.laterChapters = 0;
+  });
+  return true;
+}
+
+function formatDayReadingLabel(dayData) {
+  const morning = Number(dayData && dayData.morningChapters) || 0;
+  const later = Number(dayData && dayData.laterChapters) || 0;
+  const totalChapters = morning + later;
+  if (totalChapters <= 0) return "No Reading";
+
+  const book = String((dayData && dayData.bibleBook) || '').trim();
+  const start = Number(dayData && dayData.startChapter) || 0;
+  const end = Number(dayData && dayData.endChapter) || 0;
+  if (book && start > 0 && end > 0) {
+    return start === end ? `${book} ${start}` : `${book} ${start}–${end}`;
+  }
+
+  const chapterLabel = `${totalChapters} ${totalChapters === 1 ? 'Ch' : 'Chs'}`;
+  return book ? `${book} · ${chapterLabel}` : chapterLabel;
+}
+
+function findLatestSavedCard(cardId) {
+  return [...(appState.savedCards || [])]
+    .filter(card => Number(card.currentCardId || card.cardId) === Number(cardId))
+    .sort((a, b) => {
+      const aTime = Date.parse(a.savedAt || '') || 0;
+      const bTime = Date.parse(b.savedAt || '') || 0;
+      return bTime - aTime;
+    })[0] || null;
+}
+
+function syncActiveCardToArchiveIfNeeded() {
+  if (!appState || isViewingHistory) return null;
+  if (!Array.isArray(appState.savedCards)) appState.savedCards = [];
+  if (!appState.activeInstanceId) {
+    appState.activeInstanceId = createCardInstanceId(appState.currentCardId);
+  }
+
+  const instId = appState.activeInstanceId;
+  const existingIdx = appState.savedCards.findIndex(c => c.instanceId === instId);
+  const stats = calculateScores();
+  const syncedArchive = {
+    instanceId: instId,
+    currentCardId: appState.currentCardId,
+    cardId: appState.currentCardId,
+    commencingDate: appState.commencingDate,
+    username: appState.username,
+    contact: appState.contact,
+    church: appState.church,
+    peg: appState.peg || "",
+    cohort: appState.cohort || "",
+    weaknesses: JSON.parse(JSON.stringify(appState.weaknesses || [])),
+    days: JSON.parse(JSON.stringify(appState.days || [])),
+    weeks: JSON.parse(JSON.stringify(appState.weeks || [])),
+    totalScore: stats.totalScore,
+    totalLaxity: stats.totalLaxity,
+    savedAt: new Date().toISOString()
+  };
+
+  if (existingIdx >= 0) {
+    appState.savedCards[existingIdx] = syncedArchive;
+  } else {
+    appState.savedCards.push(syncedArchive);
+  }
+  return syncedArchive;
 }
 
 // Save state to Backend
 function saveState() {
-  if (isViewingHistory) return;
+  if (isViewingHistory) return Promise.resolve(false);
   syncActiveCardToArchiveIfNeeded();
-  fetch('/api/save_state', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(appState)
-  }).catch(e => console.error("Failed to save state", e));
+  const stateSnapshot = JSON.parse(JSON.stringify(appState));
+
+  stateSaveQueue = stateSaveQueue.then(async () => {
+    try {
+      const response = await fetch('/api/save_state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stateSnapshot)
+      });
+      if (!response.ok) throw new Error(`Save failed with status ${response.status}`);
+      return true;
+    } catch (e) {
+      console.error("Failed to save state", e);
+      return false;
+    }
+  });
+
+  return stateSaveQueue;
 }
 
 // Old duplicate resizeStateForNewTimeline removed (replaced by newer version below)
@@ -751,6 +838,7 @@ function initDefaultState(seedState = {}) {
       { name: "", action: "" }
     ],
     currentCardId: 1,
+    activeInstanceId: createCardInstanceId(1),
     commencingDate: timeline.startStr,
     days: [],
     weeks: [],
@@ -970,8 +1058,13 @@ function setupEventListeners() {
     
     if (newCardId === oldCardId) return;
 
-    // 1. Archive current card if needed (silently saves progress)
-    autoArchiveIfNeeded();
+    // Persist the outgoing card before changing any active-card fields.
+    const saved = await saveState();
+    if (!saved) {
+      elements.cardSelector.value = oldCardId;
+      showToast("Your progress could not be saved. Card switching was stopped—please try again.", "error");
+      return;
+    }
     
     // 2. Load existing save for new card OR reset it fresh
     await loadOrResetBoardForNewCard(newCardId);
@@ -1856,11 +1949,11 @@ function renderCalendarGrid() {
       // Reading Speed (Chapters) display
       const readDiv = document.createElement('div');
       readDiv.className = 'day-reading';
-      const totalChapters = dayData.morningChapters + dayData.laterChapters;
+      const totalChapters = (Number(dayData.morningChapters) || 0) + (Number(dayData.laterChapters) || 0);
       if (totalChapters > 0) {
-        readDiv.innerText = dayData.bibleBook ? `${dayData.bibleBook} ${dayData.startChapter}-${dayData.endChapter}` : `${totalChapters} Chs`;
+        readDiv.innerText = formatDayReadingLabel(dayData);
       } else {
-        readDiv.innerText = "No Reading";
+        readDiv.innerText = formatDayReadingLabel(dayData);
         readDiv.style.color = 'var(--text-muted)';
       }
       dayBlock.appendChild(readDiv);
@@ -2495,7 +2588,11 @@ async function restoreArchivedToActive(instanceId) {
       if (elements.cardSelector) elements.cardSelector.disabled = false;
       if (elements.commencingDateInput) elements.commencingDateInput.disabled = false;
     } else {
-      autoArchiveIfNeeded();
+      const saved = await saveState();
+      if (!saved) {
+        showToast("Your current card could not be saved, so it was not replaced.", "error");
+        return;
+      }
     }
 
     appState.currentCardId = cardId;
@@ -2510,8 +2607,7 @@ async function restoreArchivedToActive(instanceId) {
     if (elements.cardSelector) elements.cardSelector.value = appState.currentCardId;
     if (elements.commencingDateInput) elements.commencingDateInput.value = appState.commencingDate;
 
-    syncAllTimelinesToFirstWeek();
-    saveState();
+    await saveState();
     initUI();
     renderAll();
 
@@ -2536,9 +2632,13 @@ function createEmptyDay(dayNum, dateStr) {
     dayNumber: dayNum,
     date: dateStr,
     wakingTime: "",
+    bibleBook: "",
+    startChapter: 0,
+    endChapter: 0,
     studyMethod: "FID",
     morningChapters: 0,
     laterChapters: 0,
+    recitedMemory: false,
     fidFocus: "",
     fidInsight: "",
     fidDoing: "",
@@ -2557,7 +2657,12 @@ function createEmptyDay(dayNum, dateStr) {
     scriptureMemorized: "",
     prayerTopic: "",
     prayer10mins: false,
-    cbResolved: false
+    dataValidity: false,
+    cbId: "",
+    cbSolution: "",
+    cbScripture: "",
+    cbResolved: false,
+    logTimestamp: null
   };
 }
 
@@ -2609,33 +2714,15 @@ function resizeStateForNewTimeline(newStartStr) {
 function resetActiveBoardForNewCard(newCardId) {
   const today = new Date().toISOString().split('T')[0];
   const timeline = calculateCardTimeline(today);
-  
-  // Preserve last logged targets
-  let lastGoals = { wakingTime: "", bibleBook: "", morningChapters: 0, laterChapters: 0 };
-  if (appState && appState.days) {
-    const lastLogged = [...appState.days].reverse().find(d => d.wakingTime || d.bibleBook || d.morningChapters);
-    if (lastLogged) {
-      lastGoals = {
-        wakingTime: lastLogged.wakingTime,
-        bibleBook: lastLogged.bibleBook,
-        morningChapters: lastLogged.morningChapters,
-        laterChapters: lastLogged.laterChapters
-      };
-    }
-  }
 
   appState.currentCardId = newCardId;
-  appState.activeInstanceId = `card_${newCardId}_${today}_${Date.now()}`;
+  appState.activeInstanceId = createCardInstanceId(newCardId);
   appState.commencingDate = timeline.startStr;
   appState.days = [];
   appState.weeks = [];
   
   for (let i = 0; i < timeline.dates.length; i++) {
     const d = createEmptyDay(i + 1, timeline.dates[i]);
-    d.wakingTime = lastGoals.wakingTime;
-    d.bibleBook = lastGoals.bibleBook;
-    d.morningChapters = lastGoals.morningChapters;
-    d.laterChapters = lastGoals.laterChapters;
     appState.days.push(d);
   }
   
@@ -2658,40 +2745,31 @@ function resetActiveBoardForNewCard(newCardId) {
   resizeStateForNewTimeline(timeline.startStr);
   
   Object.assign(appState, preserved);
-  saveState();
+  return saveState();
 }
 
 async function loadOrResetBoardForNewCard(newCardId) {
-  // Check if we have a saved version of this card in history (most recent first)
-  const existingSave = [...appState.savedCards].reverse().find(c => (c.currentCardId || c.cardId) === newCardId);
+  // Check for the most recently updated instance of this card.
+  const existingSave = findLatestSavedCard(newCardId);
   
   if (existingSave) {
-    const resume = await showModal({
-      title: `Resume Card ${newCardId}?`,
-      subtitle: "Previously Saved Session Found",
-      message: `You have a previously saved session for Card ${newCardId}. Would you like to resume it? (Click Cancel to start a fresh Card ${newCardId})`,
-      type: "info",
-      confirmText: "Resume Saved Session",
-      cancelText: "Start Fresh"
-    });
-    if (resume) {
-      // Resume the saved state
-      appState.currentCardId = newCardId;
-      appState.activeInstanceId = existingSave.instanceId;
-      appState.commencingDate = existingSave.commencingDate;
-      appState.days = JSON.parse(JSON.stringify(existingSave.days || []));
-      appState.weeks = JSON.parse(JSON.stringify(existingSave.weeks || []));
-      if (existingSave.weaknesses) {
-        appState.weaknesses = JSON.parse(JSON.stringify(existingSave.weaknesses));
-      }
-      syncAllTimelinesToFirstWeek();
-      saveState();
-      return;
+    // Selecting a previous card always resumes its latest permanent snapshot.
+    // Starting over remains available only through the explicit Reset action.
+    appState.currentCardId = newCardId;
+    appState.activeInstanceId = existingSave.instanceId;
+    appState.commencingDate = existingSave.commencingDate;
+    appState.days = JSON.parse(JSON.stringify(existingSave.days || []));
+    appState.weeks = JSON.parse(JSON.stringify(existingSave.weeks || []));
+    if (existingSave.weaknesses) {
+      appState.weaknesses = JSON.parse(JSON.stringify(existingSave.weaknesses));
     }
+    await saveState();
+    showToast(`Card ${newCardId} resumed with all saved progress.`, "success");
+    return;
   }
   
-  // No saved state or user clicked cancel -> start fresh
-  resetActiveBoardForNewCard(newCardId);
+  // This card has never been used, so create its first permanent instance.
+  await resetActiveBoardForNewCard(newCardId);
 }
 
 function autoArchiveIfNeeded() {
@@ -2749,13 +2827,11 @@ async function archiveActiveCard(silent = false) {
     appState.savedCards.push(archiveInstance);
   }
   
-  fetch('/api/archive', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(archiveInstance)
-  }).catch(e => console.error("Failed to archive card", e));
-  
-  saveState();
+  const saved = await saveState();
+  if (!saved) {
+    if (!silent) showToast("The card could not be archived. Your active card was left unchanged.", "error");
+    return false;
+  }
   
   if (!silent) {
     showToast("Card successfully archived to your library!", "success");
@@ -2791,8 +2867,15 @@ async function archiveActiveCard(silent = false) {
 }
 
 // Clear logs of current active card (helper for archiving reset)
-function resetActiveCardLogsOnly() {
+async function resetActiveCardLogsOnly() {
+  const archived = await saveState();
+  if (!archived) {
+    showToast("Your current progress could not be archived, so the reset was stopped.", "error");
+    return false;
+  }
+
   const today = new Date().toISOString().split('T')[0];
+  appState.activeInstanceId = createCardInstanceId(appState.currentCardId);
   appState.commencingDate = today;
   appState.weeks = [
     { weekNumber: 1, sharedFid: false },
@@ -2801,27 +2884,13 @@ function resetActiveCardLogsOnly() {
     { weekNumber: 4, sharedFid: false }
   ];
   
-  // Preserve last logged targets
-  let lastGoals = { wakingTime: "", bibleBook: "", morningChapters: 0, laterChapters: 0 };
-  if (appState && appState.days) {
-    const lastLogged = [...appState.days].reverse().find(d => d.wakingTime || d.bibleBook || d.morningChapters);
-    if (lastLogged) {
-      lastGoals = {
-        wakingTime: lastLogged.wakingTime,
-        bibleBook: lastLogged.bibleBook,
-        morningChapters: lastLogged.morningChapters,
-        laterChapters: lastLogged.laterChapters
-      };
-    }
-  }
-
   appState.days.forEach(day => {
-    day.wakingTime = lastGoals.wakingTime;
-    day.bibleBook = lastGoals.bibleBook;
+    day.wakingTime = "";
+    day.bibleBook = "";
     day.startChapter = 0;
     day.endChapter = 0;
-    day.morningChapters = lastGoals.morningChapters;
-    day.laterChapters = lastGoals.laterChapters;
+    day.morningChapters = 0;
+    day.laterChapters = 0;
     day.recitedMemory = false;
     day.fidJournaling = false;
     day.prayer10mins = false;
@@ -2838,9 +2907,14 @@ function resetActiveCardLogsOnly() {
     day.logTimestamp = null;
   });
   
-  saveState();
+  const saved = await saveState();
+  if (!saved) {
+    showToast("The new blank card could not be saved. Reload to recover the archived progress.", "error");
+    return false;
+  }
   initUI();
   renderAll();
+  return true;
 }
 
 // Load archived card into read-only viewing mode
@@ -2949,8 +3023,6 @@ function importData(e) {
           ];
         }
         
-        syncAllTimelinesToFirstWeek();
-        
         // Sync imported archived cards into the backend database
         if (appState.savedCards && appState.savedCards.length > 0) {
           appState.savedCards.forEach(card => {
@@ -2982,15 +3054,15 @@ async function resetCurrentCard() {
   const confirmed = await showModal({
     title: "Reset Card Logs?",
     subtitle: "Clear All Progress",
-    message: "Are you sure you want to reset all log fields for the active card? This action cannot be undone unless you have archived it or exported a JSON backup.",
+    message: "Are you sure you want to reset all log fields for the active card? Its current progress will remain available in Card Archives.",
     type: "error",
     confirmText: "Yes, Reset Logs",
     cancelText: "Cancel",
     isDanger: true
   });
   if (confirmed) {
-    resetActiveCardLogsOnly();
-    showToast("Active card logs reset.", "info");
+    const reset = await resetActiveCardLogsOnly();
+    if (reset) showToast("Active card logs reset. Previous progress remains in Card Archives.", "info");
   }
 }
 

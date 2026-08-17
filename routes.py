@@ -1,5 +1,7 @@
+import copy
 import json
 import os
+import uuid
 from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
@@ -50,6 +52,7 @@ def get_state():
         "peg": card_state.peg or "",
         "cohort": card_state.cohort or "",
         "currentCardId": card_state.current_card_id,
+        "activeInstanceId": card_state.active_instance_id,
         "commencingDate": card_state.commencing_date,
         "theme": card_state.theme,
         "weaknesses": [
@@ -124,7 +127,7 @@ def get_state():
 @api_bp.route('/save_state', methods=['POST'])
 @login_required
 def save_state():
-    data = request.json
+    data = request.get_json(silent=True) or {}
     
     card_state = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
     if not card_state:
@@ -134,12 +137,20 @@ def save_state():
     if data.get("username"):
         current_user.name = data.get("username")
     card_state.current_card_id = data.get("currentCardId", 1)
+    card_state.active_instance_id = (
+        data.get("activeInstanceId")
+        or card_state.active_instance_id
+        or f"user_{current_user.id}_card_{data.get('currentCardId', 1)}_{uuid.uuid4().hex}"
+    )
     card_state.commencing_date = data.get("commencingDate")
     card_state.theme = data.get("theme", "dark")
     card_state.contact = data.get("contact", "")
     card_state.church = data.get("church", "")
     card_state.peg = data.get("peg", "")
     card_state.cohort = data.get("cohort", "")
+
+    # New card states need an id before their related day/week rows are created.
+    db.session.flush()
 
     # Validity is automatic for trainees and manually reviewable by admins.
     # Preserve earlier valid days when a trainee later edits other fields.
@@ -221,6 +232,58 @@ def save_state():
             persons_stirring=d_data.get("personsStirring")
         )
         db.session.add(d)
+
+    # Every successful state save also updates a durable snapshot for this exact
+    # card instance, including partly filled cards with no scoreable reading yet.
+    instance_id = card_state.active_instance_id
+    matching_snapshot = next(
+        (
+            saved for saved in data.get("savedCards", [])
+            if saved.get("instanceId") == instance_id
+        ),
+        None,
+    )
+    source = matching_snapshot or data
+    snapshot_fields = (
+        "currentCardId", "cardId", "commencingDate", "username", "contact",
+        "church", "peg", "cohort", "weaknesses", "days", "weeks", "theme",
+        "totalScore", "totalLaxity", "savedAt",
+    )
+    snapshot = {
+        key: copy.deepcopy(source.get(key))
+        for key in snapshot_fields
+        if key in source
+    }
+    snapshot["instanceId"] = instance_id
+    snapshot["currentCardId"] = card_state.current_card_id
+    snapshot["cardId"] = card_state.current_card_id
+    snapshot["commencingDate"] = card_state.commencing_date
+    snapshot["savedAt"] = snapshot.get("savedAt") or datetime.utcnow().isoformat()
+    snapshot["totalScore"] = snapshot.get("totalScore") or 0
+    snapshot["totalLaxity"] = snapshot.get("totalLaxity") or 0
+
+    archived_card = ArchivedCard.query.filter_by(
+        user_id=current_user.id,
+        instance_id=instance_id,
+    ).first()
+    if archived_card:
+        archived_card.card_id = card_state.current_card_id
+        archived_card.commencing_date = card_state.commencing_date
+        archived_card.total_score = snapshot["totalScore"]
+        archived_card.total_laxity = snapshot["totalLaxity"]
+        archived_card.saved_at = snapshot["savedAt"]
+        archived_card.snapshot_data = snapshot
+    else:
+        db.session.add(ArchivedCard(
+            user_id=current_user.id,
+            instance_id=instance_id,
+            card_id=card_state.current_card_id,
+            commencing_date=card_state.commencing_date,
+            total_score=snapshot["totalScore"],
+            total_laxity=snapshot["totalLaxity"],
+            saved_at=snapshot["savedAt"],
+            snapshot_data=snapshot,
+        ))
         
     db.session.commit()
     return jsonify({"status": "success"})

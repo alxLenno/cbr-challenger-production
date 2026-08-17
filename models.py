@@ -27,6 +27,7 @@ class CardState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     current_card_id = db.Column(db.Integer, default=1)
+    active_instance_id = db.Column(db.String(100), nullable=True)
     commencing_date = db.Column(db.String(20), nullable=False)
     theme = db.Column(db.String(10), default='dark')
     contact = db.Column(db.String(120), nullable=True)
@@ -166,6 +167,8 @@ def auto_migrate_db(app):
             inspector = inspect(db.engine)
             if 'card_states' in inspector.get_table_names():
                 existing_cols = [c['name'] for c in inspector.get_columns('card_states')]
+                if 'active_instance_id' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE card_states ADD COLUMN active_instance_id VARCHAR(100)"))
                 if 'peg' not in existing_cols:
                     db.session.execute(text("ALTER TABLE card_states ADD COLUMN peg VARCHAR(120)"))
                 if 'cohort' not in existing_cols:

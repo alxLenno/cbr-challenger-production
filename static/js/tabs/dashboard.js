@@ -154,11 +154,11 @@ function renderCalendarGrid() {
       // Reading Speed (Chapters) display
       const readDiv = document.createElement('div');
       readDiv.className = 'day-reading';
-      const totalChapters = dayData.morningChapters + dayData.laterChapters;
+      const totalChapters = (Number(dayData.morningChapters) || 0) + (Number(dayData.laterChapters) || 0);
       if (totalChapters > 0) {
-        readDiv.innerText = dayData.bibleBook ? `${dayData.bibleBook} ${dayData.startChapter}-${dayData.endChapter}` : `${totalChapters} Chs`;
+        readDiv.innerText = formatDayReadingLabel(dayData);
       } else {
-        readDiv.innerText = "No Reading";
+        readDiv.innerText = formatDayReadingLabel(dayData);
         readDiv.style.color = 'var(--text-muted)';
       }
       dayBlock.appendChild(readDiv);
