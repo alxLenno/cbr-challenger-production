@@ -2748,10 +2748,44 @@ function resetActiveBoardForNewCard(newCardId) {
   return saveState();
 }
 
+async function refreshSavedCardsFromServer() {
+  try {
+    const response = await fetch('/api/state');
+    if (!response.ok) return false;
+    const fresh = await response.json();
+    if (!Array.isArray(fresh.savedCards)) return false;
+    if (!Array.isArray(appState.savedCards)) appState.savedCards = [];
+
+    const byInstanceId = new Map(appState.savedCards.map(c => [c.instanceId, c]));
+    fresh.savedCards.forEach(serverCard => {
+      const local = byInstanceId.get(serverCard.instanceId);
+      const serverTime = Date.parse(serverCard.savedAt || '') || 0;
+      const localTime = local ? (Date.parse(local.savedAt || '') || 0) : -1;
+      if (!local || serverTime >= localTime) {
+        byInstanceId.set(serverCard.instanceId, serverCard);
+      }
+    });
+    appState.savedCards = Array.from(byInstanceId.values());
+    return true;
+  } catch (e) {
+    console.error("Failed to refresh saved cards from server", e);
+    return false;
+  }
+}
+
 async function loadOrResetBoardForNewCard(newCardId) {
   // Check for the most recently updated instance of this card.
-  const existingSave = findLatestSavedCard(newCardId);
-  
+  let existingSave = findLatestSavedCard(newCardId);
+
+  if (!existingSave) {
+    // The local cache can lag the server (stale session, another tab, a missed
+    // sync). Re-verify before concluding this card was never used — resetting
+    // here would silently create a blank instance that shadows real progress
+    // still sitting on the server under an instance this tab doesn't know about.
+    await refreshSavedCardsFromServer();
+    existingSave = findLatestSavedCard(newCardId);
+  }
+
   if (existingSave) {
     // Selecting a previous card always resumes its latest permanent snapshot.
     // Starting over remains available only through the explicit Reset action.
@@ -2797,7 +2831,10 @@ async function archiveActiveCard(silent = false) {
   }
   
   const cId = appState.currentCardId;
-  const instId = appState.activeInstanceId || (`card_${cId}_${appState.commencingDate || Date.now()}`);
+  if (!appState.activeInstanceId) {
+    appState.activeInstanceId = createCardInstanceId(cId);
+  }
+  const instId = appState.activeInstanceId;
   const archiveInstance = {
     instanceId: instId,
     currentCardId: cId,
