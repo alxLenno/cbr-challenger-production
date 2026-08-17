@@ -296,8 +296,7 @@ function showModal({ title, subtitle = '', message, type = 'info', confirmText =
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
   if (stateNeedsCleanup) await saveState();
-  // Reloading must preserve the exact active card instance. Card advancement is
-  // intentionally limited to explicit archive, upgrade, reset, or selector actions.
+  await checkAndAdvanceCompletedCard();
   initUI();
   setupEventListeners();
   renderAll();
@@ -307,6 +306,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   initVideoGuides();
   initPdfGuides();
 });
+
+// Runs once per load: if the active card's window has closed, archive it and
+// move on automatically. Reuses loadOrResetBoardForNewCard for the next card
+// so it re-verifies with the server before ever creating a blank instance —
+// the old version of this check called resetActiveBoardForNewCard directly,
+// which is what let a stale local cache silently shadow real progress.
+async function checkAndAdvanceCompletedCard() {
+  if (isViewingHistory) return;
+  if (!appState || !appState.days || appState.days.length === 0 || !appState.commencingDate) return;
+
+  const today = getLocalISODate();
+  const timeline = calculateCardTimeline(appState.commencingDate);
+  if (today <= timeline.endStr) return;
+
+  if (!hasAnyDataLogged()) {
+    // Nothing was ever logged on this card — just reschedule its window to
+    // start now rather than archiving an empty card.
+    const newTimeline = calculateCardTimeline(today);
+    resizeStateForNewTimeline(newTimeline.startStr);
+    await saveState();
+    return;
+  }
+
+  const completedCardId = appState.currentCardId;
+  const archived = await archiveActiveCard(true); // silent archive of the finished card
+  if (!archived) return; // couldn't save it — leave the card in place rather than risk losing it
+
+  const nextCardId = completedCardId < 7 ? completedCardId + 1 : 1;
+  await loadOrResetBoardForNewCard(nextCardId);
+
+  setTimeout(() => {
+    showModal({
+      title: "Card Automatically Archived",
+      subtitle: `Card ${nextCardId} is now active`,
+      message: `Card ${completedCardId}'s timeframe ended, so it was archived to your history. You're now on Card ${nextCardId}.`,
+      type: "info",
+      showCancel: false,
+      confirmText: "Get Started"
+    });
+  }, 500);
+}
 
 // Date logic helpers for dynamic card timelines
 function getFirstSunday(year, monthIndex) {
@@ -2651,7 +2691,7 @@ async function archiveActiveCard(silent = false) {
         cancelText: "Stay on Current"
       });
       if (upgrade) {
-        resetActiveBoardForNewCard(appState.currentCardId + 1);
+        await loadOrResetBoardForNewCard(appState.currentCardId + 1);
         renderAll();
         return true;
       }
