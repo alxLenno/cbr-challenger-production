@@ -54,10 +54,11 @@ ABBREV_INDEX = {
     "2 sam": 10, "1 kgs": 11, "2 kgs": 12, "1 chron": 13, "2 chron": 14, "ps": 19, "psa": 19,
     "psalm": 19, "prov": 20, "eccl": 21, "song": 22, "isa": 23, "jer": 24, "lam": 25, "ezek": 26,
     "dan": 27, "hos": 28, "obad": 31, "mic": 33, "hab": 35, "zeph": 36, "hag": 37, "zech": 38,
-    "mal": 39, "matt": 40, "mat": 40, "mrk": 41, "luk": 42, "jhn": 43, "rom": 45, "1 cor": 46,
+    "mal": 39, "matt": 40, "mat": 40, "mrk": 41, "mk": 41, "luk": 42, "lk": 42,
+    "jhn": 43, "jn": 43, "rom": 45, "1 cor": 46,
     "2 cor": 47, "gal": 48, "eph": 49, "phil": 50, "col": 51, "1 thess": 52, "2 thess": 53,
     "1 tim": 54, "2 tim": 55, "tit": 56, "phlm": 57, "heb": 58, "jas": 59, "1 pet": 60, "2 pet": 61,
-    "1 jhn": 62, "2 jhn": 63, "3 jhn": 64, "rev": 66
+    "1 jhn": 62, "1 jn": 62, "2 jhn": 63, "2 jn": 63, "3 jhn": 64, "3 jn": 64, "rev": 66
 }
 for ab, idx in ABBREV_INDEX.items():
     BOOK_TO_INDEX[ab] = idx
