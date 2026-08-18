@@ -40,6 +40,19 @@ const elements = {
   // Chart Elements
   weekSelectChart: document.getElementById('week-select-chart'),
   chartContainer: document.getElementById('chart-container'),
+
+  // Barriers Impact Elements
+  cbImpactEmpty: document.getElementById('cb-impact-empty'),
+  cbImpactBody: document.getElementById('cb-impact-body'),
+  cbImpactKpiTotal: document.getElementById('cb-impact-kpi-total'),
+  cbImpactKpiTotalSub: document.getElementById('cb-impact-kpi-total-sub'),
+  cbImpactKpiRate: document.getElementById('cb-impact-kpi-rate'),
+  cbImpactKpiRateSub: document.getElementById('cb-impact-kpi-rate-sub'),
+  cbImpactKpiTop: document.getElementById('cb-impact-kpi-top'),
+  cbImpactKpiTopSub: document.getElementById('cb-impact-kpi-top-sub'),
+  cbImpactSplitPersonal: document.getElementById('cb-impact-split-personal'),
+  cbImpactSplitExternal: document.getElementById('cb-impact-split-external'),
+  cbImpactList: document.getElementById('cb-impact-list'),
   cwdTrigger: document.getElementById('cwd-trigger'),
   cwdLabel: document.getElementById('cwd-label'),
   cwdList: document.getElementById('cwd-list'),
@@ -1603,6 +1616,7 @@ function renderAll() {
   renderCalendarGrid();
   renderChart();
   renderScoringTable();
+  renderCBImpact();
   renderLibraryList();
   renderProfile();
   refreshIcons();

@@ -10,6 +10,10 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
       Point Analysis
     </button>
+    <button class="analytics-subnav-btn subnav-btn" data-subtab="tab-cb-impact">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Barriers Impact
+    </button>
   </div>
 
   <div class="analytics-body">
@@ -79,6 +83,81 @@
               <!-- Scores computed dynamically by app.js -->
             </tbody>
           </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ════════ BARRIERS IMPACT TAB ════════ -->
+    <div class="subtab-content" id="tab-cb-impact">
+      <section class="glass-panel analytics-cb-section" id="cb-impact-section">
+        <div class="analytics-section-title">
+          <div class="title-text">
+            <h2>Consistency Barrier Impact</h2>
+            <p>Which barriers hit you most across your whole CBR journey, and how well you're overcoming them.</p>
+          </div>
+        </div>
+
+        <!-- Empty state — shown when no CBs have been logged yet -->
+        <div class="cb-impact-empty" id="cb-impact-empty" style="display:none;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <p>No Consistency Barriers logged yet.</p>
+          <span>Once you log a CB on a daily entry, your impact breakdown appears here.</span>
+        </div>
+
+        <div id="cb-impact-body" style="display:none;">
+          <!-- KPI row -->
+          <section class="dash-kpi-row" id="cb-impact-kpis" style="margin-bottom:1.25rem;">
+            <div class="dash-kpi-card glass-panel danger">
+              <div class="dash-kpi-icon" style="background: rgba(239,68,68,0.12); color: #f87171;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="dash-kpi-body">
+                <span class="dash-kpi-label">Total CBs Logged</span>
+                <span class="dash-kpi-val" id="cb-impact-kpi-total">0</span>
+                <span class="dash-kpi-sub" id="cb-impact-kpi-total-sub">Across your journey</span>
+              </div>
+            </div>
+            <div class="dash-kpi-card glass-panel success">
+              <div class="dash-kpi-icon" style="background: rgba(16,185,129,0.12); color: #34d399;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div class="dash-kpi-body">
+                <span class="dash-kpi-label">Resolution Rate</span>
+                <span class="dash-kpi-val" id="cb-impact-kpi-rate">0%</span>
+                <span class="dash-kpi-sub" id="cb-impact-kpi-rate-sub">0 resolved</span>
+              </div>
+            </div>
+            <div class="dash-kpi-card glass-panel info">
+              <div class="dash-kpi-icon" style="background: rgba(59,130,246,0.12); color: #60a5fa;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+              </div>
+              <div class="dash-kpi-body">
+                <span class="dash-kpi-label">Most Frequent</span>
+                <span class="dash-kpi-val" id="cb-impact-kpi-top" style="font-size:0.95rem;">—</span>
+                <span class="dash-kpi-sub" id="cb-impact-kpi-top-sub">&nbsp;</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Personal vs External split -->
+          <div class="cb-impact-split" id="cb-impact-split">
+            <div class="cb-impact-split-pill">
+              <span class="label"><span class="dot personal"></span> Personal Factors</span>
+              <span class="val" id="cb-impact-split-personal">0</span>
+            </div>
+            <div class="cb-impact-split-pill">
+              <span class="label"><span class="dot external"></span> External Factors</span>
+              <span class="val" id="cb-impact-split-external">0</span>
+            </div>
+          </div>
+
+          <div class="cb-impact-legend">
+            <span><span class="swatch resolved"></span> Resolved (principle formed &amp; prayed back)</span>
+            <span><span class="swatch unresolved"></span> Not yet resolved</span>
+          </div>
+
+          <!-- Ranked bar list — populated by JS -->
+          <div class="cb-impact-list" id="cb-impact-list"></div>
         </div>
       </section>
     </div>

@@ -1,3 +1,102 @@
+// ── Barriers Impact: aggregate Consistency Barrier logs across the whole
+// journey (current card + every archived card), not just what's on screen.
+function computeCBStats() {
+  const perBarrier = {}; // cbId (string) -> { total, resolved, unresolved }
+  let totalLogged = 0;
+  let totalResolved = 0;
+
+  function tally(days) {
+    if (!Array.isArray(days)) return;
+    days.forEach(day => {
+      if (!day || !day.cbId) return;
+      const id = String(day.cbId);
+      if (!perBarrier[id]) perBarrier[id] = { total: 0, resolved: 0, unresolved: 0 };
+      perBarrier[id].total++;
+      totalLogged++;
+      if (day.cbResolved) {
+        perBarrier[id].resolved++;
+        totalResolved++;
+      } else {
+        perBarrier[id].unresolved++;
+      }
+    });
+  }
+
+  if (appState) {
+    tally(appState.days);
+    (appState.savedCards || []).forEach(card => tally(card.days));
+  }
+
+  let personalTotal = 0;
+  let externalTotal = 0;
+  const rows = Object.keys(perBarrier).map(id => {
+    const barrier = (CBR_DATA.barriers || []).find(b => String(b.id) === id);
+    const row = Object.assign(
+      { id, text: barrier ? barrier.text : `Unknown CB #${id}`, type: barrier ? barrier.type : 'Personal' },
+      perBarrier[id]
+    );
+    if (row.type === 'External') externalTotal += row.total;
+    else personalTotal += row.total;
+    return row;
+  }).sort((a, b) => b.total - a.total);
+
+  return { rows, totalLogged, totalResolved, personalTotal, externalTotal };
+}
+
+function renderCBImpact() {
+  if (!elements.cbImpactList) return; // markup not present on this page yet
+
+  const stats = computeCBStats();
+
+  if (stats.totalLogged === 0) {
+    if (elements.cbImpactEmpty) elements.cbImpactEmpty.style.display = 'flex';
+    if (elements.cbImpactBody) elements.cbImpactBody.style.display = 'none';
+    return;
+  }
+
+  if (elements.cbImpactEmpty) elements.cbImpactEmpty.style.display = 'none';
+  if (elements.cbImpactBody) elements.cbImpactBody.style.display = 'block';
+
+  const rate = Math.round((stats.totalResolved / stats.totalLogged) * 100);
+  if (elements.cbImpactKpiTotal) elements.cbImpactKpiTotal.innerText = stats.totalLogged;
+  if (elements.cbImpactKpiTotalSub) {
+    elements.cbImpactKpiTotalSub.innerText = `${stats.rows.length} distinct barrier${stats.rows.length === 1 ? '' : 's'}`;
+  }
+  if (elements.cbImpactKpiRate) elements.cbImpactKpiRate.innerText = `${rate}%`;
+  if (elements.cbImpactKpiRateSub) elements.cbImpactKpiRateSub.innerText = `${stats.totalResolved} of ${stats.totalLogged} resolved`;
+
+  const top = stats.rows[0];
+  if (elements.cbImpactKpiTop) elements.cbImpactKpiTop.innerText = top ? `CB ${top.id}` : '—';
+  if (elements.cbImpactKpiTopSub) elements.cbImpactKpiTopSub.innerText = top ? `${top.text} · ${top.total}x` : '';
+
+  if (elements.cbImpactSplitPersonal) elements.cbImpactSplitPersonal.innerText = stats.personalTotal;
+  if (elements.cbImpactSplitExternal) elements.cbImpactSplitExternal.innerText = stats.externalTotal;
+
+  elements.cbImpactList.innerHTML = '';
+  const maxTotal = Math.max(...stats.rows.map(r => r.total));
+
+  stats.rows.forEach(row => {
+    const resolvedPct = (row.resolved / maxTotal) * 100;
+    const unresolvedPct = (row.unresolved / maxTotal) * 100;
+
+    const div = document.createElement('div');
+    div.className = 'cb-impact-row';
+    div.innerHTML = `
+      <div class="cb-impact-row-label">
+        <span class="cb-id-badge">${row.id}</span>
+        <span class="cb-impact-row-text" title="${row.text.replace(/"/g, '&quot;')}">${row.text}</span>
+        <span class="cb-category ${row.type.toLowerCase()}">${row.type}</span>
+      </div>
+      <div class="cb-impact-bar-track">
+        <div class="cb-impact-bar-resolved" style="width:${resolvedPct}%;"></div>
+        <div class="cb-impact-bar-unresolved" style="width:${unresolvedPct}%;"></div>
+      </div>
+      <div class="cb-impact-row-count"><strong>${row.total}x</strong> · ${row.resolved} resolved</div>
+    `;
+    elements.cbImpactList.appendChild(div);
+  });
+}
+
 function renderScoringTable() {
   const stats = calculateScores();
   elements.scoringTableBody.innerHTML = '';
