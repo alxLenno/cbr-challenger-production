@@ -794,12 +794,19 @@ function initUI() {
   // Populate Reference Sidebar - Barriers list
   elements.barriersList.innerHTML = `
     <div style="font-size:0.8rem; line-height: 1.4; color:var(--text-secondary); margin-bottom:1rem; padding:0.75rem; background:rgba(var(--primary-rgb),0.05); border-radius:10px; border:1px solid var(--panel-border);">
+      <strong>Definition:</strong> A Consistency Barrier (CB) is any situation that prevents a person from rising in the morning to read the Bible <u>daily</u> and <u>progressively</u> without skipping chapters.
+    </div>
+    <div style="font-size:0.8rem; line-height: 1.4; color:var(--text-secondary); margin-bottom:1rem; padding:0.75rem; background:rgba(var(--primary-rgb),0.05); border-radius:10px; border:1px solid var(--panel-border);">
       <strong>How to form a good principle:</strong><br>
       1. Identify the CB and mark its number on your card.<br>
       2. Common Sense: Think of a practical solution.<br>
       3. Find a Scripture that supports your solution.<br>
-      4. Pray back its truth.<br>
-      5. Share resolve with PEs.
+      4. Build a firm conviction on this Scripture by praying its truth back to God.<br>
+      5. Share this decision/resolve with your PEs as your new lifestyle.<br>
+      6. When you do this, you can redeem your lost Growth Points in Perseverance.<br>
+      <span style="display:block; margin-top:0.5rem; padding-top:0.5rem; border-top:1px dashed var(--panel-border); font-style:italic;">
+        Example for CB 2: When not understanding Scripture, I pray back Psalm 119:18, and faithfully read all the chapters for the day, whether I comprehend it or not.
+      </span>
     </div>
   `;
   CBR_DATA.barriers.forEach(cb => {
@@ -841,6 +848,12 @@ function initUI() {
     div.appendChild(ol);
     elements.questionsList.appendChild(div);
   });
+
+  // Make every scripture reference on the page (static Jinja content and the
+  // lists just rebuilt above alike) click-to-expand, the same as Study
+  // Questions. initUI() re-runs on card switches/history views, so this needs
+  // to re-run with it — the linkify call itself is idempotent per element.
+  if (window.linkifyScriptureRefsIn) linkifyScriptureRefsIn(document.body);
 }
 
 // Event Listeners Setup

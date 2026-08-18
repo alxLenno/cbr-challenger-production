@@ -566,17 +566,20 @@ function renderToday() {
 
     if (lesson && lesson.questions && lesson.questions.length > 0) {
       qList.innerHTML = lesson.questions.map((q, qi) => {
-        const annotated = _annotateQuestionRefs(q, qi);
+        const safeText = String(q).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
         return `
           <li style="list-style-type: decimal; padding: 0.1rem 0; line-height: 1.75; color: var(--text-primary); font-size: 0.9rem;">
-            <div class="q-text">${annotated}</div>
-            <div class="q-verse-panels" id="q-panels-${qi}"></div>
+            <div class="q-text">${safeText}</div>
             <button class="q-download-btn" onclick="downloadStudyQuestion(${qi})" title="Download Question ${qi+1} as PNG">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download Q${qi+1}
             </button>
           </li>`;
       }).join('');
+      // Turn any Bible references in the questions just rendered into
+      // click-to-expand chips — detection is automatic (pattern-based), so
+      // this keeps working even if the lesson questions change later.
+      if (window.linkifyScriptureRefsIn) linkifyScriptureRefsIn(qList);
     } else {
       qList.innerHTML = '<li style="list-style:none; color:var(--text-muted);">No questions available for this session.</li>';
     }
@@ -1546,110 +1549,13 @@ async function downloadDailyCard() {
   img.src = url;
 }
 // ── Study Questions: Bible Reference Chips ───────────────────────────────────
+// The regex builder, chip/panel renderer, and toggleVersePanel() now live in
+// static/js/scripture-refs.js (shared across the whole app, not just here).
 
-// Helper: returns strict regex matching only known Bible books + chapter:verse
+// Helper kept for backward compatibility with call sites in this file.
 function _getBibleRefRegex() {
-  const BOOKS = [
-    '1 Chronicles','2 Chronicles','1 Corinthians','2 Corinthians',
-    '1 Kings','2 Kings','1 Peter','2 Peter','1 Samuel','2 Samuel',
-    '1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy',
-    '1 John','2 John','3 John','1 Jn','2 Jn','3 Jn',
-    'Song of Solomon','Song of Songs',
-    'Acts','Amos','Col','Colossians','Daniel','Dan',
-    'Deut','Deuteronomy','Eccl','Ecclesiastes','Ephesians','Eph',
-    'Esther','Exodus','Exod','Ezekiel','Ezra','Galatians','Gal',
-    'Genesis','Gen','Habakkuk','Hag','Haggai','Hebrews','Heb',
-    'Hosea','Isaiah','Isa','James','Jer','Jeremiah','Job',
-    'Joel','John','Jn','Jonah','Jos','Joshua','Jude',
-    'Judges','Lamentations','Lam','Leviticus','Lev','Luke','Lk',
-    'Malachi','Mark','Mk','Mat','Matt','Matthew','Mic','Micah',
-    'Nahum','Nehemiah','Neh','Num','Numbers','Obadiah',
-    'Philemon','Philippians','Phil','Phlm','Proverbs','Prov',
-    'Psalms','Psalm','Psa','Ps','Revelation','Rev',
-    'Romans','Rom','Ruth','Titus','Zechariah','Zech','Zeph','Zephaniah',
-    '1 Chron','2 Chron','1 Cor','2 Cor','1 Tim','2 Tim','1 Pet','2 Pet',
-    '1 Sam','2 Sam','1 Kgs','2 Kgs','1 Thess','2 Thess',
-  ].sort((a, b) => b.length - a.length);
-
-  const booksPattern = BOOKS.map(b => b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  return new RegExp(`\\b(${booksPattern})\\s(\\d{1,3}:\\d{1,3}(?:-\\d{1,3})?)`, 'g');
+  return window.getBibleRefRegex();
 }
-
-// Detects Bible references in question text and wraps them in clickable chips.
-function _annotateQuestionRefs(text, qi) {
-  const bibleRefRegex = _getBibleRefRegex();
-
-  // Escape for safe HTML insertion then replace refs
-  let safeText = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
-
-  let refIndex = 0;
-  safeText = safeText.replace(bibleRefRegex, (match, book, chapter) => {
-    const ref = `${book} ${chapter}`;
-    const chipId = `q-chip-${qi}-${refIndex}`;
-    const panelId = `q-panel-${qi}-${refIndex}`;
-    refIndex++;
-    return `<button 
-      class="q-ref-chip" 
-      id="${chipId}" 
-      onclick="toggleVersePanel('${ref}', '${panelId}', '${chipId}')"
-      title="Click to read ${ref}"
-    >${ref} <span style="font-size:0.7em; opacity:0.7;">▼</span></button><div class="q-verse-panel" id="${panelId}" style="display:none;"></div>`;
-  });
-
-  return safeText;
-}
-
-// Toggles a verse panel open/close and fetches verse text from the API.
-window.toggleVersePanel = async function(ref, panelId, chipId) {
-  const panel = document.getElementById(panelId);
-  const chip  = document.getElementById(chipId);
-  if (!panel) return;
-
-  // If already open, close it
-  if (panel.style.display !== 'none') {
-    panel.style.display = 'none';
-    panel.innerHTML = '';
-    if (chip) chip.classList.remove('active');
-    return;
-  }
-
-  // Show loading state
-  panel.style.display = 'block';
-  panel.innerHTML = `<div class="q-verse-loading">Loading ${ref}...</div>`;
-  if (chip) chip.classList.add('active');
-
-  try {
-    const version = window.currentBibleVersion || 'NIV';
-    const res = await fetch(`/api/bible/verse?ref=${encodeURIComponent(ref)}&version=${encodeURIComponent(version)}`);
-    
-    if (!res.ok) {
-      panel.innerHTML = `<div class="q-verse-error">Could not load <strong>${ref}</strong>. Try another translation.</div>`;
-      return;
-    }
-
-    const data = await res.json();
-    const versesHtml = (data.passages && data.passages.length > 0)
-      ? data.passages.map(p => {
-          const verses = p.verses_list && p.verses_list.length > 0
-            ? p.verses_list.map(v => `<span class="q-verse-num">${v.num}</span>${v.text} `).join('')
-            : p.text;
-          return `<div class="q-verse-ref-label">${p.reference}</div><div class="q-verse-body">${verses}</div>`;
-        }).join('')
-      : `<div class="q-verse-body">${data.text || 'No text found.'}</div>`;
-
-    panel.innerHTML = `
-      <div class="q-verse-card">
-        <div class="q-verse-translation">${data.version || version}</div>
-        ${versesHtml}
-      </div>`;
-  } catch (e) {
-    panel.innerHTML = `<div class="q-verse-error">Error loading verse. Please try again.</div>`;
-  }
-};
 
 // ── Study Question PNG Download ───────────────────────────────────────────────
 window.downloadStudyQuestion = async function(qi) {
