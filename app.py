@@ -96,6 +96,7 @@ def run_migrations():
         'persons_obedience': 'TEXT',
         'persons_note': 'TEXT',
         'persons_stirring': 'TEXT',
+        'reading_passages': 'JSON',
     }
     
     for col_name, col_type in new_columns.items():

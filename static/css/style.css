@@ -2481,3 +2481,149 @@ body.light-mode th {
 body.light-mode a:not([class]) {
   color: var(--primary);
 }
+
+/* ===================================================
+   MULTI-BOOK DAILY READING RANGES
+=================================================== */
+.reading-passages-panel {
+  margin: -0.05rem 0 0.9rem;
+  padding: 0.72rem;
+  border: 1px dashed rgba(var(--primary-rgb), 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(var(--primary-rgb), 0.04);
+}
+
+.reading-passages-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.reading-passages-intro > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+.reading-passages-intro strong {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+}
+
+.reading-passages-intro > div > span {
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  line-height: 1.35;
+}
+
+.btn-add-passage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.35);
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.09);
+  color: var(--primary);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-add-passage:hover {
+  background: rgba(var(--primary-rgb), 0.16);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.btn-add-passage > span {
+  font-size: 1rem;
+  line-height: 0;
+}
+
+.btn-add-passage:disabled,
+.reading-passage-remove:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.additional-reading-passages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.reading-passage-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.35fr) minmax(100px, 0.8fr) minmax(100px, 0.8fr) 34px;
+  align-items: end;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+  padding: 0.65rem;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+}
+
+.reading-passage-remove {
+  width: 34px;
+  height: 38px;
+  border: 1px solid rgba(var(--danger-rgb), 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(var(--danger-rgb), 0.07);
+  color: var(--danger);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.reading-passage-remove:hover {
+  background: rgba(var(--danger-rgb), 0.14);
+  border-color: rgba(var(--danger-rgb), 0.45);
+}
+
+.reading-passages-summary {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.62rem;
+  padding: 0.22rem 0.52rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.26);
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.08);
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 750;
+}
+
+.reading-passages-summary.target-met {
+  color: var(--success);
+  border-color: rgba(var(--success-rgb), 0.32);
+  background: rgba(var(--success-rgb), 0.09);
+}
+
+@media (max-width: 640px) {
+  .reading-passages-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .btn-add-passage {
+    align-self: flex-start;
+  }
+
+  .reading-passage-row {
+    grid-template-columns: 1fr 1fr 38px;
+  }
+
+  .reading-passage-book-group {
+    grid-column: 1 / -1;
+  }
+}

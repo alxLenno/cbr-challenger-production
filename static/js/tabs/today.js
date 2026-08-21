@@ -10,11 +10,15 @@ function toggleAccord(id) {
   const body    = document.getElementById('today-accord-body-' + id);
   const chevron = document.getElementById('today-chevron-' + id);
   const header  = body ? body.previousElementSibling : null;
+  const accord  = body ? body.closest('.today-accord') : null;
+  const grid    = accord ? accord.closest('.today-accord-grid') : null;
   if (!body || !chevron) return;
 
   const isOpen = body.style.display !== 'none';
   body.style.display    = isOpen ? 'none' : 'block';
   chevron.classList.toggle('open', !isOpen);
+  if (accord) accord.classList.toggle('is-open', !isOpen);
+  if (grid) grid.classList.toggle('has-open', Boolean(grid.querySelector('.today-accord.is-open')));
   if (header) header.setAttribute('aria-expanded', String(!isOpen));
 
   if (!isOpen && id === 'memory' && window.currentMemoryRef) {
@@ -594,6 +598,34 @@ function renderToday() {
       : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Log Entry`;
     // Event listener is now handled natively via the inline onclick attribute in today.html
   }
+
+  _updateTodayProgress();
+}
+
+function _updateTodayProgress() {
+  const trackedIds = [
+    'today-status-reading',
+    'today-status-waking',
+    'today-status-journal',
+    'today-status-memory'
+  ];
+  const completed = trackedIds.reduce((count, id) => {
+    const status = document.getElementById(id);
+    return count + (status && status.classList.contains('completed') ? 1 : 0);
+  }, 0);
+  const percentage = Math.round((completed / trackedIds.length) * 100);
+  const ring = document.getElementById('today-progress-ring');
+  const percent = document.getElementById('today-progress-percent');
+  const count = document.getElementById('today-progress-count');
+  const fill = document.getElementById('today-progress-fill');
+
+  if (ring) {
+    ring.style.setProperty('--today-progress', `${percentage * 3.6}deg`);
+    ring.setAttribute('aria-valuenow', String(percentage));
+  }
+  if (percent) percent.textContent = `${percentage}%`;
+  if (count) count.textContent = `${completed} of ${trackedIds.length} complete`;
+  if (fill) fill.style.width = `${percentage}%`;
 }
 
 function _setStatus(id, [cls, text]) {
@@ -1101,6 +1133,15 @@ async function fetchAndDisplayDailyVerse(ref, version = 'NIV') {
 }
 
 async function _prepareDownloadableSpreadSvg(prevData, currentData) {
+  if (window.CBRDailyNotebook && typeof window.CBRDailyNotebook.buildSpreadSvg === 'function') {
+    try {
+      window.currentDailySpreadSvg = await window.CBRDailyNotebook.buildSpreadSvg(prevData, currentData);
+      return;
+    } catch (error) {
+      console.error('Realistic notebook renderer failed; using legacy renderer:', error);
+    }
+  }
+
   try {
     let svgTemplate = window.cachedDiaryNoMugSvg;
     if (!svgTemplate) {
@@ -1502,10 +1543,15 @@ async function downloadDailyCard() {
 
   img.onload = () => {
     if (canvas) {
-      canvas.width  = 2800;
-      canvas.height = 1800;
+      const exportScale = 2;
+      const sourceWidth = img.naturalWidth || 1400;
+      const sourceHeight = img.naturalHeight || 900;
+      canvas.width  = Math.round(sourceWidth * exportScale);
+      canvas.height = Math.round(sourceHeight * exportScale);
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, 2800, 1800);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(pngBlob => {
         const pngUrl = pngBlob ? URL.createObjectURL(pngBlob) : canvas.toDataURL('image/png');

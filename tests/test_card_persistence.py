@@ -142,6 +142,37 @@ class CardPersistenceTest(unittest.TestCase):
             "Updated partial note",
         )
 
+    def test_multi_book_reading_ranges_survive_save_and_reload(self):
+        instance_id = "card_4_multi-book-reading"
+        state = self.make_state(4, instance_id, "Split reading")
+        split_day = state["days"][0]
+        split_day.update({
+            "bibleBook": "Genesis",
+            "startChapter": 48,
+            "endChapter": 50,
+            "readingPassages": [
+                {"book": "Genesis", "startChapter": 48, "endChapter": 50},
+                {"book": "Exodus", "startChapter": 1, "endChapter": 1},
+            ],
+            "morningChapters": 0,
+            "laterChapters": 4,
+        })
+        state["savedCards"][0]["days"][0] = dict(split_day)
+
+        response = self.client.post("/api/save_state", json=state)
+        self.assertEqual(response.status_code, 200)
+
+        restored = self.client.get("/api/state").get_json()
+        restored_day = restored["days"][0]
+        self.assertEqual(restored_day["laterChapters"], 4)
+        self.assertEqual(
+            restored_day["readingPassages"],
+            [
+                {"book": "Genesis", "startChapter": 48, "endChapter": 50},
+                {"book": "Exodus", "startChapter": 1, "endChapter": 1},
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

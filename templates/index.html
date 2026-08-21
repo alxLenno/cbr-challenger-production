@@ -29,8 +29,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=58">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=80">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=59">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=84">
 
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}?v=51">
@@ -247,7 +247,7 @@
             <input type="time" id="waking-time">
           </div>
           <div class="form-group">
-            <label for="bible-book">Bible Book Read</label>
+            <label for="bible-book">First Bible Book Read</label>
             <select id="bible-book">
               <!-- Loaded dynamically -->
             </select>
@@ -268,6 +268,21 @@
               <option value="0">-- End --</option>
             </select>
           </div>
+        </div>
+
+        <!-- Additional ranges when reading continues into another Bible book -->
+        <div class="reading-passages-panel">
+          <div class="reading-passages-intro">
+            <div>
+              <strong>Reading continues into another book?</strong>
+              <span>Add another range and the total will be calculated automatically.</span>
+            </div>
+            <button type="button" class="btn-add-passage" id="btn-add-reading-passage">
+              <span aria-hidden="true">+</span> Continue into next book
+            </button>
+          </div>
+          <div id="additional-reading-passages" class="additional-reading-passages" aria-live="polite"></div>
+          <div class="reading-passages-summary" id="reading-passages-summary">0 chapters selected</div>
         </div>
 
         <!-- Morning / Evening speed Split -->
@@ -478,10 +493,11 @@
   <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
   <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=16"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=62"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=63"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->
   <script src="{{ url_for('static', filename='js/patrick_hand_font.js') }}?v=1"></script>
-  <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=36"></script>
+  <script src="{{ url_for('static', filename='js/daily-notebook.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=39"></script>
   <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=6"></script>

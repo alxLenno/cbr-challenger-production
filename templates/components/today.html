@@ -1,10 +1,10 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=79">
-
 <div class="today-container">
 
-  <!-- ── HEADER ROW ── -->
+  <!-- ── DAILY OVERVIEW ── -->
+  <section class="today-overview glass-panel" aria-labelledby="today-date-heading">
   <div class="today-header-row">
     <div class="today-header-text">
+      <span class="today-eyebrow">Today's journey</span>
       <h2 id="today-date-heading">Today's Journey</h2>
       <p id="today-cycle-sub" class="today-header-sub">Day 1 of 28 • Week 1 • Card #1</p>
     </div>
@@ -16,7 +16,25 @@
     </button>
   </div>
 
+    <div class="today-progress-summary" aria-label="Daily progress">
+      <div class="today-progress-ring" id="today-progress-ring" style="--today-progress: 0deg;" role="progressbar" aria-label="Daily completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <span id="today-progress-percent">0%</span>
+      </div>
+      <div class="today-progress-copy">
+        <span>Daily progress</span>
+        <strong id="today-progress-count">0 of 4 complete</strong>
+        <div class="today-progress-track" aria-hidden="true">
+          <span id="today-progress-fill"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── TOP SECTION: 5 SHORT CARDS ── -->
+  <div class="today-section-heading">
+    <h3>At a glance</h3>
+    <span>Your key disciplines for today</span>
+  </div>
   <div class="today-core-grid">
     <!-- Scripture Reading -->
     <div class="core-card glass-panel" id="today-card-reading">
@@ -51,7 +69,7 @@
     </div>
 
     <!-- Daily Reading -->
-    <div class="core-card glass-panel" id="today-card-daily" style="cursor: pointer;" onclick="toggleAccord('daily')">
+    <div class="core-card glass-panel" id="today-card-daily" role="button" tabindex="0" aria-label="Open today's daily reading" style="cursor: pointer;" onclick="toggleAccord('daily')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleAccord('daily'); }">
       <div class="core-card-top">
         <div class="core-icon icon-psalm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,18 +117,24 @@
     </div>
   </div>
 
-  <!-- ── BOTTOM SECTION: 3 ACCORDIONS (Closed by default) ── -->
+  <!-- ── BOTTOM SECTION: WORKSPACE (Closed by default) ── -->
+  <div class="today-section-heading today-workspace-heading">
+    <h3>Study workspace</h3>
+    <span>Open only what you need</span>
+  </div>
   <div class="today-accord-grid">
     
     <!-- Devotional Journal Accordion -->
     <div class="today-accord glass-panel" id="today-accord-journal">
-      <button class="today-accord-header" onclick="toggleAccord('journal')">
+      <button class="today-accord-header" onclick="toggleAccord('journal')" aria-expanded="false" aria-controls="today-accord-body-journal">
         <div class="accord-icon icon-journal">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>
           </svg>
         </div>
         <div class="accord-title" id="today-journal-header-title" style="text-align: left;">Devotional Journal</div>
+        <span class="accord-summary">Capture what you observed, learned, and will put into practice today.</span>
+        <span class="accord-tags" aria-hidden="true"><span>Observe</span><span>Principle</span><span>Apply</span></span>
         <span class="core-status pending" id="today-status-journal" style="margin-left:auto; margin-right:0.5rem;">No Entry</span>
         <svg class="accord-chevron" id="today-chevron-journal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -138,13 +162,15 @@
 
     <!-- Scripture Memory Accordion -->
     <div class="today-accord glass-panel" id="today-accord-memory">
-      <button class="today-accord-header" onclick="toggleAccord('memory')">
+      <button class="today-accord-header" onclick="toggleAccord('memory')" aria-expanded="false" aria-controls="today-accord-body-memory">
         <div class="accord-icon icon-memory">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
           </svg>
         </div>
         <div class="accord-title" id="today-memory-header-title" style="text-align: left;">Scripture Memory</div>
+        <span class="accord-summary">Read aloud, recite from memory, then pray the assigned passage back.</span>
+        <span class="accord-tags" aria-hidden="true"><span>Read</span><span>Recite</span><span>Pray</span></span>
         <span class="core-status pending" id="today-status-memory" style="margin-left:auto; margin-right:0.5rem;">Recite</span>
         <svg class="accord-chevron" id="today-chevron-memory" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -179,13 +205,15 @@
     </div>
     <!-- Daily Reading Accordion -->
     <div class="today-accord glass-panel" id="today-accord-daily">
-      <button class="today-accord-header" onclick="toggleAccord('daily')">
+      <button class="today-accord-header" onclick="toggleAccord('daily')" aria-expanded="false" aria-controls="today-accord-body-daily">
         <div class="accord-icon icon-psalm">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/><path d="M12 13v8"/><path d="M8 21h8"/>
           </svg>
         </div>
         <div class="accord-title" id="today-daily-header-title" style="text-align: left;">Daily Chapter Reading</div>
+        <span class="accord-summary">Open today’s seven-verse passage and save a handwritten notebook copy.</span>
+        <span class="accord-tags" aria-hidden="true"><span>7 verses</span><span>Notebook PNG</span></span>
         <span class="core-status pending" id="today-status-daily-accord" style="margin-left:auto; margin-right:0.5rem;">Read</span>
         <svg class="accord-chevron" id="today-chevron-daily" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -203,7 +231,7 @@
             <blockquote class="verse-text" id="today-daily-text">Loading verses...</blockquote>
             <button class="btn-download" id="btn-download-daily" onclick="downloadDailyCard()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download PNG
+              Download Notebook PNG
             </button>
           </div>
         </div>
@@ -211,13 +239,16 @@
     </div>
     <!-- Study Questions Accordion -->
     <div class="today-accord glass-panel" id="today-accord-questions">
-      <button class="today-accord-header" onclick="toggleAccord('questions')">
+      <button class="today-accord-header" onclick="toggleAccord('questions')" aria-expanded="false" aria-controls="today-accord-body-questions">
         <div class="accord-icon icon-questions">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
         <div class="accord-title" id="today-questions-header-title" style="text-align: left;">Study Questions</div>
+        <span class="accord-summary">Work through the current lesson and open its scripture references as needed.</span>
+        <span class="accord-tags" aria-hidden="true"><span>Current lesson</span><span>Scripture links</span></span>
+        <span class="core-status partial" style="margin-left:auto; margin-right:0.5rem;">Review</span>
         <svg class="accord-chevron" id="today-chevron-questions" style="margin-left:auto;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="today-accord-body" id="today-accord-body-questions" style="display:none;">

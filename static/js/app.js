@@ -70,6 +70,9 @@ const elements = {
   inputBibleBook: document.getElementById('bible-book'),
   inputStartChapter: document.getElementById('start-chapter'),
   inputEndChapter: document.getElementById('end-chapter'),
+  additionalReadingPassages: document.getElementById('additional-reading-passages'),
+  btnAddReadingPassage: document.getElementById('btn-add-reading-passage'),
+  readingPassagesSummary: document.getElementById('reading-passages-summary'),
   inputMorningChapters: document.getElementById('morning-chapters'),
   inputLaterChapters: document.getElementById('later-chapters'),
   inputRecitedMemory: document.getElementById('recited-memory'),
@@ -503,6 +506,13 @@ async function loadState() {
         if (d.fidDoing === undefined) d.fidDoing = "";
         if (d.scriptureMemorized === undefined) d.scriptureMemorized = "";
         if (d.prayerTopic === undefined) d.prayerTopic = "";
+        if (!Array.isArray(d.readingPassages)) d.readingPassages = getStoredReadingPassages(d);
+      });
+
+      appState.savedCards.forEach(card => {
+        (card.days || []).forEach(day => {
+          if (!Array.isArray(day.readingPassages)) day.readingPassages = getStoredReadingPassages(day);
+        });
       });
 
       stateNeedsCleanup = clearLegacyPrefilledDays(appState);
@@ -580,6 +590,7 @@ function clearLegacyPrefilledDays(cardData) {
     day.bibleBook = "";
     day.startChapter = 0;
     day.endChapter = 0;
+    day.readingPassages = [];
     day.morningChapters = 0;
     day.laterChapters = 0;
   });
@@ -591,6 +602,14 @@ function formatDayReadingLabel(dayData) {
   const later = Number(dayData && dayData.laterChapters) || 0;
   const totalChapters = morning + later;
   if (totalChapters <= 0) return "No Reading";
+
+  const passages = getStoredReadingPassages(dayData);
+  if (passages.length > 0) {
+    return passages.map(passage => passage.startChapter === passage.endChapter
+      ? `${passage.book} ${passage.startChapter}`
+      : `${passage.book} ${passage.startChapter}–${passage.endChapter}`
+    ).join(' + ');
+  }
 
   const book = String((dayData && dayData.bibleBook) || '').trim();
   const start = Number(dayData && dayData.startChapter) || 0;
@@ -1042,6 +1061,14 @@ function setupEventListeners() {
   elements.inputEndChapter.addEventListener('change', () => {
     calculateReadingSpeeds();
   });
+  if (elements.btnAddReadingPassage) {
+    elements.btnAddReadingPassage.addEventListener('click', () => {
+      addAdditionalReadingPassage(suggestNextReadingPassage(), true);
+      const rows = elements.additionalReadingPassages.querySelectorAll('.reading-passage-row');
+      const latestBook = rows.length ? rows[rows.length - 1].querySelector('.reading-passage-book') : null;
+      if (latestBook) latestBook.focus();
+    });
+  }
 
   // Study method toggle handler
   if (elements.inputStudyMethod) {
@@ -1154,29 +1181,175 @@ function formatDateLabel(dateStr) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' });
 }
 
-// Update Start and End chapter dropdown elements
-function updateChapterDropdowns(selectedStart = 0, selectedEnd = 0) {
-  const bookName = elements.inputBibleBook.value;
-  elements.inputStartChapter.innerHTML = '<option value="0">-- Start --</option>';
-  elements.inputEndChapter.innerHTML = '<option value="0">-- End --</option>';
-  
-  if (!bookName) return;
-  const book = CBR_DATA.bibleBooks.find(b => b.name === bookName);
+function populateBibleBookSelect(select, selectedBook = '') {
+  if (!select) return;
+  select.innerHTML = '<option value="">-- Select Book --</option>';
+  CBR_DATA.bibleBooks.forEach(book => {
+    const option = document.createElement('option');
+    option.value = book.name;
+    option.textContent = book.name;
+    option.selected = book.name === selectedBook;
+    select.appendChild(option);
+  });
+}
+
+function populateChapterSelects(bookName, startSelect, endSelect, selectedStart = 0, selectedEnd = 0) {
+  if (!startSelect || !endSelect) return;
+  startSelect.innerHTML = '<option value="0">-- Start --</option>';
+  endSelect.innerHTML = '<option value="0">-- End --</option>';
+
+  const book = CBR_DATA.bibleBooks.find(candidate => candidate.name === bookName);
   if (!book) return;
-  
-  for (let i = 1; i <= book.chapters; i++) {
-    const optStart = document.createElement('option');
-    optStart.value = i;
-    optStart.innerText = `Ch ${i}`;
-    if (i === selectedStart) optStart.selected = true;
-    elements.inputStartChapter.appendChild(optStart);
-    
-    const optEnd = document.createElement('option');
-    optEnd.value = i;
-    optEnd.innerText = `Ch ${i}`;
-    if (i === selectedEnd) optEnd.selected = true;
-    elements.inputEndChapter.appendChild(optEnd);
+
+  for (let chapter = 1; chapter <= book.chapters; chapter++) {
+    const startOption = document.createElement('option');
+    startOption.value = chapter;
+    startOption.textContent = `Ch ${chapter}`;
+    startOption.selected = chapter === Number(selectedStart);
+    startSelect.appendChild(startOption);
+
+    const endOption = document.createElement('option');
+    endOption.value = chapter;
+    endOption.textContent = `Ch ${chapter}`;
+    endOption.selected = chapter === Number(selectedEnd);
+    endSelect.appendChild(endOption);
   }
+}
+
+// Update the first reading range dropdowns.
+function updateChapterDropdowns(selectedStart = 0, selectedEnd = 0) {
+  populateChapterSelects(
+    elements.inputBibleBook.value,
+    elements.inputStartChapter,
+    elements.inputEndChapter,
+    selectedStart,
+    selectedEnd
+  );
+  updateReadingPassagesSummary();
+}
+
+function normalizeReadingPassage(passage) {
+  const book = String((passage && passage.book) || '').trim();
+  const startChapter = Number(passage && (passage.startChapter ?? passage.start)) || 0;
+  const endChapter = Number(passage && (passage.endChapter ?? passage.end)) || 0;
+  if (!book || startChapter <= 0 || endChapter < startChapter) return null;
+  return { book, startChapter, endChapter };
+}
+
+function getStoredReadingPassages(dayData) {
+  const stored = Array.isArray(dayData && dayData.readingPassages)
+    ? dayData.readingPassages.map(normalizeReadingPassage).filter(Boolean)
+    : [];
+  if (stored.length > 0) return stored;
+
+  const legacy = normalizeReadingPassage({
+    book: dayData && dayData.bibleBook,
+    startChapter: dayData && dayData.startChapter,
+    endChapter: dayData && dayData.endChapter
+  });
+  return legacy ? [legacy] : [];
+}
+
+function getReadingPassagesFromForm() {
+  const passages = [{
+    book: elements.inputBibleBook.value,
+    startChapter: elements.inputStartChapter.value,
+    endChapter: elements.inputEndChapter.value
+  }];
+
+  if (elements.additionalReadingPassages) {
+    elements.additionalReadingPassages.querySelectorAll('.reading-passage-row').forEach(row => {
+      passages.push({
+        book: row.querySelector('.reading-passage-book').value,
+        startChapter: row.querySelector('.reading-passage-start').value,
+        endChapter: row.querySelector('.reading-passage-end').value
+      });
+    });
+  }
+
+  return passages.map(normalizeReadingPassage).filter(Boolean);
+}
+
+function countReadingPassageChapters(passages = getReadingPassagesFromForm()) {
+  return passages.reduce((total, passage) => total + passage.endChapter - passage.startChapter + 1, 0);
+}
+
+function updateReadingPassagesSummary(passages = getReadingPassagesFromForm()) {
+  if (!elements.readingPassagesSummary) return;
+  const total = countReadingPassageChapters(passages);
+  const data = getActiveData();
+  const card = data && CBR_DATA.cards.find(candidate => candidate.cardId === data.currentCardId);
+  const target = card ? card.chaptersTarget : 0;
+  elements.readingPassagesSummary.textContent = target
+    ? `${total} of ${target} chapter${target === 1 ? '' : 's'} selected`
+    : `${total} chapter${total === 1 ? '' : 's'} selected`;
+  elements.readingPassagesSummary.classList.toggle('target-met', target > 0 && total >= target);
+}
+
+function suggestNextReadingPassage() {
+  const passages = getReadingPassagesFromForm();
+  const lastBookName = passages.length
+    ? passages[passages.length - 1].book
+    : elements.inputBibleBook.value;
+  const lastBookIndex = CBR_DATA.bibleBooks.findIndex(book => book.name === lastBookName);
+  if (lastBookIndex >= 0 && lastBookIndex < CBR_DATA.bibleBooks.length - 1) {
+    return { book: CBR_DATA.bibleBooks[lastBookIndex + 1].name, startChapter: 1, endChapter: 1 };
+  }
+  return { book: '', startChapter: 0, endChapter: 0 };
+}
+
+function addAdditionalReadingPassage(passage = {}, recalculate = false) {
+  if (!elements.additionalReadingPassages) return;
+  const row = document.createElement('div');
+  row.className = 'reading-passage-row';
+  row.innerHTML = `
+    <div class="form-group reading-passage-book-group">
+      <label>Next Bible Book</label>
+      <select class="reading-passage-book"></select>
+    </div>
+    <div class="form-group">
+      <label>Start Chapter</label>
+      <select class="reading-passage-start"><option value="0">-- Start --</option></select>
+    </div>
+    <div class="form-group">
+      <label>End Chapter</label>
+      <select class="reading-passage-end"><option value="0">-- End --</option></select>
+    </div>
+    <button type="button" class="reading-passage-remove" aria-label="Remove this reading range" title="Remove range">&times;</button>`;
+
+  const bookSelect = row.querySelector('.reading-passage-book');
+  const startSelect = row.querySelector('.reading-passage-start');
+  const endSelect = row.querySelector('.reading-passage-end');
+  const normalizedBook = String(passage.book || '');
+  populateBibleBookSelect(bookSelect, normalizedBook);
+  populateChapterSelects(normalizedBook, startSelect, endSelect, passage.startChapter, passage.endChapter);
+
+  bookSelect.addEventListener('change', () => {
+    populateChapterSelects(bookSelect.value, startSelect, endSelect);
+    calculateReadingSpeeds();
+  });
+  startSelect.addEventListener('change', () => {
+    if (!endSelect.value || Number(endSelect.value) < Number(startSelect.value)) {
+      endSelect.value = startSelect.value;
+    }
+    calculateReadingSpeeds();
+  });
+  endSelect.addEventListener('change', calculateReadingSpeeds);
+  row.querySelector('.reading-passage-remove').addEventListener('click', () => {
+    row.remove();
+    calculateReadingSpeeds();
+  });
+
+  elements.additionalReadingPassages.appendChild(row);
+  updateReadingPassagesSummary();
+  if (recalculate) calculateReadingSpeeds();
+}
+
+function renderAdditionalReadingPassages(passages = []) {
+  if (!elements.additionalReadingPassages) return;
+  elements.additionalReadingPassages.innerHTML = '';
+  passages.forEach(passage => addAdditionalReadingPassage(passage, false));
+  updateReadingPassagesSummary();
 }
 
 // Adjust chapters distribution based on current waking time relative to ERT target
@@ -1190,13 +1363,8 @@ function adjustChaptersBasedOnWakingTime() {
   const currentERT = timeStringToDecimal(wakingTimeStr);
   if (currentERT === null) return;
 
-  const start = parseInt(elements.inputStartChapter.value, 10);
-  const end = parseInt(elements.inputEndChapter.value, 10);
-
-  let totalChapters = 0;
-  if (start > 0 && end >= start) {
-    totalChapters = end - start + 1;
-  } else {
+  let totalChapters = countReadingPassageChapters();
+  if (totalChapters <= 0) {
     // Default to card's target number of chapters if no range is selected
     totalChapters = card.chaptersTarget;
   }
@@ -1214,11 +1382,11 @@ function adjustChaptersBasedOnWakingTime() {
 
 // Auto-calculate reading speed values based on chapters selected and waking time
 function calculateReadingSpeeds() {
-  const start = parseInt(elements.inputStartChapter.value, 10);
-  const end = parseInt(elements.inputEndChapter.value, 10);
-  
-  if (start > 0 && end >= start) {
-    const totalChapters = end - start + 1;
+  const passages = getReadingPassagesFromForm();
+  const totalChapters = countReadingPassageChapters(passages);
+  updateReadingPassagesSummary(passages);
+
+  if (totalChapters > 0) {
     const data = getActiveData();
     const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId);
     const targetERT = timeStringToDecimal(card.ertTarget);
@@ -1321,8 +1489,16 @@ function openDayModal(dayNum) {
 
   // Load values
   elements.inputWakingTime.value = wakingTimeVal;
-  elements.inputBibleBook.value = dayData.bibleBook || "";
-  updateChapterDropdowns(dayData.startChapter, dayData.endChapter);
+  const savedReadingPassages = getStoredReadingPassages(dayData);
+  const primaryReadingPassage = savedReadingPassages[0] || {
+    book: dayData.bibleBook || "",
+    startChapter: dayData.startChapter || 0,
+    endChapter: dayData.endChapter || 0
+  };
+  elements.inputBibleBook.value = primaryReadingPassage.book;
+  updateChapterDropdowns(primaryReadingPassage.startChapter, primaryReadingPassage.endChapter);
+  renderAdditionalReadingPassages(savedReadingPassages.slice(1));
+  updateReadingPassagesSummary(savedReadingPassages);
   elements.inputMorningChapters.value = morningChaptersVal;
   elements.inputLaterChapters.value = laterChaptersVal;
   elements.inputRecitedMemory.checked = dayData.recitedMemory || false;
@@ -1395,6 +1571,10 @@ function setFormDisabledState(disabled) {
       ? (disabled || !(appState && appState.isAdmin))
       : disabled;
   });
+  if (elements.btnAddReadingPassage) elements.btnAddReadingPassage.disabled = disabled;
+  document.querySelectorAll('.reading-passage-remove').forEach(button => {
+    button.disabled = disabled;
+  });
 
   const adminCanEditValidity = !disabled && Boolean(appState && appState.isAdmin);
   if (elements.dataValidityLabel) {
@@ -1415,6 +1595,7 @@ function closeModal() {
   elements.dayModal.classList.remove('open');
   currentEditingDayNum = null;
   elements.dayForm.reset();
+  renderAdditionalReadingPassages([]);
 }
 
 // Quick import parser for devotional notes (FACT/INSIGHT/DEED, WhatsApp, Notebook)
@@ -1443,9 +1624,10 @@ window.parseQuickPasteJournal = function(silent = false) {
     const bookName = bookMatch[1].trim();
     if (/^(Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation)$/i.test(bookName)) {
       if (elements.inputBibleBook) elements.inputBibleBook.value = bookName;
-      if (elements.inputStartChapter && bookMatch[2]) elements.inputStartChapter.value = parseInt(bookMatch[2], 10);
-      if (elements.inputEndChapter && bookMatch[3]) elements.inputEndChapter.value = parseInt(bookMatch[3], 10);
-      else if (elements.inputEndChapter && bookMatch[2]) elements.inputEndChapter.value = parseInt(bookMatch[2], 10);
+      const parsedStart = parseInt(bookMatch[2], 10) || 0;
+      const parsedEnd = parseInt(bookMatch[3] || bookMatch[2], 10) || parsedStart;
+      updateChapterDropdowns(parsedStart, parsedEnd);
+      calculateReadingSpeeds();
       filled = true;
     }
   }
@@ -1519,9 +1701,12 @@ function saveDayLog() {
   const todayStr = getLocalISODate();
   
   dayData.wakingTime = elements.inputWakingTime.value;
-  dayData.bibleBook = elements.inputBibleBook.value;
-  dayData.startChapter = parseInt(elements.inputStartChapter.value, 10) || 0;
-  dayData.endChapter = parseInt(elements.inputEndChapter.value, 10) || 0;
+  const readingPassages = getReadingPassagesFromForm();
+  const primaryReadingPassage = readingPassages[0];
+  dayData.readingPassages = readingPassages;
+  dayData.bibleBook = primaryReadingPassage ? primaryReadingPassage.book : elements.inputBibleBook.value;
+  dayData.startChapter = primaryReadingPassage ? primaryReadingPassage.startChapter : (parseInt(elements.inputStartChapter.value, 10) || 0);
+  dayData.endChapter = primaryReadingPassage ? primaryReadingPassage.endChapter : (parseInt(elements.inputEndChapter.value, 10) || 0);
   dayData.morningChapters = parseInt(elements.inputMorningChapters.value, 10) || 0;
   dayData.laterChapters = parseInt(elements.inputLaterChapters.value, 10) || 0;
   dayData.recitedMemory = elements.inputRecitedMemory.checked;
@@ -2517,6 +2702,7 @@ function createEmptyDay(dayNum, dateStr) {
     bibleBook: "",
     startChapter: 0,
     endChapter: 0,
+    readingPassages: [],
     studyMethod: "FID",
     morningChapters: 0,
     laterChapters: 0,
@@ -2822,6 +3008,7 @@ async function resetActiveCardLogsOnly() {
     day.bibleBook = "";
     day.startChapter = 0;
     day.endChapter = 0;
+    day.readingPassages = [];
     day.morningChapters = 0;
     day.laterChapters = 0;
     day.recitedMemory = false;

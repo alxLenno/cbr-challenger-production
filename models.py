@@ -72,6 +72,7 @@ class DailyLog(db.Model):
     bible_book = db.Column(db.String(50), nullable=True)
     start_chapter = db.Column(db.Integer, default=0)
     end_chapter = db.Column(db.Integer, default=0)
+    reading_passages = db.Column(db.JSON, nullable=True)
     morning_chapters = db.Column(db.Integer, default=0)
     later_chapters = db.Column(db.Integer, default=0)
     recited_memory = db.Column(db.Boolean, default=False)
@@ -191,6 +192,8 @@ def auto_migrate_db(app):
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN dif_fruit TEXT"))
                 if 'journal_notes' not in existing_cols:
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN journal_notes TEXT"))
+                if 'reading_passages' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN reading_passages JSON"))
             db.session.commit()
         except Exception as e:
             print("Auto-migration note:", e)
