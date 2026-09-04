@@ -5,8 +5,7 @@ let seCurrentViewSession = 1;
 async function initSessionEval() {
   seBindPrintButton();
   if (seInitialized) {
-    seRenderSelector();
-    seRenderSessionView(seCurrentViewSession);
+    syncSessionEvalToActiveCard();
     return;
   }
   try {
@@ -32,6 +31,14 @@ async function initSessionEval() {
   } catch(e) {
     console.error('Session eval load error', e);
   }
+}
+
+function syncSessionEvalToActiveCard() {
+  seCurrentViewSession = Number(appState && appState.currentCardId) || 1;
+  if (!seInitialized) return;
+
+  seRenderSelector();
+  seRenderSessionView(seCurrentViewSession);
 }
 
 function seBindPrintButton() {

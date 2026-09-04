@@ -1835,6 +1835,9 @@ function renderAll() {
   renderCBImpact();
   renderLibraryList();
   renderProfile();
+  if (typeof syncSessionEvalToActiveCard === 'function') {
+    syncSessionEvalToActiveCard();
+  }
   refreshIcons();
 }
 

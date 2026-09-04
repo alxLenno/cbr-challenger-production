@@ -15,6 +15,7 @@ build/
 # Database (local SQLite only)
 *.db
 *.sqlite3
+instance/
 
 # macOS
 .DS_Store
@@ -22,6 +23,7 @@ build/
 # IDE
 .vscode/
 .idea/
+.claude/
 
 # Uploaded Videos (large video files should not be committed to Git)
 static/videos/*

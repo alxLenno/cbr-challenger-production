@@ -338,6 +338,31 @@ function _getLocalTodayStr() {
   return `${year}-${month}-${day}`;
 }
 
+function _getTodayDayContext(data) {
+  const todayStr = _getLocalTodayStr();
+  const days = Array.isArray(data && data.days) ? data.days : [];
+  const totalDays = days.length || 1;
+  const calculatedDayNum = window.getDayNumberForDate
+    ? window.getDayNumberForDate(data, todayStr)
+    : 1;
+  const dayData = days.find(day => day.date === todayStr)
+    || days.find(day => Number(day.dayNumber) === calculatedDayNum)
+    || {};
+
+  return {
+    todayStr,
+    totalDays,
+    dayNum: Number(dayData.dayNumber) || calculatedDayNum,
+    dayData
+  };
+}
+
+window.openTodayLog = function () {
+  const data = window.getActiveData ? getActiveData() : null;
+  if (!data || !window.openDayModal) return;
+  window.openDayModal(_getTodayDayContext(data).dayNum);
+};
+
 // ── Render Today Tab ─────────────────────────────────────────────────────────
 function renderToday() {
   const data = window.getActiveData ? getActiveData() : null;
@@ -349,15 +374,7 @@ function renderToday() {
   if (!card) return;
 
   // ── Day Number ──────────────────────────────────────────────────────────────
-  const todayStr = _getLocalTodayStr();
-  let dayNum = 1;
-  if (data.commencingDate) {
-    const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
-    if (diff >= 0 && diff < 28) dayNum = diff + 1;
-    else if (diff >= 28) dayNum = 28;
-  }
-
-  const dayDataRaw = (data.days || []).find(d => d.dayNumber === dayNum) || {};
+  const { todayStr, totalDays, dayNum, dayData: dayDataRaw } = _getTodayDayContext(data);
   const dayData = _normalizeDayDataJournal(dayDataRaw);
 
   // ── Header ──────────────────────────────────────────────────────────────────
@@ -365,7 +382,7 @@ function renderToday() {
   if (dateH) dateH.innerText = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
 
   const sub = document.getElementById('today-cycle-sub');
-  if (sub) sub.innerText = `Day ${dayNum} of 28 • Week ${Math.ceil(dayNum/7)} • Card #${card.cardId}`;
+  if (sub) sub.innerText = `Day ${dayNum} of ${totalDays} • Week ${Math.ceil(dayNum/7)} • Card #${card.cardId}`;
 
   // ── Targets ──────────────────────────────────────────────────────────────────
   const rt = document.getElementById('today-reading-target');
@@ -453,7 +470,7 @@ function renderToday() {
     const overrideStartStr = "2026-07-13";
     const overrideEndStr = "2026-08-02";
     if (todayStr >= overrideStartStr && todayStr <= overrideEndStr) {
-      readingDayIndex = Math.floor((new Date(todayStr) - new Date(overrideStartStr)) / 86400000) + 1;
+      readingDayIndex = CBRDateUtils.daysBetween(overrideStartStr, todayStr) + 1;
     } else if (todayStr < overrideStartStr && todayStr >= "2026-07-06") {
       readingDayIndex = 0;
     }
@@ -640,14 +657,7 @@ function _setStatus(id, [cls, text]) {
 function _getFormattedJournalText() {
   const data = window.getActiveData ? getActiveData() : null;
   if (!data) return "";
-  const todayStr = _getLocalTodayStr();
-  let dayNum = 1;
-  if (data.commencingDate) {
-    const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
-    if (diff >= 0 && diff < 28) dayNum = diff + 1;
-    else if (diff >= 28) dayNum = 28;
-  }
-  const dayDataRaw = (data.days || []).find(d => d.dayNumber === dayNum) || {};
+  const { dayNum, dayData: dayDataRaw } = _getTodayDayContext(data);
   const dayData = _normalizeDayDataJournal(dayDataRaw);
   const method = (dayData.studyMethod || 'FID').toUpperCase();
   
@@ -725,14 +735,7 @@ async function downloadJournalImage() {
   }
 
   const isDark = !document.body.classList.contains('light-mode');
-  const todayStr = _getLocalTodayStr();
-  let dayNum = 1;
-  if (data.commencingDate) {
-    const diff = Math.floor((new Date(todayStr) - new Date(data.commencingDate)) / 86400000);
-    if (diff >= 0 && diff < 28) dayNum = diff + 1;
-    else if (diff >= 28) dayNum = 28;
-  }
-  const dayDataRaw = (data.days || []).find(d => d.dayNumber === dayNum) || {};
+  const { dayNum, dayData: dayDataRaw } = _getTodayDayContext(data);
   const dayData = _normalizeDayDataJournal(dayDataRaw);
   const method = (dayData.studyMethod || 'FID').toUpperCase();
 
