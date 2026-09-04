@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cbr-challenger-v58';
+const CACHE_NAME = 'cbr-challenger-v61';
 const STATIC_ASSETS = [
   '/static/css/style.css',
   '/static/css/today.css',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   '/static/css/card-print.css',
   '/static/css/session_eval.css',
   '/static/js/app.js',
+  '/static/js/date-utils.js',
   '/static/js/data.js',
   '/static/js/scripture-refs.js',
   '/static/js/card-generator.js',

@@ -332,6 +332,21 @@ async function checkAndAdvanceCompletedCard() {
   if (isViewingHistory) return;
   if (!appState || !appState.days || appState.days.length === 0 || !appState.commencingDate) return;
 
+  const today = getLocalISODate();
+  const timeline = calculateCardTimeline(appState.commencingDate);
+  const carriedTimelineData = captureTimelineDataAfter(timeline.endStr);
+  const timelineNeededNormalizing = appState.days.length !== timeline.totalDays
+    || !Array.isArray(appState.weeks)
+    || appState.weeks.length !== timeline.totalWeeks
+    || appState.commencingDate !== timeline.startStr;
+
+  // Earlier builds could create a fifth week. Keep its dated entries in
+  // memory for the next dashboard, but make the outgoing dashboard a strict
+  // four-week card before it is displayed or archived.
+  if (timelineNeededNormalizing) {
+    resizeStateForNewTimeline(timeline.startStr);
+  }
+
   // The card selector persists whatever card you pick as "active," even if you
   // only meant to glance at an old one. Only auto-advance from your actual
   // frontier (the furthest round+card you've ever reached) — otherwise merely
@@ -342,17 +357,23 @@ async function checkAndAdvanceCompletedCard() {
   const knownRanks = (appState.savedCards || []).map(c => rank(c.round || 1, c.currentCardId || c.cardId));
   const currentRank = rank(currentRound, appState.currentCardId);
   const frontierRank = Math.max(currentRank, ...knownRanks);
-  if (currentRank < frontierRank) return;
+  if (currentRank < frontierRank) {
+    if (timelineNeededNormalizing) await saveState();
+    return;
+  }
 
-  const today = getLocalISODate();
-  const timeline = calculateCardTimeline(appState.commencingDate);
-  if (today <= timeline.endStr) return;
+  if (today <= timeline.endStr) {
+    if (timelineNeededNormalizing) await saveState();
+    return;
+  }
 
-  if (!hasAnyDataLogged()) {
+  const nextCycleStart = CBRDateUtils.getCycleStartForDate(timeline.startStr, today);
+
+  if (!appState.days.some(hasDayData)) {
     // Nothing was ever logged on this card — just reschedule its window to
-    // start now rather than archiving an empty card.
-    const newTimeline = calculateCardTimeline(today);
-    resizeStateForNewTimeline(newTimeline.startStr);
+    // the current four-week block rather than archiving an empty card.
+    resizeStateForNewTimeline(nextCycleStart);
+    applyCarriedTimelineData(carriedTimelineData);
     await saveState();
     return;
   }
@@ -374,7 +395,9 @@ async function checkAndAdvanceCompletedCard() {
         cancelText: "Not Yet"
       });
       if (startNewRound) {
-        await loadOrResetBoardForNewCard(1, currentRound + 1);
+        await loadOrResetBoardForNewCard(1, currentRound + 1, nextCycleStart);
+        applyCarriedTimelineData(carriedTimelineData);
+        await saveState();
         renderAll();
       }
     }, 500);
@@ -382,7 +405,9 @@ async function checkAndAdvanceCompletedCard() {
   }
 
   const nextCardId = completedCardId + 1;
-  await loadOrResetBoardForNewCard(nextCardId, currentRound);
+  await loadOrResetBoardForNewCard(nextCardId, currentRound, nextCycleStart);
+  applyCarriedTimelineData(carriedTimelineData);
+  await saveState();
 
   setTimeout(() => {
     showModal({
@@ -396,59 +421,63 @@ async function checkAndAdvanceCompletedCard() {
   }, 500);
 }
 
-// Date logic helpers for dynamic card timelines
-function getFirstSunday(year, monthIndex) {
-  let date = new Date(year, monthIndex, 1);
-  let dayOfWeek = date.getDay();
-  let daysToFirstSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-  date.setDate(1 + daysToFirstSunday);
-  return date;
-}
-
 function toLocalISOString(date) {
   const pad = n => n < 10 ? '0' + n : n;
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function calculateCardTimeline(baseDateStr) {
-  const d = new Date(baseDateStr);
-  let year = d.getFullYear();
-  let month = d.getMonth();
+  return CBRDateUtils.calculateCardTimeline(baseDateStr);
+}
 
-  let currentMonth1stSunday = getFirstSunday(year, month);
-  let startOfCurrentMonthCard = new Date(currentMonth1stSunday);
-  startOfCurrentMonthCard.setDate(startOfCurrentMonthCard.getDate() + 1);
+function getScheduledDayDate(day, commencingDate) {
+  if (day && /^\d{4}-\d{2}-\d{2}$/.test(day.date || '')) return day.date;
+  const dayNumber = Number(day && day.dayNumber);
+  return Number.isInteger(dayNumber) && dayNumber > 0
+    ? addDays(commencingDate, dayNumber - 1)
+    : null;
+}
 
-  let startMonth, startYear;
-  if (d < startOfCurrentMonthCard) {
-    if (month === 0) { startMonth = 11; startYear = year - 1; }
-    else { startMonth = month - 1; startYear = year; }
-  } else {
-    startMonth = month; startYear = year;
-  }
+function captureTimelineDataAfter(endStr) {
+  const commencingDate = appState.commencingDate;
+  const days = (appState.days || []).flatMap(day => {
+    const date = getScheduledDayDate(day, commencingDate);
+    return date && date > endStr
+      ? [{ ...JSON.parse(JSON.stringify(day)), date }]
+      : [];
+  });
+  const firstOverflowWeek = (appState.weeks || []).find(week => Number(week.weekNumber) > 4) || null;
 
-  const startCard1stSunday = getFirstSunday(startYear, startMonth);
-  const cardStart = new Date(startCard1stSunday);
-  cardStart.setDate(cardStart.getDate() + 1);
-
-  let endMonth = startMonth === 11 ? 0 : startMonth + 1;
-  let endYear = startMonth === 11 ? startYear + 1 : startYear;
-  const cardEnd = getFirstSunday(endYear, endMonth);
-
-  const diffTime = Math.abs(cardEnd - cardStart);
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  const startStr = toLocalISOString(cardStart);
-  const dates = [];
-  for (let i = 0; i < diffDays; i++) {
-    dates.push(addDays(startStr, i));
-  }
   return {
-    startStr: startStr,
-    endStr: toLocalISOString(cardEnd),
-    totalDays: diffDays,
-    totalWeeks: diffDays / 7,
-    dates: dates
+    days,
+    firstWeek: firstOverflowWeek ? JSON.parse(JSON.stringify(firstOverflowWeek)) : null
   };
+}
+
+function applyCarriedTimelineData(carriedData) {
+  if (!carriedData || !Array.isArray(carriedData.days) || carriedData.days.length === 0) return false;
+
+  const carriedByDate = new Map(carriedData.days.map(day => [day.date, day]));
+  let applied = false;
+  appState.days = (appState.days || []).map(day => {
+    const date = getScheduledDayDate(day, appState.commencingDate);
+    const carriedDay = carriedByDate.get(date);
+    if (!carriedDay) return day;
+    applied = true;
+    return {
+      ...JSON.parse(JSON.stringify(carriedDay)),
+      dayNumber: day.dayNumber,
+      date
+    };
+  });
+
+  if (applied && carriedData.firstWeek && appState.weeks && appState.weeks[0]) {
+    appState.weeks[0] = {
+      ...JSON.parse(JSON.stringify(carriedData.firstWeek)),
+      weekNumber: 1
+    };
+  }
+  return applied;
 }
 
 function hasDayData(d) {
@@ -705,7 +734,7 @@ function saveState() {
 // Create a blank default state
 function initDefaultState(seedState = {}) {
   const today = getLocalISODate();
-  const timeline = calculateCardTimeline(today);
+  const timeline = calculateCardTimeline(CBRDateUtils.getMondayOnOrBefore(today));
 
   appState = {
     username: seedState.username || "Bible Reader",
@@ -731,7 +760,7 @@ function initDefaultState(seedState = {}) {
     theme: 'dark'
   };
 
-  // Generate dynamic weeks and days
+  // Generate the four complete weeks and their 28 days.
   resizeStateForNewTimeline(timeline.startStr);
 
   saveState();
@@ -1162,9 +1191,7 @@ function timeStringToDecimal(timeStr) {
 
 // Add days to date utility
 function addDays(dateStr, days) {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  return CBRDateUtils.addDays(dateStr, days);
 }
 
 function getLocalISODate(date = new Date()) {
@@ -1172,6 +1199,10 @@ function getLocalISODate(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function getDayNumberForDate(data, dateStr = getLocalISODate()) {
+  return CBRDateUtils.getDayNumberForDate(data, dateStr);
 }
 
 // Format date nicely
@@ -1972,7 +2003,7 @@ function renderCalendarGrid() {
       const dayBlock = document.createElement('div');
       dayBlock.className = 'day-block';
       
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalISODate();
       if (dayDate === todayStr && !isViewingHistory) {
         dayBlock.classList.add('active');
       }
@@ -2737,6 +2768,7 @@ function createEmptyDay(dayNum, dateStr) {
 function createEmptyWeek(weekNum) {
   return {
     weekNumber: weekNum,
+    sharedFid: false,
     peMeeting: false,
     memoryValidity: false,
     orderly: false,
@@ -2747,14 +2779,16 @@ function createEmptyWeek(weekNum) {
 function resizeStateForNewTimeline(newStartStr) {
   const newTimeline = calculateCardTimeline(newStartStr);
   const oldDays = appState.days || [];
+  const oldStartStr = appState.commencingDate || newTimeline.startStr;
   const newDays = [];
   
   for (let i = 0; i < newTimeline.dates.length; i++) {
     const dStr = newTimeline.dates[i];
-    const existing = oldDays.find(d => d.date === dStr);
+    const existing = oldDays.find(d => getScheduledDayDate(d, oldStartStr) === dStr);
     if (existing) {
       const copy = JSON.parse(JSON.stringify(existing));
       copy.dayNumber = i + 1;
+      copy.date = dStr;
       newDays.push(copy);
     } else {
       newDays.push(createEmptyDay(i + 1, dStr));
@@ -2776,12 +2810,13 @@ function resizeStateForNewTimeline(newStartStr) {
     }
   }
   appState.weeks = newWeeks;
-  appState.commencingDate = newStartStr;
+  appState.commencingDate = newTimeline.startStr;
 }
 
-function resetActiveBoardForNewCard(newCardId, newRound) {
-  const today = new Date().toISOString().split('T')[0];
-  const timeline = calculateCardTimeline(today);
+function resetActiveBoardForNewCard(newCardId, newRound, commencingDate) {
+  const today = getLocalISODate();
+  const startStr = commencingDate || CBRDateUtils.getMondayOnOrBefore(today);
+  const timeline = calculateCardTimeline(startStr);
 
   appState.currentCardId = newCardId;
   appState.activeInstanceId = createCardInstanceId(newCardId);
@@ -2845,7 +2880,7 @@ async function refreshSavedCardsFromServer() {
 // round defaults to the trainee's current round — switching cards via the
 // selector stays within your current attempt. Pass an explicit round to
 // jump into a different one (used when manually starting the next round).
-async function loadOrResetBoardForNewCard(newCardId, round) {
+async function loadOrResetBoardForNewCard(newCardId, round, commencingDate) {
   const targetRound = round || appState.round || 1;
 
   // Check for the most recently updated instance of this card within this round.
@@ -2878,7 +2913,7 @@ async function loadOrResetBoardForNewCard(newCardId, round) {
   }
 
   // This card has never been used in this round, so create its first permanent instance.
-  await resetActiveBoardForNewCard(newCardId, targetRound);
+  await resetActiveBoardForNewCard(newCardId, targetRound, commencingDate);
 }
 
 function autoArchiveIfNeeded() {
@@ -2993,39 +3028,12 @@ async function resetActiveCardLogsOnly() {
     return false;
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalISODate();
+  const timeline = calculateCardTimeline(CBRDateUtils.getMondayOnOrBefore(today));
   appState.activeInstanceId = createCardInstanceId(appState.currentCardId);
-  appState.commencingDate = today;
-  appState.weeks = [
-    { weekNumber: 1, sharedFid: false },
-    { weekNumber: 2, sharedFid: false },
-    { weekNumber: 3, sharedFid: false },
-    { weekNumber: 4, sharedFid: false }
-  ];
-  
-  appState.days.forEach(day => {
-    day.wakingTime = "";
-    day.bibleBook = "";
-    day.startChapter = 0;
-    day.endChapter = 0;
-    day.readingPassages = [];
-    day.morningChapters = 0;
-    day.laterChapters = 0;
-    day.recitedMemory = false;
-    day.fidJournaling = false;
-    day.prayer10mins = false;
-    day.dataValidity = false;
-    day.fidFocus = "";
-    day.fidInsight = "";
-    day.fidDoing = "";
-    day.scriptureMemorized = "";
-    day.prayerTopic = "";
-    day.cbId = "";
-    day.cbSolution = "";
-    day.cbScripture = "";
-    day.cbResolved = false;
-    day.logTimestamp = null;
-  });
+  appState.days = [];
+  appState.weeks = [];
+  resizeStateForNewTimeline(timeline.startStr);
   
   const saved = await saveState();
   if (!saved) {
@@ -3122,7 +3130,7 @@ function importData(e) {
   const file = e.target.files[0];
   if (!file) return;
   
-  fileReader.onload = function(event) {
+  fileReader.onload = async function(event) {
     try {
       const parsed = JSON.parse(event.target.result);
       if (parsed.days && (parsed.days.length === 28 || parsed.days.length === 35)) {
@@ -3154,7 +3162,8 @@ function importData(e) {
           });
         }
         
-        saveState();
+        await checkAndAdvanceCompletedCard();
+        await saveState();
         initUI();
         renderAll();
         showToast("Backup data imported successfully!", "success");
