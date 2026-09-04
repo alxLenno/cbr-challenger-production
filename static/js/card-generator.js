@@ -52,7 +52,7 @@ function buildChallengerCardHTML(data) {
   // SECTION 1: BIBLE-READING SPEEDS GRID
   // ─────────────────────────────────────────────
   function buildSpeedGrid() {
-    // Rows: 8 down to 0
+    // Rows: 10 down to 1
     let rows = '';
 
     // Header row
@@ -61,7 +61,7 @@ function buildChallengerCardHTML(data) {
     rows += `<th style="border:none; background:transparent; font-size:4.5pt; text-align:left; padding-left:6px; line-height:1.1; vertical-align:bottom;">CBR VISION<br>IN 30 YEARS</th>`;
     rows += `</tr>`;
 
-    for (let speed = 8; speed >= 1; speed--) {
+    for (let speed = 10; speed >= 1; speed--) {
       rows += `<tr>`;
       rows += `<td class="row-header">${speed}</td>`;
       for (let w = 0; w < 4; w++) {
