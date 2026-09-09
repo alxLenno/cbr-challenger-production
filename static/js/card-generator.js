@@ -507,21 +507,19 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
   const bonusScore = bonusCriteria.reduce((total, _, index) => (
     total + (finalSession.bonus[String(index + 7)] ? 50 : 0)
   ), 0);
-  const selectedSession = sessions.find(session => session.sessionNumber === currentCardId) || sessions[0];
-  const selectedDiligence = diligenceScore(selectedSession);
-  const selectedGrowth = selectedSession.growthPoints;
-  const selectedBonus = currentCardId === 7 ? bonusScore : 0;
-  // The reference card's "Total Sessions Score" is for the active session:
-  // that session's diligence plus that same Challenger Card's four-week growth.
-  const selectedSessionScore = selectedDiligence + selectedGrowth;
-  const selectedTotalPoints = selectedSessionScore + selectedBonus;
+  // This evaluation is the full course record, so its totals must include
+  // every displayed session, regardless of which card is being printed.
+  const courseSessionScore = sessions.reduce((total, session) => (
+    total + diligenceScore(session) + session.growthPoints
+  ), 0);
+  const courseTotalPoints = courseSessionScore + bonusScore;
 
   const diligenceRows = diligenceCriteria.map((criterion, index) => `
     <tr>
       <th class="cc-eval-row-num">${index + 1}.</th>
       <td class="cc-eval-criterion">${criterion}</td>
       ${sessions.map(session => `<td>${checkMark(Boolean(session.diligence[String(index + 1)]))}</td>`).join('')}
-      ${index === 0 ? `<td rowspan="${diligenceCriteria.length + 2}" class="cc-eval-course-score"><span>TOTAL SESSIONS SCORE</span><strong>${selectedSessionScore}</strong></td>` : ''}
+      ${index === 0 ? `<td rowspan="${diligenceCriteria.length + 2}" class="cc-eval-course-score"><span>TOTAL SESSIONS SCORE</span><strong>${courseSessionScore}</strong></td>` : ''}
     </tr>`).join('');
 
   const bonusRows = bonusCriteria.map((criterion, index) => {
@@ -578,7 +576,7 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
           <tr class="cc-eval-bonus-total-row">
             <th></th>
             <td>TOTAL BONUSES</td>
-            <td>${selectedBonus}</td>
+            <td>${bonusScore}</td>
           </tr>
         </tbody></table>
       </section>
@@ -615,9 +613,9 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
     </div>
 
     <footer class="cc-eval-totals">
-      <div><span>DILIGENCE SCORES</span><strong>${selectedSessionScore}</strong></div>
-      <div><span>BONUS SCORES</span><strong>${selectedBonus}</strong></div>
-      <div class="grand"><span>TOTAL POINTS</span><strong>${selectedTotalPoints}</strong></div>
+      <div><span>DILIGENCE SCORES</span><strong>${courseSessionScore}</strong></div>
+      <div><span>BONUS SCORES</span><strong>${bonusScore}</strong></div>
+      <div class="grand"><span>TOTAL POINTS</span><strong>${courseTotalPoints}</strong></div>
     </footer>
   </section>`;
 }

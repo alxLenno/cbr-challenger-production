@@ -39,7 +39,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=46">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=46">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=48">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=49">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bible-journey.css') }}?v=3">
 </head>
 <body>
   <!-- Mobile Sidebar Overlay -->
@@ -124,6 +125,7 @@
         </div>
 
         <!-- CONSOLIDATED ACCOUNT & SETTINGS TAB -->
+        <div class="tab-content" id="tab-bible-journey">{% include 'components/bible_journey.html' %}</div>
         <div class="tab-content" id="tab-account">
           {% include 'components/account.html' %}
         </div>
@@ -179,6 +181,7 @@
             </span>
             <span class="nav-label">Card Archives</span>
           </button>
+          <button class="tab-btn" data-tab="tab-bible-journey" role="tab"><span class="nav-icon">◷</span><span class="nav-label">Bible Completion</span></button>
           <button class="tab-btn" data-tab="tab-account" role="tab">
             <span class="nav-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -493,14 +496,15 @@
   <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
   <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='js/date-utils.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=17"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=18"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}?v=66"></script>
+  <script src="{{ url_for('static', filename='js/tabs/bible-journey.js') }}?v=10"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->
   <script src="{{ url_for('static', filename='js/patrick_hand_font.js') }}?v=1"></script>
   <script src="{{ url_for('static', filename='js/daily-notebook.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=40"></script>
   <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=7"></script>
-  <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=2"></script>
+  <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=4"></script>

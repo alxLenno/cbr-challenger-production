@@ -394,8 +394,19 @@ def get_leaderboard():
     leaderboard = []
     
     for u in users:
+        c_state = CardState.query.filter_by(user_id=u.id).order_by(CardState.id.desc()).first()
+        evaluations = SessionEvaluation.query.filter_by(user_id=u.id).all()
+        def evaluation_points(e):
+            diligence = sum(10 for n in range(1, 7) if getattr(e, f'diligence_{n}'))
+            bonus = sum(50 for n in range(7, 13) if getattr(e, f'bonus_{n}')) if e.session_number == 7 else 0
+            return diligence + bonus
+        evaluation_total = sum(evaluation_points(e) for e in evaluations)
         # 1. Archived scores (for Cumulative)
         archived = ArchivedCard.query.filter_by(user_id=u.id).all()
+        # Saving the active card also creates an archive snapshot. Count it only
+        # through the live logs below, not again through that snapshot.
+        if c_state:
+            archived = [a for a in archived if a.instance_id != c_state.active_instance_id]
         archived_score = sum(a.total_score for a in archived if a.total_score)
         archived_laxity = sum(a.total_laxity for a in archived if a.total_laxity)
         
@@ -407,7 +418,7 @@ def get_leaderboard():
                 "name": u.name or u.email.split('@')[0],
                 "avatar": u.profile_pic,
                 "cardLevel": 1,
-                "cumulative_points": archived_score, "cumulative_laxity": archived_laxity,
+                "cumulative_points": archived_score + evaluation_total, "cumulative_laxity": archived_laxity,
                 "session_points": 0, "session_laxity": 0,
                 "weekly_points": 0, "weekly_laxity": 0,
                 "daily_points": 0, "daily_laxity": 0
@@ -430,16 +441,18 @@ def get_leaderboard():
         days = sorted(c_state.days, key=lambda d: d.day_number)
         
         redeemed_cb_ids = set()
-        max_week = 0
-        if c_state.weeks:
-            max_week = max(w.week_number for w in c_state.weeks)
+        max_week = 4
             
-        last_day_num = days[-1].day_number if days else None
+        try:
+            today_number = (date.today() - date.fromisoformat(c_state.commencing_date)).days + 1
+        except (TypeError, ValueError):
+            today_number = 0
+        current_week = (today_number - 1) // 7 + 1 if 1 <= today_number <= 28 else 0
             
         for w in range(max_week):
             week_idx = w + 1
             start_idx = w * 7
-            week_days = days[start_idx:start_idx+7]
+            week_days = [d for d in days if start_idx < d.day_number <= start_idx + 7]
             
             p_count = 0
             c_count = 0
@@ -469,7 +482,7 @@ def get_leaderboard():
                 if m_met: m_count += 1
                 
                 # Daily score
-                if d.day_number == last_day_num:
+                if d.day_number == today_number:
                     daily_score = int(chap_met) + int(c_met) + int(pr_met) + int(sm_met) + int(m_met)
                     daily_laxity = 5 - daily_score
                 
@@ -485,12 +498,13 @@ def get_leaderboard():
             session_laxity += (10 - w_score)
             
             # Weekly score (use latest week)
-            if week_idx == max_week:
+            if week_idx == current_week:
                 weekly_score = p_count + c_count + pr_count + sm_count + m_count
                 weekly_laxity = 35 - weekly_score
                 
-        cumulative_score = archived_score + session_score
+        cumulative_score = archived_score + session_score + evaluation_total
         cumulative_laxity = archived_laxity + session_laxity
+        session_score += sum(evaluation_points(e) for e in evaluations if e.session_number == c_id)
             
         leaderboard.append({
             "id": u.id,

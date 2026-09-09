@@ -41,14 +41,14 @@
     padding: 0;
   }
 
-  .cc-root {
-    break-after: page;
-    page-break-after: always;
+  /* Let the evaluation follow the card without leaving the rest of a page empty. */
+  .cc-eval-header {
+    break-inside: avoid;
+    break-after: avoid;
   }
 
-  .cc-session-evaluation-page {
-    break-before: page;
-    page-break-before: always;
+  .cc-session-evaluation-page tr {
+    break-inside: avoid;
   }
 }
 

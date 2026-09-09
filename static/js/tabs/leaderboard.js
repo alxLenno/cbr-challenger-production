@@ -19,10 +19,9 @@ async function fetchLeaderboard() {
   const listWrapper = document.getElementById('leaderboard-list-wrapper');
   const tbody = document.getElementById('leaderboard-tbody');
   
-  // If already cached, render instantly — no spinner
+  // Show cached rankings immediately, then refresh saved scores on every visit.
   if (leaderboardCache !== null) {
     renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
-    return;
   }
   
   // Still loading or first click before prefetch finished — show spinner briefly
@@ -154,4 +153,3 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
     listWrapper.style.display = 'none';
   }
 }
-

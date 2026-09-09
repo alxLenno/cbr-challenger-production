@@ -1,0 +1,20 @@
+<div class="content-header"><div class="title-text"><h2>Bible completion</h2></div></div>
+<section class="glass-panel bj-panel bj-completion">
+  <div class="bj-finish">
+    <span class="bj-eyebrow">Estimated finish</span>
+    <div id="bj-result" role="status" aria-live="polite"></div>
+    <p id="bj-days" class="bj-note"></p>
+  </div>
+  <div class="bj-controls">
+    <label>Reading pace<select id="bj-mode" class="profile-input"><option value="normal">Challenger plan</option><option value="constant">Custom pace</option></select></label>
+    <label>Chapters / day<input id="bj-speed" class="profile-input" type="number" min="1" max="1189" step="1" value="7" disabled></label>
+  </div>
+  <div class="bj-presets" aria-label="Quick reading paces"><button type="button" data-bj-pace="7">7 chapters / day</button><button type="button" data-bj-pace="8">8 chapters / day</button></div>
+  <div class="bj-progress-block"><p id="bj-progress"></p><progress id="bj-coverage" value="0" max="1189" aria-label="Bible chapters completed"></progress></div>
+  <details class="bj-estimate-details"><summary>About this estimate</summary>
+    <p id="bj-assumption" class="bj-note"></p>
+    <p id="bj-unidentified" class="bj-note"></p>
+    <p id="bj-comparison" class="bj-note"></p>
+    <p class="bj-note">66 books · 1,189 chapters. Your card targets stay unchanged.</p>
+  </details>
+</section>
