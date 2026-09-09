@@ -70,6 +70,17 @@ function bibleJourneyChapterLabel(book, chapters) {
   return `${short} ${ranges.join(', ')}`;
 }
 
+function bibleJourneyReadingLabel(chapters) {
+  const byBook = new Map();
+  for (const chapter of chapters) {
+    const match = chapter.match(/^(.+) (\d+)$/);
+    if (!match) continue;
+    if (!byBook.has(match[1])) byBook.set(match[1], []);
+    byBook.get(match[1]).push(chapter);
+  }
+  return [...byBook].map(([book, readings])=>bibleJourneyChapterLabel(book,readings)).join(' · ');
+}
+
 function renderBibleJourney() {
   if (typeof appState === 'undefined' || !appState) return;
   const progress = bibleJourneyProgress(appState,CBR_DATA.bibleBooks);
@@ -111,8 +122,6 @@ function renderBibleJourney() {
   const heading = document.createElement('h3'); heading.textContent='Your Bible reading journey';host.append(heading);
   const desc = document.createElement('p');desc.textContent=summary;host.append(desc);
   const finished = document.createElement('p');finished.textContent=completedBooks.length ? `Books completed: ${completedBooks.map(b=>b.name).join(', ')}` : 'No fully recorded books yet. Add book and chapter ranges in your daily reading logs.';host.append(finished);
-  const label = document.createElement('label');label.textContent='Explore a book ';const select=document.createElement('select');select.className='profile-input';
-  for(const book of CBR_DATA.bibleBooks){const option=document.createElement('option');option.value=book.name;option.textContent=`${book.name} (${progress.completed.get(book.name).size}/${book.chapters})`;select.append(option);}label.append(select);host.append(label);
   const download=document.createElement('button');
   download.type='button';download.className='bj-download-icon';
   download.title='Download chart as PDF';
@@ -121,15 +130,15 @@ function renderBibleJourney() {
   host.append(download);
   const chart=document.createElement('div');chart.className='bj-chart';host.append(chart);
   let printMonths=[];
-  download.onclick=()=>printBibleJourneyMonths(chart.querySelector('svg'),printMonths,select.value,appState.username || 'Bible Reader');
-  function drawBook() {
-    const book=CBR_DATA.bibleBooks.find(b=>b.name===select.value);
-    const allPoints=[...progress.timeline].map(([date,chapters])=>({date,chapters:chapters.filter(c=>c.startsWith(book.name+' '))})).filter(p=>p.chapters.length);
+  download.onclick=()=>printBibleJourneyMonths(chart.querySelector('svg'),printMonths,'All books',appState.username || 'Bible Reader');
+  function drawJourney() {
+    const allPoints=[...progress.timeline].map(([date,chapters])=>({date,chapters}));
+    const chartMaximum=Math.max(10,Math.ceil(progress.done/10)*10);
     chart.replaceChildren();
     printMonths=[];download.disabled=!allPoints.length;
-    if(!allPoints.length){chart.textContent='No dated chapters recorded for this book yet.';return;}
+    if(!allPoints.length){chart.textContent='No dated chapters recorded yet. Add book and chapter ranges in your daily logs.';return;}
     const points = allPoints;
-    const labels = points.map(p=>`${p.date.slice(8)} · ${bibleJourneyChapterLabel(book.name,p.chapters)}`);
+    const labels = points.map(p=>`${p.date.slice(8)} · ${bibleJourneyReadingLabel(p.chapters)}`);
     const labelHeight = Math.max(160,...labels.map(label=>label.length*7+20));
     // Allocate space to recorded dates rather than empty calendar days.
     const grouped = new Map();
@@ -154,7 +163,7 @@ function renderBibleJourney() {
     svg.style.minWidth=width+'px';
     svg.style.width=width+'px';
     svg.setAttribute('role','img');
-    svg.setAttribute('aria-label',`${book.name}: one cumulative reading chart, grouped horizontally by month, with vertical date and chapter labels. Only recorded dates are shown, spaced evenly within each month.`);
+    svg.setAttribute('aria-label',`All books: one cumulative reading chart, grouped horizontally by month, with vertical date and chapter labels. Only recorded dates are shown, spaced evenly within each month.`);
     function shape(tag, attributes, text) {
       const node=document.createElementNS(ns,tag);
       for(const [key,value] of Object.entries(attributes)) node.setAttribute(key,value);
@@ -171,23 +180,23 @@ function renderBibleJourney() {
     const coords=points.map(p=>{
       cumulative+=p.chapters.length;
       const month=monthBands.find(m=>m.key===p.date.slice(0,7));
-      return {...p,x:month.x+12+(month.dates.indexOf(p.date)+.5)*(month.width-24)/month.dates.length,y:210-cumulative/book.chapters*150,total:cumulative};
+      return {...p,x:month.x+12+(month.dates.indexOf(p.date)+.5)*(month.width-24)/month.dates.length,y:210-cumulative/chartMaximum*150,total:cumulative};
     });
     shape('polyline',{points:coords.map(p=>`${p.x},${p.y}`).join(' '),fill:'none',stroke:'var(--accent-color, #38bdf8)','stroke-width':3});
     coords.forEach((p,index)=>{
       const dot=shape('circle',{cx:p.x,cy:p.y,r:4,fill:'#38bdf8'});
       const title=document.createElementNS(ns,'title');
-      title.textContent=`${p.date}: ${bibleJourneyChapterLabel(book.name,p.chapters)}; ${p.total} chapters completed`;
+      title.textContent=`${p.date}: ${bibleJourneyReadingLabel(p.chapters)}; ${p.total} chapters completed`;
       dot.append(title);
       shape('line',{x1:p.x,x2:p.x,y1:p.y+7,y2:222,stroke:'currentColor','stroke-opacity':'.2','stroke-dasharray':'3 4'});
       shape('text',{transform:`translate(${p.x+4},232) rotate(90)`,fill:'currentColor','font-size':12},labels[index]);
     });
-    shape('text',{x:4,y:62,fill:'currentColor','font-size':12},book.chapters+' ch');
+    shape('text',{x:4,y:62,fill:'currentColor','font-size':12},chartMaximum+' ch');
     shape('text',{x:20,y:210,fill:'currentColor','font-size':12},'0');
     chart.append(svg);
   }
 
-  select.value=CBR_DATA.bibleBooks.find(b=>progress.completed.get(b.name).size)?.name || 'Genesis';select.onchange=drawBook;drawBook();
+  drawJourney();
 }
 // An isolated print document keeps the card/evaluation print stylesheet out of this export.
 function printBibleJourneyMonths(source, months, book, reader) {
@@ -230,4 +239,4 @@ function printBibleJourneyMonths(source, months, book, reader) {
 if(typeof document !== 'undefined') document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.tab-btn').forEach(button=>button.addEventListener('click',()=>{if(['tab-bible-journey','tab-account'].includes(button.dataset.tab)) renderBibleJourney();}));
 });
-if(typeof module !== 'undefined') module.exports={bibleJourneyProgress,bibleJourneyForecast,bibleJourneyChapterLabel};
+if(typeof module !== 'undefined') module.exports={bibleJourneyProgress,bibleJourneyForecast,bibleJourneyChapterLabel,bibleJourneyReadingLabel};
