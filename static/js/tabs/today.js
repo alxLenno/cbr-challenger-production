@@ -307,25 +307,7 @@ window.wrapText = wrapTextFormattedCanvas;
 // Normalize raw or single-field journal text (e.g. FACT / INSIGHT / DEED or pasted WhatsApp notes) into clean fields
 function _normalizeDayDataJournal(dayData) {
   if (!dayData) return dayData;
-  const combined = [dayData.fidFocus, dayData.fidInsight, dayData.fidDoing, dayData.difDiscovery, dayData.difInsight, dayData.difFruit, dayData.journalNotes].filter(Boolean).join('\n');
-  if (/\b(?:FACT|INSIGHT|DEED|FOCUS|DISCOVERY|DOING|FRUIT)\b/i.test(combined)) {
-    const factMatch = combined.match(/(?:FACT|FOCUS|DISCOVERY|D\/F|F\/D|F[\s;:\-]|D[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|DEED|DOING|FRUIT|APPLICATION|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-    const insightMatch = combined.match(/(?:INSIGHT|INTERPRETATION|I[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:DEED|DOING|FRUIT|APPLICATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-    const deedMatch = combined.match(/(?:DEED|DOING|FRUIT|APPLICATION|ACTION|D[\s;:\-]|F[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-    
-    if (factMatch || insightMatch || deedMatch) {
-      if (factMatch && factMatch[1].trim()) { dayData.fidFocus = factMatch[1].trim(); dayData.difDiscovery = factMatch[1].trim(); }
-      if (insightMatch && insightMatch[1].trim()) { dayData.fidInsight = insightMatch[1].trim(); dayData.difInsight = insightMatch[1].trim(); }
-      if (deedMatch && deedMatch[1].trim()) { dayData.fidDoing = deedMatch[1].trim(); dayData.difFruit = deedMatch[1].trim(); }
-      
-      dayData.studyMethod = 'FID';
-      dayData.openObservation = ""; dayData.openPrinciples = ""; dayData.openExperience = ""; dayData.openNeed = "";
-      dayData.personsPersonal = ""; dayData.personsEnglish = ""; dayData.personsReferences = ""; dayData.personsSatan = "";
-      dayData.personsObedience = ""; dayData.personsNote = ""; dayData.personsStirring = "";
-      
-      dayData.journalNotes = "";
-    }
-  }
+  // Rendering must not reparse prose, change the chosen method, or erase saved fields.
   return dayData;
 }
 

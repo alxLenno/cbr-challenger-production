@@ -1541,6 +1541,7 @@ function openDayModal(dayNum) {
   const qp = document.getElementById('quick-paste-journal');
   if (qp) qp.value = '';
   elements.inputStudyMethod.value = dayData.studyMethod || "FID";
+  elements.inputStudyMethod.dispatchEvent(new Event('change'));
   
   // Update UI for study method
   const method = elements.inputStudyMethod.value;
@@ -1629,26 +1630,51 @@ function closeModal() {
   renderAdditionalReadingPassages([]);
 }
 
-// Quick import parser for devotional notes (FACT/INSIGHT/DEED, WhatsApp, Notebook)
+// Only explicit section headings are parsed; ordinary prose is never a heading.
+function parseJournalSections(text, method) {
+  const definitions = {
+    FID: [
+      ['inputFidFocus', 'FACT|FOCUS|DISCOVERY|D/F|F/D|F'],
+      ['inputFidInsight', 'INSIGHT|INTERPRETATION|I'],
+      ['inputFidDoing', 'DEED|DOING|FRUIT|APPLICATION|ACTION|D']
+    ],
+    OPEN: [
+      ['inputOpenObservation', 'OBSERVATIONS?|O'],
+      ['inputOpenPrinciples', 'PRINCIPLES?|P'],
+      ['inputOpenExperience', 'EXPERIENCE|E'],
+      ['inputOpenNeed', 'NEEDS?|N']
+    ],
+    PERSONS: [
+      ['inputPersonsPersonal', 'PERSONAL|P'],
+      ['inputPersonsEnglish', 'ENGLISH|E'],
+      ['inputPersonsReferences', 'REFERENCES|R'],
+      ['inputPersonsSatan', "SATAN(?:'S)?|S"],
+      ['inputPersonsObedience', 'OBEDIENCE|O'],
+      ['inputPersonsNote', 'NOTE|N'],
+      ['inputPersonsStirring', 'STIRRING']
+    ]
+  };
+  const fields = definitions[method] || definitions.FID;
+  const labels = fields.map(([, labels]) => labels).join('|');
+  // Full uppercase headings also support inline notes such as FACT ... INSIGHT ... DEED ...
+  const pattern = new RegExp(`(?:^|\\n|[ \\t]+)(?:[ \\t]*[*_#]*[ \\t]*)(${labels})(?:[*_]*[ \\t]*[:;—–-][ \\t]*[*_]*[ \\t]*|[*_]+[ \\t]*|[ \\t]+|(?=\\r?$))`, 'gm');
+  const matches = [...text.matchAll(pattern)];
+  const values = {};
+  matches.forEach((match, index) => {
+    const field = fields.find(([, labels]) => new RegExp(`^(?:${labels})$`).test(match[1]))[0];
+    const value = text.slice(match.index + match[0].length, matches[index + 1]?.index ?? text.length).trim();
+    if (value) values[field] = values[field] ? values[field] + '\n' + value : value;
+  });
+  return { values, prefix: matches.length ? text.slice(0, matches[0].index).trim() : '' };
+}
+
 window.parseQuickPasteJournal = function(silent = false) {
   const qpEl = document.getElementById('quick-paste-journal');
-  let text = qpEl ? qpEl.value : "";
-  if (!text || !text.trim()) {
-    // Check if the user pasted everything into fid-focus or journal-notes instead
-    const focusEl = document.getElementById('fid-focus');
-    const notesEl = document.getElementById('journal-notes');
-    if (focusEl && /\b(?:INSIGHT|DEED|DOING|FRUIT)\b/i.test(focusEl.value)) {
-      text = focusEl.value;
-    } else if (notesEl && /\b(?:FACT|INSIGHT|DEED|FOCUS|DOING)\b/i.test(notesEl.value)) {
-      text = notesEl.value;
-    } else {
-      if (!silent) showToast("Please paste some text into the quick import box first!", "warning");
-      return false;
-    }
+  const text = qpEl ? qpEl.value.trim() : '';
+  if (!text) {
+    if (!silent) showToast("Please paste some text into the quick import box first!", "warning");
+    return false;
   }
-  
-  let filled = false;
-  
   // Check for Bible Book and Chapter pattern (e.g. "Numbers 8,9&10" or "Genesis 1-3")
   const bookMatch = text.match(/\b([1-3]?\s*[A-Za-z]+)\s+(\d+)(?:[\s\,\&\-\:]+(\d+))?\b/);
   if (bookMatch) {
@@ -1659,61 +1685,24 @@ window.parseQuickPasteJournal = function(silent = false) {
       const parsedEnd = parseInt(bookMatch[3] || bookMatch[2], 10) || parsedStart;
       updateChapterDropdowns(parsedStart, parsedEnd);
       calculateReadingSpeeds();
-      filled = true;
     }
   }
 
-  // Parse FACT / FOCUS / DISCOVERY / INSIGHT / DEED / DOING / FRUIT
-  const factMatch = text.match(/(?:FACT|FOCUS|DISCOVERY|D\/F|F\/D|F[\s;:\-]|D[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|DEED|DOING|FRUIT|APPLICATION|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-  const insightMatch = text.match(/(?:INSIGHT|INTERPRETATION|I[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:DEED|DOING|FRUIT|APPLICATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-  const deedMatch = text.match(/(?:DEED|DOING|FRUIT|APPLICATION|ACTION|D[\s;:\-]|F[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:INSIGHT|INTERPRETATION|FACT|FOCUS|DISCOVERY|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|NOTE|PRAYER|$))/i);
-
-  if (factMatch && factMatch[1].trim()) {
-    if (elements.inputFidFocus) elements.inputFidFocus.value = factMatch[1].trim();
-    filled = true;
+  const method = (elements.inputStudyMethod.value || 'FID').toUpperCase();
+  const { values, prefix } = parseJournalSections(text, method);
+  const filled = Object.keys(values).length > 0;
+  Object.entries(values).forEach(([field, value]) => {
+    if (elements[field]) elements[field].value = value;
+  });
+  // Keep unstructured notes and header information, including on direct Save.
+  const extra = filled ? prefix : text;
+  if (extra && elements.inputJournalNotes) {
+    const existing = elements.inputJournalNotes.value;
+    if (!existing.includes(extra)) elements.inputJournalNotes.value = existing ? existing + '\n' + extra : extra;
   }
-  if (insightMatch && insightMatch[1].trim()) {
-    if (elements.inputFidInsight) elements.inputFidInsight.value = insightMatch[1].trim();
-    filled = true;
-  }
-  if (deedMatch && deedMatch[1].trim()) {
-    if (elements.inputFidDoing) elements.inputFidDoing.value = deedMatch[1].trim();
-    filled = true;
-  }
-
-  // Also check OPEN method
-  const obsMatch = text.match(/(?:OBSERVATION|O[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:PRINCIPLES|EXPERIENCE|NEED|$))/i);
-  const prinMatch = text.match(/(?:PRINCIPLES|P[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:EXPERIENCE|NEED|OBSERVATION|$))/i);
-  const expMatch = text.match(/(?:EXPERIENCE|E[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:NEED|OBSERVATION|PRINCIPLES|$))/i);
-  const needMatch = text.match(/(?:NEED|N[\s;:\-])[\s;:\-]*([\s\S]*?)(?=(?:OBSERVATION|PRINCIPLES|EXPERIENCE|$))/i);
-  
-  if (obsMatch && obsMatch[1].trim()) {
-    if (elements.inputOpenObservation) elements.inputOpenObservation.value = obsMatch[1].trim();
-    if (prinMatch && prinMatch[1].trim()) elements.inputOpenPrinciples.value = prinMatch[1].trim();
-    if (expMatch && expMatch[1].trim()) elements.inputOpenExperience.value = expMatch[1].trim();
-    if (needMatch && needMatch[1].trim()) elements.inputOpenNeed.value = needMatch[1].trim();
-    if (elements.inputStudyMethod) { elements.inputStudyMethod.value = 'OPEN'; elements.inputStudyMethod.dispatchEvent(new Event('change')); }
-    filled = true;
-  } else if (factMatch || insightMatch || deedMatch) {
-    if (elements.inputStudyMethod) { elements.inputStudyMethod.value = 'FID'; elements.inputStudyMethod.dispatchEvent(new Event('change')); }
-  }
-
-  // Extract header prefix (like Date 10-7-2026 \n PEG 8 \n Numbers 8,9&10) before FACT/INSIGHT/DEED
-  const prefixMatch = text.match(/^([\s\S]*?)(?=(?:FACT|FOCUS|DISCOVERY|INSIGHT|DEED|DOING|FRUIT|OBSERVATION|PRINCIPLES|EXPERIENCE|NEED|D\/F|F\/D|O —|P —|$))/i);
-  if (prefixMatch && prefixMatch[1].trim() && prefixMatch[1].trim() !== text.trim()) {
-    if (elements.inputJournalNotes) {
-      const existing = elements.inputJournalNotes.value.trim();
-      if (!existing.includes(prefixMatch[1].trim())) {
-        elements.inputJournalNotes.value = prefixMatch[1].trim() + (existing ? '\n' + existing : '');
-      }
-    }
-  }
-
-  if (filled && !silent) {
-    showToast("✨ Successfully parsed note and auto-filled your fields!", "success");
-  } else if (!silent) {
-    showToast("Could not detect standard keywords. Please check your text format.", "error");
-  }
+  // Consume the import so saving cannot overwrite subsequent manual corrections.
+  if (qpEl) qpEl.value = '';
+  if (!silent) showToast(filled ? "✨ Auto-filled fields for your selected method!" : "No headings matched your selected method. Text kept in journal notes.", filled ? "success" : "warning");
   return filled;
 };
 
@@ -1721,11 +1710,9 @@ window.parseQuickPasteJournal = function(silent = false) {
 function saveDayLog() {
   if (currentEditingDayNum === null || isViewingHistory) return;
   
-  // Auto-parse if quick paste box has content or if fidFocus has multiple sections
+  // Import only new text explicitly placed in the quick-paste box.
   const qpEl = document.getElementById('quick-paste-journal');
-  if ((qpEl && qpEl.value.trim()) || (elements.inputFidFocus && /\b(?:INSIGHT|DEED|DOING|FRUIT)\b/i.test(elements.inputFidFocus.value))) {
-    window.parseQuickPasteJournal(true);
-  }
+  if (qpEl && qpEl.value.trim()) window.parseQuickPasteJournal(true);
 
   const dayData = appState.days.find(d => d.dayNumber === currentEditingDayNum);
   const dayDate = addDays(appState.commencingDate, currentEditingDayNum - 1);
@@ -1755,32 +1742,33 @@ function saveDayLog() {
   const chosenMethod = (elements.inputStudyMethod.value || 'FID').toUpperCase();
   dayData.studyMethod = chosenMethod;
   
-  const stripPrefix = (str, regex) => str ? str.replace(regex, '').trim() : '';
+  // Typed fields are user content: preserve them exactly, including leading words.
+  const journalValue = (str) => str || '';
 
   if (chosenMethod === 'OPEN') {
-    dayData.openObservation = stripPrefix(elements.inputOpenObservation ? elements.inputOpenObservation.value : "", /^(?:OBSERVATION|O[\s;:\-])[\s;:\-]*/i);
-    dayData.openPrinciples = stripPrefix(elements.inputOpenPrinciples ? elements.inputOpenPrinciples.value : "", /^(?:PRINCIPLES|P[\s;:\-])[\s;:\-]*/i);
-    dayData.openExperience = stripPrefix(elements.inputOpenExperience ? elements.inputOpenExperience.value : "", /^(?:EXPERIENCE|E[\s;:\-])[\s;:\-]*/i);
-    dayData.openNeed = stripPrefix(elements.inputOpenNeed ? elements.inputOpenNeed.value : "", /^(?:NEED|N[\s;:\-])[\s;:\-]*/i);
+    dayData.openObservation = journalValue(elements.inputOpenObservation ? elements.inputOpenObservation.value : "");
+    dayData.openPrinciples = journalValue(elements.inputOpenPrinciples ? elements.inputOpenPrinciples.value : "");
+    dayData.openExperience = journalValue(elements.inputOpenExperience ? elements.inputOpenExperience.value : "");
+    dayData.openNeed = journalValue(elements.inputOpenNeed ? elements.inputOpenNeed.value : "");
     dayData.fidFocus = ""; dayData.fidInsight = ""; dayData.fidDoing = "";
     dayData.difDiscovery = ""; dayData.difInsight = ""; dayData.difFruit = "";
     dayData.personsPersonal = ""; dayData.personsEnglish = ""; dayData.personsReferences = ""; dayData.personsSatan = "";
     dayData.personsObedience = ""; dayData.personsNote = ""; dayData.personsStirring = "";
   } else if (chosenMethod === 'PERSONS') {
-    dayData.personsPersonal = stripPrefix(elements.inputPersonsPersonal ? elements.inputPersonsPersonal.value : "", /^(?:PERSONAL|P[\s;:\-])[\s;:\-]*/i);
-    dayData.personsEnglish = stripPrefix(elements.inputPersonsEnglish ? elements.inputPersonsEnglish.value : "", /^(?:ENGLISH|E[\s;:\-])[\s;:\-]*/i);
-    dayData.personsReferences = stripPrefix(elements.inputPersonsReferences ? elements.inputPersonsReferences.value : "", /^(?:REFERENCES|R[\s;:\-])[\s;:\-]*/i);
-    dayData.personsSatan = stripPrefix(elements.inputPersonsSatan ? elements.inputPersonsSatan.value : "", /^(?:SATAN|S[\s;:\-])[\s;:\-]*/i);
-    dayData.personsObedience = stripPrefix(elements.inputPersonsObedience ? elements.inputPersonsObedience.value : "", /^(?:OBEDIENCE|O[\s;:\-])[\s;:\-]*/i);
-    dayData.personsNote = stripPrefix(elements.inputPersonsNote ? elements.inputPersonsNote.value : "", /^(?:NOTE|N[\s;:\-])[\s;:\-]*/i);
-    dayData.personsStirring = stripPrefix(elements.inputPersonsStirring ? elements.inputPersonsStirring.value : "", /^(?:STIRRING|S[\s;:\-])[\s;:\-]*/i);
+    dayData.personsPersonal = journalValue(elements.inputPersonsPersonal ? elements.inputPersonsPersonal.value : "");
+    dayData.personsEnglish = journalValue(elements.inputPersonsEnglish ? elements.inputPersonsEnglish.value : "");
+    dayData.personsReferences = journalValue(elements.inputPersonsReferences ? elements.inputPersonsReferences.value : "");
+    dayData.personsSatan = journalValue(elements.inputPersonsSatan ? elements.inputPersonsSatan.value : "");
+    dayData.personsObedience = journalValue(elements.inputPersonsObedience ? elements.inputPersonsObedience.value : "");
+    dayData.personsNote = journalValue(elements.inputPersonsNote ? elements.inputPersonsNote.value : "");
+    dayData.personsStirring = journalValue(elements.inputPersonsStirring ? elements.inputPersonsStirring.value : "");
     dayData.fidFocus = ""; dayData.fidInsight = ""; dayData.fidDoing = "";
     dayData.difDiscovery = ""; dayData.difInsight = ""; dayData.difFruit = "";
     dayData.openObservation = ""; dayData.openPrinciples = ""; dayData.openExperience = ""; dayData.openNeed = "";
   } else {
-    dayData.fidFocus = stripPrefix(elements.inputFidFocus.value, /^(?:FACT|FOCUS|DISCOVERY|D\/F|F\/D|F[\s;:\-]|D[\s;:\-])[\s;:\-]*/i);
-    dayData.fidInsight = stripPrefix(elements.inputFidInsight.value, /^(?:INSIGHT|INTERPRETATION|I[\s;:\-])[\s;:\-]*/i);
-    dayData.fidDoing = stripPrefix(elements.inputFidDoing.value, /^(?:DEED|DOING|FRUIT|APPLICATION|ACTION|D[\s;:\-]|F[\s;:\-])[\s;:\-]*/i);
+    dayData.fidFocus = journalValue(elements.inputFidFocus.value);
+    dayData.fidInsight = journalValue(elements.inputFidInsight.value);
+    dayData.fidDoing = journalValue(elements.inputFidDoing.value);
     dayData.difDiscovery = dayData.fidFocus;
     dayData.difInsight = dayData.fidInsight;
     dayData.difFruit = dayData.fidDoing;
@@ -1788,7 +1776,7 @@ function saveDayLog() {
     dayData.personsPersonal = ""; dayData.personsEnglish = ""; dayData.personsReferences = ""; dayData.personsSatan = "";
     dayData.personsObedience = ""; dayData.personsNote = ""; dayData.personsStirring = "";
   }
-  dayData.journalNotes = "";
+  dayData.journalNotes = elements.inputJournalNotes ? elements.inputJournalNotes.value : "";
   
   dayData.scriptureMemorized = elements.inputScriptureMemorized.value;
   dayData.prayerTopic = elements.inputPrayerTopic.value;
