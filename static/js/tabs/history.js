@@ -166,6 +166,8 @@ async function restoreArchivedToActive(instanceId) {
     appState.activeInstanceId = targetCard.instanceId;
     appState.round = targetCard.round || 1;
     appState.commencingDate = targetCard.commencingDate;
+    appState.peg = targetCard.peg ?? '';
+    appState.cohort = targetCard.cohort ?? '';
     appState.days = JSON.parse(JSON.stringify(targetCard.days || []));
     appState.weeks = JSON.parse(JSON.stringify(targetCard.weeks || []));
     if (targetCard.weaknesses) {

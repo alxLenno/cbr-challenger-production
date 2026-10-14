@@ -142,6 +142,20 @@ class CardPersistenceTest(unittest.TestCase):
             "Updated partial note",
         )
 
+    def test_cohort_and_peg_survive_save_reload_and_archive(self):
+        state = self.make_state(2, "card_2_profile-details", "Profile details")
+        state.update({"cohort": "Cohort 12", "peg": "PEG 8"})
+        state["savedCards"][0].update({"cohort": "Cohort 12", "peg": "PEG 8"})
+        response = self.client.post("/api/save_state", json=state)
+        self.assertEqual(response.status_code, 200)
+        restored = self.client.get("/api/state").get_json()
+        self.assertEqual(restored["cohort"], "Cohort 12")
+        self.assertEqual(restored["peg"], "PEG 8")
+        snapshot = next(card for card in restored["savedCards"]
+                        if card["instanceId"] == "card_2_profile-details")
+        self.assertEqual(snapshot["cohort"], "Cohort 12")
+        self.assertEqual(snapshot["peg"], "PEG 8")
+
     def test_multi_book_reading_ranges_survive_save_and_reload(self):
         instance_id = "card_4_multi-book-reading"
         state = self.make_state(4, instance_id, "Split reading")

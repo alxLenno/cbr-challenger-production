@@ -967,3 +967,35 @@
   background: #000;
   color: #fff;
 }
+
+/* Booklet covers and one fresh sheet per card. */
+.cc-booklet-cover {
+  min-height: 278mm;
+  padding: 18mm;
+  border: 2px solid #193b35;
+  color: #193b35;
+  background: #f6f5ed;
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.cc-booklet-brand, .cc-booklet-cover footer { font-size: 10pt; letter-spacing: 1px; }
+.cc-booklet-eyebrow { font-size: 12pt; letter-spacing: 3px; }
+.cc-booklet-cover h1 { font-size: 38pt; line-height: 1.1; margin: 8mm 0; }
+.cc-booklet-subtitle { font-size: 15pt; line-height: 1.5; }
+.cc-booklet-cover dl { margin: 14mm 0; font-size: 12pt; }
+.cc-booklet-cover dt { font-size: 9pt; text-transform: uppercase; margin-top: 5mm; }
+.cc-booklet-cover dd { margin: 1mm 0 0; font-weight: bold; }
+.cc-booklet-running { font: 9pt Arial, sans-serif; padding: 0 0 3mm; }
+.cc-booklet-running span { float: right; }
+.cc-booklet-card .field-val { overflow-wrap: anywhere; min-width: 0; }
+@media print {
+  .cc-booklet-cover, .cc-booklet-card { break-before: page; }
+  .cc-booklet-cover:first-child { break-before: auto; }
+}
+
+.cc-booklet-verse { margin: 8mm 0 0; font-size: 12pt; line-height: 1.6; }
+.cc-booklet-verse strong { display: inline-block; margin-top: 3mm; font-size: 10pt; }

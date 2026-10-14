@@ -2687,6 +2687,8 @@ async function restoreArchivedToActive(instanceId) {
     appState.currentCardId = cardId;
     appState.activeInstanceId = targetCard.instanceId;
     appState.commencingDate = targetCard.commencingDate;
+    appState.peg = targetCard.peg ?? '';
+    appState.cohort = targetCard.cohort ?? '';
     appState.days = JSON.parse(JSON.stringify(targetCard.days || []));
     appState.weeks = JSON.parse(JSON.stringify(targetCard.weeks || []));
     if (targetCard.weaknesses) {
@@ -2893,6 +2895,8 @@ async function loadOrResetBoardForNewCard(newCardId, round, commencingDate) {
     appState.activeInstanceId = existingSave.instanceId;
     appState.round = existingSave.round || targetRound;
     appState.commencingDate = existingSave.commencingDate;
+    appState.peg = existingSave.peg ?? '';
+    appState.cohort = existingSave.cohort ?? '';
     appState.days = JSON.parse(JSON.stringify(existingSave.days || []));
     appState.weeks = JSON.parse(JSON.stringify(existingSave.weeks || []));
     if (existingSave.weaknesses) {

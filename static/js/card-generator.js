@@ -8,6 +8,12 @@
 // Day columns per week: 1-7 for each of 4 weeks = 28 total
 // Week separator on day 7 of each week
 
+function escapeCardText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
 function buildChallengerCardHTML(data) {
   if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
   const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
@@ -413,16 +419,22 @@ function buildChallengerCardHTML(data) {
   <div class="cc-date-row">
     <div class="field-group" style="flex:2;">
       <span class="field-label">NAME:</span>
-      <span class="field-val">${data.username || ''}</span>
+      <span class="field-val">${escapeCardText(data.username || '')}</span>
     </div>
     <div class="field-group" style="flex:1.5;">
       <span class="field-label">TELEPHONE:</span>
-      <span class="field-val">${data.contact || ''}</span>
+      <span class="field-val">${escapeCardText(data.contact || '')}</span>
     </div>
     <div class="field-group" style="flex:1.5;">
       <span class="field-label">CHURCH:</span>
-      <span class="field-val">${data.church || ''}</span>
+      <span class="field-val">${escapeCardText(data.church || '')}</span>
     </div>
+  </div>
+
+  <div class="cc-date-row">
+    <div class="field-group"><span class="field-label">COHORT:</span><span class="field-val">${escapeCardText(data.cohort || 'Not specified')}</span></div>
+    <div class="field-group"><span class="field-label">PEG NUMBER:</span><span class="field-val">${escapeCardText(data.peg || 'Not specified')}</span></div>
+    <div class="field-group"><span class="field-label">ROUND:</span><span class="field-val">${escapeCardText(data.round || 1)}</span></div>
   </div>
 
   <!-- BODY: Speed, ERT, Calendar — all share section-num layout -->
@@ -817,4 +829,77 @@ async function printChallengerCard(data) {
     wrapper.style.visibility = '';
     window.print();
   }, 80);
+}
+
+// Include every saved instance, replacing the active snapshot with current data.
+function collectBookletCards(state) {
+  const keyFor = card => card.instanceId || card.activeInstanceId ||
+    `${card.round || 1}:${card.currentCardId || card.cardId || 1}:${card.commencingDate || ''}`;
+  const cards = new Map();
+  for (const card of state.savedCards || []) {
+    const key = keyFor(card);
+    const previous = cards.get(key);
+    if (!previous || (Date.parse(card.savedAt) || 0) >= (Date.parse(previous.savedAt) || 0)) cards.set(key, card);
+  }
+  cards.set(keyFor({ ...state, instanceId: state.activeInstanceId }), state);
+  return [...cards.values()].map(card => ({
+    ...card,
+    currentCardId: Number(card.currentCardId || card.cardId || 1),
+    days: Array.from({ length: 28 }, (_, i) => (card.days || []).find(d => d.dayNumber === i + 1) || (card.days || [])[i] || { dayNumber: i + 1 }),
+    weeks: Array.from({ length: 4 }, (_, i) => (card.weeks || [])[i] || { weekNumber: i + 1, sharedFid: false })
+  })).sort((a, b) => Number(a.round || 1) - Number(b.round || 1) ||
+    a.currentCardId - b.currentCardId || String(a.commencingDate || '').localeCompare(String(b.commencingDate || '')));
+}
+
+function buildChallengerBookletHTML(cards, profile) {
+  const details = `<dl><dt>Name</dt><dd>${escapeCardText(profile.username || 'Challenger')}</dd>
+    <dt>Cohort</dt><dd>${escapeCardText(profile.cohort || 'Not specified')}</dd>
+    <dt>PEG number</dt><dd>${escapeCardText(profile.peg || 'Not specified')}</dd>
+    <dt>Church</dt><dd>${escapeCardText(profile.church || 'Not specified')}</dd></dl>`;
+  return `<section class="cc-booklet-cover"><div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
+    <div><p class="cc-booklet-eyebrow">THE CHALLENGER</p><h1>My Challenger<br>Card Booklet</h1>
+    <p class="cc-booklet-subtitle">A record of consistency, growth and resolve.</p>${details}
+    <blockquote class="cc-booklet-verse">“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.”<br><strong>2 Timothy 2:15 (KJV)</strong></blockquote></div>
+    <footer>Daily Wordfeast Foundation · Nyeri, Kenya</footer></section>` +
+    cards.map((card, i) => `<section class="cc-booklet-card" id="booklet-card-${i}">
+      <div class="cc-booklet-running">Round ${escapeCardText(card.round || 1)} / Card ${card.currentCardId} <span>Record ${i + 1} of ${cards.length}</span></div>
+      ${buildChallengerCardHTML(card)}</section>`).join('') +
+    `<section class="cc-booklet-cover cc-booklet-back"><div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
+      <div><p class="cc-booklet-eyebrow">KEEP GROWING</p><h1>One day.<br>One discipline.<br>Lasting growth.</h1>
+      <p class="cc-booklet-subtitle">Continue reading, reflecting, praying and sharing.</p></div>
+      <footer>The Challenger Card · Consistency Analyzer &amp; Resolve Displayer</footer></section>`;
+}
+
+function downloadChallengerBooklet() {
+  const wrapper = document.getElementById('card-print-wrapper');
+  if (!wrapper) return;
+  const cards = collectBookletCards(appState);
+  const originalTitle = document.title;
+  const originalStyle = wrapper.getAttribute('style');
+  const originalHTML = wrapper.innerHTML;
+  let restored = false;
+  const restore = () => {
+    if (restored) return;
+    restored = true;
+    document.title = originalTitle;
+    wrapper.innerHTML = originalHTML;
+    if (originalStyle === null) wrapper.removeAttribute('style');
+    else wrapper.setAttribute('style', originalStyle);
+    window.removeEventListener('afterprint', restore);
+  };
+  try {
+    wrapper.innerHTML = buildChallengerBookletHTML(cards, appState);
+    wrapper.style.cssText = 'display:block; position:absolute; left:0; top:0; width:198mm; visibility:hidden;';
+    document.title = `CBR-Challenger-Booklet-${(appState.username || 'Challenger').replace(/[^a-z0-9-]/gi, '-')}`;
+    // Force layout at the printable A4 width before drawing each card's graph.
+    wrapper.getBoundingClientRect();
+    cards.forEach((_, i) => drawERTGraph(`booklet-card-${i}`));
+    wrapper.removeAttribute('style');
+    window.addEventListener('afterprint', restore);
+    window.print();
+  } catch (error) {
+    restore();
+    console.error('Could not prepare Challenger booklet', error);
+    showToast('Could not prepare your booklet. Please try again.', 'error');
+  }
 }
