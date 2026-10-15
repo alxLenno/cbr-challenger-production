@@ -63,10 +63,49 @@ ABBREV_INDEX = {
 for ab, idx in ABBREV_INDEX.items():
     BOOK_TO_INDEX[ab] = idx
 
+BOOK_TO_INDEX.update({
+    "jos": 6, "jdg": 7, "jdgs": 7, "rth": 8, "neh": 16,
+    "est": 17, "esth": 17, "pr": 20, "prv": 20, "ecc": 21,
+    "song of songs": 22, "songs": 22, "sos": 22, "ss": 22,
+    "ezk": 26, "jl": 29, "am": 30, "ob": 31, "jon": 32,
+    "nam": 34, "zep": 36, "zec": 38, "mt": 40, "ac": 44,
+    "ro": 45, "php": 50, "phlp": 50, "phm": 57, "jm": 59,
+    "jud": 65, "rv": 66,
+})
+for book_number, book_stem, book_index in [
+    (1, "Samuel", 9), (2, "Samuel", 10),
+    (1, "Kings", 11), (2, "Kings", 12),
+    (1, "Chronicles", 13), (2, "Chronicles", 14),
+    (1, "Corinthians", 46), (2, "Corinthians", 47),
+    (1, "Thessalonians", 52), (2, "Thessalonians", 53),
+    (1, "Timothy", 54), (2, "Timothy", 55),
+    (1, "Peter", 60), (2, "Peter", 61),
+    (1, "John", 62), (2, "John", 63), (3, "John", 64),
+]:
+    for prefix_length in range(2, len(book_stem) + 1):
+        BOOK_TO_INDEX.setdefault(f"{book_number} {book_stem[:prefix_length].lower()}", book_index)
+
+for canonical_name in CANONICAL_BOOKS:
+    for prefix_length in range(3, len(canonical_name)):
+        prefix = canonical_name[:prefix_length].strip().lower()
+        candidates = [name for name in CANONICAL_BOOKS if name.lower().startswith(prefix)]
+        if len(candidates) == 1:
+            BOOK_TO_INDEX.setdefault(prefix, BOOK_TO_INDEX[canonical_name.lower()])
+
+
+def _normalize_reference_input(value):
+    value = re.sub(r'[\u2010-\u2015\u2212]', '-', value)
+    value = re.sub(r'\b(III|II|I|first|second|third)\s+(?=[A-Za-z])',
+                   lambda match: {"i": "1", "ii": "2", "iii": "3", "first": "1", "second": "2", "third": "3"}[match.group(1).lower()] + ' ',
+                   value, flags=re.IGNORECASE)
+    return value
+
 def normalize_book_index(raw_book_str):
     """Convert any book name string, abbreviation, or Swahili name into its integer index (1..66)."""
     if not raw_book_str: return None
-    cleaned = raw_book_str.strip().lower()
+    cleaned = _normalize_reference_input(raw_book_str.replace('.', '')).strip().lower()
+    cleaned = re.sub(r'^(\d)(?=[a-z])', r'\1 ', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
     if cleaned in BOOK_TO_INDEX:
         return BOOK_TO_INDEX[cleaned]
     # Check partial match on standard names
@@ -114,31 +153,56 @@ def normalize_book_name(book_idx, version="NIV"):
         return SWAHILI_MAP.get(book_idx, CANONICAL_BOOKS[book_idx - 1])
     return CANONICAL_BOOKS[book_idx - 1]
 
+def get_reference_pattern():
+    book_patterns = []
+    for alias in sorted(BOOK_TO_INDEX, key=len, reverse=True):
+        parts = alias.split()
+        if parts[0] in ('1', '2', '3'):
+            number = parts.pop(0)
+            number_pattern = {'1': '(?:1|I|first)', '2': '(?:2|II|second)', '3': '(?:3|III|third)'}[number]
+            book_patterns.append(number_pattern + r'\.?\s*' + r'\s*'.join(re.escape(part) + r'\.?' for part in parts))
+        else:
+            book_patterns.append(r'\s*'.join(re.escape(part) + r'\.?' for part in parts))
+    verse_range = r'\d+\s*[:.]\s*\d+(?:\s*[-\u2010-\u2015\u2212]\s*\d+(?:\s*:\s*\d+)?)?'
+    book_pattern = '(?:' + '|'.join(book_patterns) + ')'
+    next_book = r'(?!' + book_pattern + r'\s*\d)'
+    continuation = r'(?:\s*[,;]\s*' + next_book + r'(?:\d+\s*[:.]\s*)?\d+(?:\s*[-\u2010-\u2015\u2212]\s*\d+)?)'
+    chapter_range = r'\d+(?:\s*[-\u2010-\u2015\u2212]\s*\d+)?'
+    chapter_continuation = r'(?:\s*(?:[,;&]|\band\b)\s*' + next_book + chapter_range + ')'
+    return r'(?<!\w)(' + '|'.join(book_patterns) + r')\s*((?:' + verse_range + continuation + '*|' + chapter_range + chapter_continuation + r'*))(?!\d|[:.]\s*\d)'
+
+
 def extract_all_verse_references_from_sentence(sentence):
     """
     Extract ALL scripture references from inside any instruction string and resolve to canonical book index.
     Example: '1 Cor 9:24-27 and 1 Tim 4:7-8' -> [(46, '9', '24', '27'), (54, '4', '7', '8')]
     """
     if not sentence: return []
-    matches = list(re.finditer(r'\b(\d+):(\d+)(?:-(\d+))?\b', sentence))
-    if not matches: return []
-    
-    # Sort all known strings longest first
-    all_known_strings = sorted(BOOK_TO_INDEX.keys(), key=lambda s: len(s), reverse=True)
-    
+    sentence = _normalize_reference_input(sentence)
+    reference_pattern = re.compile(get_reference_pattern(), re.IGNORECASE)
     results = []
-    for match in matches:
-        ch, v_start, v_end = match.group(1), match.group(2), match.group(3)
-        prefix = sentence[:match.start()].strip()
-        prefix_low = prefix.lower()
-        
-        for book_cand in all_known_strings:
-            if prefix_low.endswith(book_cand):
-                idx_boundary = len(prefix_low) - len(book_cand)
-                if idx_boundary == 0 or not prefix_low[idx_boundary - 1].isalnum():
-                    book_idx = BOOK_TO_INDEX[book_cand]
-                    results.append((book_idx, ch, v_start, v_end))
-                    break
+    for match in reference_pattern.finditer(sentence):
+        book_index = normalize_book_index(match.group(1))
+        verse_match = re.match(r'(\d+)\s*[:.]\s*(\d+)(?:\s*-\s*(\d+(?:\s*:\s*\d+)?))?', match.group(2))
+        if not verse_match:
+            for chapter_match in re.finditer(r'(\d+)(?:\s*-\s*(\d+))?', match.group(2)):
+                first_chapter = int(chapter_match.group(1))
+                last_chapter = int(chapter_match.group(2) or first_chapter)
+                for chapter_number in range(first_chapter, min(last_chapter, 150) + 1):
+                    results.append((book_index, str(chapter_number), None, None))
+            continue
+        chapter, start_verse, end_verse = verse_match.groups()
+        results.append((book_index, chapter, start_verse, end_verse))
+        continuation_pattern = re.compile(
+            r'\s*[,;]\s*(?:(\d+)\s*[:.]\s*)?(\d+)(?:\s*-\s*(\d+))?(?!\d)')
+        position = verse_match.end()
+        while True:
+            continuation = continuation_pattern.match(match.group(2), position)
+            if not continuation:
+                break
+            chapter = continuation.group(1) or chapter
+            results.append((book_index, chapter, continuation.group(2), continuation.group(3)))
+            position = continuation.end()
     return results
 
 def _extract_text_recursive(elem):
@@ -241,11 +305,27 @@ def get_verse_text(reference_string, version="NIV"):
         return None, version, None, []
 
     index, actual_ver = get_parsed_bible(version)
+    expanded_references = []
+    for book_index, chapter, start_verse, end_verse in extracted_list:
+        if start_verse is None:
+            chapter_data = index.get(book_index, {}).get(chapter, {})
+            numeric_verses = [int(number) for number in chapter_data if number.isdigit()]
+            expanded_references.append((book_index, chapter, '1', str(max(numeric_verses, default=0))))
+        elif end_verse and ':' in end_verse:
+            end_chapter, final_verse = re.split(r'\s*:\s*', end_verse)
+            for chapter_number in range(int(chapter), int(end_chapter) + 1):
+                chapter_data = index.get(book_index, {}).get(str(chapter_number), {})
+                numeric_verses = [int(number) for number in chapter_data if number.isdigit()]
+                last_verse = final_verse if chapter_number == int(end_chapter) else str(max(numeric_verses, default=0))
+                first_verse = start_verse if chapter_number == int(chapter) else '1'
+                expanded_references.append((book_index, str(chapter_number), first_verse, last_verse))
+        else:
+            expanded_references.append((book_index, chapter, start_verse, end_verse))
     combined_texts = []
     clean_refs = []
     passages = []
 
-    for book_idx, chapter, start_verse, end_verse in extracted_list:
+    for book_idx, chapter, start_verse, end_verse in expanded_references:
         if book_idx not in index or chapter not in index[book_idx]:
             continue
 

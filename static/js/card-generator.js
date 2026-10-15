@@ -357,28 +357,33 @@ function buildChallengerCardHTML(data) {
   // ─────────────────────────────────────────────
   function buildInstructions() {
     const col1 = [
-      { n: '', t: '<b>Follow these INSTRUCTIONS in filling your CBR, ERT and other pieces of information in this CARD to be able to analyze your Weekly CBR GROWTH POINTS.</b>' }
-    ];
-    const col2 = [
+      { n: '', t: '<b>Follow these INSTRUCTIONS</b> to record your CBR, ERT and weekly growth points.' },
       { n: '1.', t: 'Circle the CARD number and write your <i>Name</i>, <i>Phone</i> number and the commencing <i>Date</i>.' },
       { n: '2.', t: 'Shade with strokes the chapters you read in the morning and dark those read later.' },
       { n: '3.', t: 'Put X where your Early-Riser Time (ERT) line meets the day\'s line then join these points with short lines.' },
       { n: '4.', t: 'Make a <b>28-day Calendar</b> and enter the practise weeks cumulatively in CARDs.' },
-      { n: '5.', t: 'Put X or a tick in box when you: <b>Recite Scripture</b>, write <b>FID Journal</b>, pray at least <b>10 minutes</b>, share a FID and Comment on a FID and then <b>Validate</b> the day\'s data.' },
     ];
-    const col3 = [
+    const col2 = [
+      { n: '5.', t: 'Put X or a tick in box when you: <b>Recite Scripture</b>, write <b>FID Journal</b>, pray at least <b>10 minutes</b>, share a FID and Comment on a FID and then <b>Validate</b> the day\'s data.' },
       { n: '6.', t: 'Use a <b>pencil</b> to record and analyze data on this CARD with absolute HONESTY.' },
       { n: '7.', t: 'Show your <b>Consistency Barriers</b> on the CARD.' },
       { n: '8.', t: 'Calculate your <b>Weekly CBR Growth Points</b> and add them up to get total for the 4 weeks.' },
       { n: '9.', t: '<b>Laxity:</b> Aim to keep your laxity at zero every week in order to improve your class ranking.' },
-      { n: '', t: '<hr/><b>DEVELOPING CBR SUCCESSFULLY</b><br>1. Sleep early to rise on time for CBR.<br>2. Do CBR and pray daily even during exams.<br>3. Model true Christianity to all your friends by early-rising faithfully for CBR even on holidays.<br>4. Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBR years later.<br>5. You are required to share <b>1 FID Every Week</b>.<br>6. Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
+    ];
+    const col3 = [
+      { n: '', t: '<b>DEVELOPING CBR SUCCESSFULLY</b>' },
+      { n: '1.', t: 'Sleep early to rise on time for CBR.' },
+      { n: '2.', t: 'Do CBR and pray daily even during exams.' },
+      { n: '3.', t: 'Model true Christianity to all your friends by early-rising faithfully for CBR even on holidays.' },
+      { n: '4.', t: 'Resolve <b>Consistency Barriers or CBs</b> with practical and biblical solutions to guarantee your continuity in CBR years later.' },
+      { n: '5.', t: 'You are required to share <b>1 FID Every Week</b>.' },
+      { n: '6.', t: 'Read and comment on at least one FID from your classmates to score <b>ACCOUNTABILITY</b> point.' },
     ];
 
     const renderCol = (items) => items.map(i => `<div class="inst-item"><span class="inst-num">${i.n}</span><span>${i.t}</span></div>`).join('');
 
     return `
       <div class="cc-instructions">
-        <div class="cc-instructions-num"><span class="circle-num">5</span></div>
         <div class="cc-instructions-col">${renderCol(col1)}</div>
         <div class="cc-instructions-col">${renderCol(col2)}</div>
         <div class="cc-instructions-col">${renderCol(col3)}</div>
@@ -799,7 +804,7 @@ async function printChallengerCard(data) {
   }
 
   const evaluationData = await getSessionEvaluationsForPrint();
-  wrapper.innerHTML = buildChallengerCardHTML(data) + buildSessionEvaluationPrintHTML(evaluationData, data);
+  wrapper.innerHTML = `<section class="cc-print-sheet">${buildChallengerCardHTML(data)}</section>` + buildSessionEvaluationPrintHTML(evaluationData, data);
 
   // Temporarily show to calculate SVG coordinates correctly
   const originalDisplay = wrapper.style.display;
@@ -851,23 +856,40 @@ function collectBookletCards(state) {
     a.currentCardId - b.currentCardId || String(a.commencingDate || '').localeCompare(String(b.commencingDate || '')));
 }
 
+function buildChallengerCoverArt() {
+  return `<svg class="cc-cover-geometry" viewBox="0 0 600 840" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 35 600 635V760L0 160Z" fill="#f2f2f2"/>
+    <path d="M325 65H600V135H395Z" fill="#071927"/>
+    <path d="M0 445H375L555 625H180Z" fill="#fa291c"/>
+    <path d="M0 445 375 445 555 625Z" fill="#ed2014"/>
+    <path d="M0 265 575 840H0Z" fill="#071927"/>
+    <path d="M0 405 435 840H0Z" fill="#0e2535"/>
+    <path d="M0 315 525 840H495L0 345Z" fill="#112b3c"/>
+    <path d="M0 245 245 490M535 570 600 635M240 0 285 45" fill="none" stroke="#071927" stroke-width="3"/>
+    <path d="M390 665 565 840" fill="none" stroke="#fff" stroke-width="4"/>
+  </svg>`;
+}
+
 function buildChallengerBookletHTML(cards, profile) {
+  const initials = (profile.username || 'Challenger').trim().split(/\s+/).map(part => part.charAt(0)).slice(0, 2).join('').toUpperCase();
+  const portrait = `<div class="cc-back-portrait"><span>${escapeCardText(initials)}</span>${profile.profilePic ? `<img src="${escapeCardText(profile.profilePic)}" alt="${escapeCardText(profile.username || 'Challenger')}" onerror="this.hidden=true">` : ''}</div>`;
   const details = `<dl><dt>Name</dt><dd>${escapeCardText(profile.username || 'Challenger')}</dd>
     <dt>Cohort</dt><dd>${escapeCardText(profile.cohort || 'Not specified')}</dd>
     <dt>PEG number</dt><dd>${escapeCardText(profile.peg || 'Not specified')}</dd>
     <dt>Church</dt><dd>${escapeCardText(profile.church || 'Not specified')}</dd></dl>`;
-  return `<section class="cc-booklet-cover"><div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
-    <div><p class="cc-booklet-eyebrow">THE CHALLENGER</p><h1>My Challenger<br>Card Booklet</h1>
-    <p class="cc-booklet-subtitle">A record of consistency, growth and resolve.</p>${details}
-    <blockquote class="cc-booklet-verse">“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.”<br><strong>2 Timothy 2:15 (KJV)</strong></blockquote></div>
+  return `<section class="cc-booklet-cover">${buildChallengerCoverArt()}<div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
+    <div class="cc-cover-badge">CBR<br><span>CHALLENGER CARD</span></div>
+    <div class="cc-cover-content"><p class="cc-booklet-eyebrow">THE</p><h1><span>CHALLENGER</span><br>CARD</h1>
+    <p class="cc-cover-edition">Consistent Bible Reading</p>
+    </div><div class="cc-cover-profile">${details}</div>
     <footer>Daily Wordfeast Foundation · Nyeri, Kenya</footer></section>` +
-    cards.map((card, i) => `<section class="cc-booklet-card" id="booklet-card-${i}">
-      <div class="cc-booklet-running">Round ${escapeCardText(card.round || 1)} / Card ${card.currentCardId} <span>Record ${i + 1} of ${cards.length}</span></div>
+    cards.map((card, i) => `<section class="cc-booklet-card cc-print-sheet" id="booklet-card-${i}">
       ${buildChallengerCardHTML(card)}</section>`).join('') +
-    `<section class="cc-booklet-cover cc-booklet-back"><div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
-      <div><p class="cc-booklet-eyebrow">KEEP GROWING</p><h1>One day.<br>One discipline.<br>Lasting growth.</h1>
-      <p class="cc-booklet-subtitle">Continue reading, reflecting, praying and sharing.</p></div>
-      <footer>The Challenger Card · Consistency Analyzer &amp; Resolve Displayer</footer></section>`;
+    `<section class="cc-booklet-cover cc-booklet-back">
+      <div class="cc-back-scripture">${portrait}<p class="cc-booklet-eyebrow">KEEP GROWING</p>
+      <blockquote class="cc-booklet-verse">“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.”<br><strong>2 Timothy 2:15 · KJV</strong></blockquote></div>
+      <footer><strong>DAILY WORDFEAST FOUNDATION</strong><br>Nyeri, Kenya</footer>
+      <svg class="cc-back-accent" viewBox="0 0 600 70" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M0 28H600V70H0Z" fill="#071927"/><path d="M360 28 332 0H510L538 28Z" fill="#ed2014"/></svg></section>`;
 }
 
 function downloadChallengerBooklet() {
@@ -903,3 +925,32 @@ function downloadChallengerBooklet() {
     showToast('Could not prepare your booklet. Please try again.', 'error');
   }
 }
+
+let challengerPrintDisplay = null;
+window.addEventListener('beforeprint', () => {
+  const wrapper = document.getElementById('card-print-wrapper');
+  if (!wrapper) return;
+  challengerPrintDisplay = wrapper.style.display;
+  wrapper.style.display = 'block';
+  document.querySelectorAll('#card-print-wrapper .cc-print-sheet').forEach(sheet => {
+    const card = sheet.querySelector('.cc-root');
+    if (!card) return;
+    const inset = 2 * 96 / 25.4;
+    const availableWidth = sheet.clientWidth - inset * 2;
+    const availableHeight = sheet.clientHeight - inset * 2;
+    card.style.removeProperty('--cc-print-scale');
+    const footer = card.querySelector('.cc-footer');
+    const contentHeight = Math.max(card.scrollHeight, card.offsetHeight, footer ? footer.offsetTop + footer.offsetHeight + 4 : 0);
+    const scale = Math.min(1, availableWidth / card.offsetWidth, (availableHeight - 24) / contentHeight);
+    if (contentHeight > 0 && scale > 0) card.style.setProperty('--cc-print-scale', String(scale));
+  });
+});
+
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('#card-print-wrapper .cc-root').forEach(card => {
+    card.style.removeProperty('--cc-print-scale');
+  });
+  const wrapper = document.getElementById('card-print-wrapper');
+  if (wrapper && challengerPrintDisplay !== null) wrapper.style.display = challengerPrintDisplay;
+  challengerPrintDisplay = null;
+});

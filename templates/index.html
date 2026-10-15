@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=46">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=46">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=51">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=71">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bible-journey.css') }}?v=3">
 </head>
 <body>
@@ -494,9 +494,10 @@
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
-  <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=1"></script>
+  <script>window.scriptureReferencePattern = {{ scripture_reference_pattern|tojson }};</script>
+  <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=2"></script>
   <script src="{{ url_for('static', filename='js/date-utils.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=20"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=38"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}?v=67"></script>
   <script src="{{ url_for('static', filename='js/tabs/bible-journey.js') }}?v=11"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->

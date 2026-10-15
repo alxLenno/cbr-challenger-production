@@ -48,7 +48,8 @@ app.register_blueprint(api_bp, url_prefix='/api')
 def serve_app():
     if not current_user.is_authenticated:
         return redirect(url_for('serve_login'))
-    resp = make_response(render_template('index.html'))
+    from engine.core import get_reference_pattern
+    resp = make_response(render_template('index.html', scripture_reference_pattern=get_reference_pattern()))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'

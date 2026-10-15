@@ -659,15 +659,7 @@
 .cc-instructions {
   border-top: 2px solid #000;
   display: grid;
-  grid-template-columns: 22px 1fr 1fr 1fr;
-}
-
-.cc-instructions-num {
-  border-right: 1.5px solid #000;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cc-instructions-col {
@@ -970,24 +962,47 @@
 
 /* Booklet covers and one fresh sheet per card. */
 .cc-booklet-cover {
+  position: relative;
   min-height: 278mm;
   padding: 18mm;
-  border: 2px solid #193b35;
-  color: #193b35;
-  background: #f6f5ed;
+  border: 0;
+  color: #25252b;
+  background: #fff;
   font-family: Arial, Helvetica, sans-serif;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
   overflow-wrap: anywhere;
+  overflow: hidden;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
-.cc-booklet-brand, .cc-booklet-cover footer { font-size: 10pt; letter-spacing: 1px; }
-.cc-booklet-eyebrow { font-size: 12pt; letter-spacing: 3px; }
-.cc-booklet-cover h1 { font-size: 38pt; line-height: 1.1; margin: 8mm 0; }
-.cc-booklet-subtitle { font-size: 15pt; line-height: 1.5; }
-.cc-booklet-cover dl { margin: 14mm 0; font-size: 12pt; }
-.cc-booklet-cover dt { font-size: 9pt; text-transform: uppercase; margin-top: 5mm; }
+.cc-cover-geometry { position: absolute; width: 100%; height: 100%; inset: 0; pointer-events: none; }
+.cc-booklet-brand, .cc-cover-content, .cc-booklet-cover footer { position: relative; z-index: 1; }
+.cc-cover-content { position: static; margin: 26mm 0 auto; text-align: right; }
+.cc-cover-badge { position: absolute; right: 12mm; top: 24mm; z-index: 1; color: #fff; text-align: right; font-size: 14pt; line-height: 1.15; letter-spacing: 3px; }
+.cc-cover-badge span { font-size: 6pt; letter-spacing: 1px; }
+.cc-cover-edition { display: inline-block; border-top: 1px solid #111116; padding-top: 3mm; font-size: 9pt; font-weight: 600; letter-spacing: 1.5px; margin: 0; }
+.cc-cover-owner { position: absolute; bottom: 37mm; left: 18mm; max-width: 100mm; margin: 0; padding-left: 4mm; border-left: 2px solid #fa291c; color: #fff; text-align: left; font-size: 11pt; line-height: 1.5; }
+.cc-cover-profile { position: absolute; left: 18mm; bottom: 36mm; z-index: 1; width: 88mm; color: #fff; }
+.cc-booklet-cover .cc-cover-profile dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 5mm; }
+.cc-booklet-cover .cc-cover-profile dt { margin: 2mm 0 0.5mm; font-size: 6.5pt; letter-spacing: 1.2px; color: #c0cbd3; }
+.cc-booklet-cover .cc-cover-profile dd { margin: 0; font-size: 10pt; line-height: 1.4; color: #fff !important; -webkit-text-fill-color: #fff; }
+.cc-booklet-cover .cc-cover-profile dd:first-of-type { text-transform: uppercase; font-family: 'Avenir Next', 'Helvetica Neue', Arial, sans-serif; font-size: 12pt; font-weight: 800; letter-spacing: 0.8px; line-height: 1.25; }
+.cc-cover-profile dt:nth-of-type(1), .cc-cover-profile dd:nth-of-type(1), .cc-cover-profile dt:nth-of-type(4), .cc-cover-profile dd:nth-of-type(4) { grid-column: 1 / -1; }
+.cc-cover-profile dt:nth-of-type(2) { grid-column: 1; grid-row: 3; }
+.cc-cover-profile dd:nth-of-type(2) { grid-column: 1; grid-row: 4; }
+.cc-cover-profile dt:nth-of-type(3) { grid-column: 2; grid-row: 3; }
+.cc-cover-profile dd:nth-of-type(3) { grid-column: 2; grid-row: 4; }
+.cc-booklet-cover footer { align-self: flex-start; max-width: 100mm; text-align: left; color: #fff; font-size: 8pt; letter-spacing: 0.5px; margin-top: 10mm; }
+.cc-booklet-brand { max-width: 65mm; font-size: 9pt; line-height: 1.6; letter-spacing: 1px; color: #ed2014; font-weight: 700; }
+.cc-booklet-eyebrow { font-size: 16pt; font-weight: 800; letter-spacing: 2px; color: #ed2014; margin: 0 0 2mm; }
+.cc-booklet-cover h1 { font-size: 34pt; line-height: 1; margin: 0 0 3mm; font-weight: 900; letter-spacing: -1px; color: #111116; }
+.cc-booklet-cover h1 span { color: #ed2014; }
+.cc-booklet-subtitle { font-size: 11pt; line-height: 1.5; }
+.cc-booklet-cover dl { margin: 7mm 0 7mm 26mm; font-size: 11pt; }
+.cc-booklet-cover dt { font-size: 8pt; text-transform: uppercase; margin-top: 3mm; letter-spacing: 1px; }
 .cc-booklet-cover dd { margin: 1mm 0 0; font-weight: bold; }
 .cc-booklet-running { font: 9pt Arial, sans-serif; padding: 0 0 3mm; }
 .cc-booklet-running span { float: right; }
@@ -997,5 +1012,30 @@
   .cc-booklet-cover:first-child { break-before: auto; }
 }
 
-.cc-booklet-verse { margin: 8mm 0 0; font-size: 12pt; line-height: 1.6; }
+.cc-booklet-verse { margin: 6mm 0 0 26mm; font-size: 10pt; line-height: 1.6; }
 .cc-booklet-verse strong { display: inline-block; margin-top: 3mm; font-size: 10pt; }
+.cc-booklet-back .cc-cover-content { margin: 35mm 8mm auto; text-align: left; position: relative; }
+.cc-booklet-back h1 { font-size: 24pt; }
+.cc-booklet-back .cc-booklet-eyebrow { font-size: 9pt; margin-bottom: 5mm; }
+.cc-booklet-back dl, .cc-booklet-back .cc-booklet-verse { margin-left: 0; }
+.cc-booklet-back .cc-booklet-verse { max-width: 115mm; margin-top: 16mm; padding-top: 7mm; border-top: 1px solid #bbc1c5; }
+.cc-booklet-back .cc-cover-geometry { opacity: 0.1; }
+.cc-booklet-back footer { color: #071927; }
+.cc-booklet-back { justify-content: center; align-items: center; }
+.cc-back-scripture { position: relative; width: 120mm; max-width: 100%; text-align: center; margin-bottom: 18mm; }
+.cc-back-scripture .cc-booklet-eyebrow { font-size: 9pt; letter-spacing: 3px; margin-bottom: 12mm; }
+.cc-booklet-back .cc-back-scripture .cc-booklet-verse { margin: 0; padding: 0; border: 0; max-width: none; font-family: Georgia, 'Times New Roman', serif; font-size: 19pt; line-height: 1.65; color: #172c3b; }
+.cc-back-scripture .cc-booklet-verse strong { margin-top: 9mm; font: 9pt Arial, sans-serif; letter-spacing: 1.5px; }
+.cc-booklet-back footer { position: absolute; left: 18mm; right: 18mm; bottom: 31mm; max-width: none; text-align: center; font-size: 8pt; line-height: 1.9; letter-spacing: 1px; }
+.cc-booklet-back footer strong { font-size: 9pt; }
+.cc-back-accent { position: absolute; bottom: 0; left: 0; width: 100%; height: 20mm; }
+.cc-back-portrait { position: relative; width: 28mm; height: 28mm; margin: 0 auto 10mm; border: 1mm solid #fff; outline: 1px solid #d4dbe0; border-radius: 50%; overflow: hidden; background: #071927; color: #fff; display: grid; place-items: center; font: 700 22pt Arial, sans-serif; }
+.cc-back-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cc-back-portrait img[hidden] { display: none; }
+.cc-print-sheet { position: relative; display: flex; justify-content: center; align-items: flex-start; width: 198mm; height: 281mm; margin: 0 auto; padding: 2mm 0; box-sizing: border-box; background: #fff; }
+.cc-print-sheet .cc-root { flex: none; width: 194mm; max-width: none; box-sizing: border-box; margin: 0; zoom: var(--cc-print-scale, 1); }
+@media print {
+  .cc-print-sheet { break-inside: avoid; page-break-inside: avoid; }
+  .cc-print-sheet .cc-instructions, .cc-print-sheet .cc-footer { break-inside: auto; break-before: auto; break-after: auto; page-break-inside: auto; page-break-before: auto; page-break-after: auto; }
+  .cc-session-evaluation-page { break-before: page; }
+}
