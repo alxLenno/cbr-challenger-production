@@ -210,6 +210,38 @@
   color: var(--primary, #d4af37);
 }
 
+/* Reading cards must accommodate full references and multiple passages. */
+.day-reading {
+  display: block;
+  -webkit-line-clamp: unset;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+.day-reading .q-ref-chip {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media print {
+  .q-ref-chip {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font: inherit;
+    white-space: normal;
+    transform: none;
+  }
+  .q-ref-chip > span, .q-verse-panel { display: none !important; }
+}
+
 /* Verse panel that expands below the reference chip */
 .q-verse-panel {
   margin-top: 0.5rem;

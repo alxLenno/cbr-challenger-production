@@ -54,7 +54,10 @@
 
   function isExcluded(el) {
     while (el) {
+      // SVG tagName is lowercase; HTML controls cannot be inserted into SVG text.
+      if (el.namespaceURI === 'http://www.w3.org/2000/svg') return true;
       if (EXCLUDED_TAGS.has(el.tagName)) return true;
+      if (el.matches('.challenger-card-replica, .cc-session-evaluation-page')) return true;
       if (el.isContentEditable) return true;
       if (el.classList && (el.classList.contains('q-ref-chip') || el.classList.contains('q-verse-panel'))) return true;
       el = el.parentElement;
