@@ -2627,3 +2627,9 @@ body.light-mode a:not([class]) {
     grid-column: 1 / -1;
   }
 }
+
+.header-actions .booklet-shortcut { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 900px) {
+  .header-actions .booklet-shortcut { width: 36px; height: 36px; padding: 0; justify-content: center; }
+  .booklet-shortcut span { display: none; }
+}

@@ -990,11 +990,13 @@
 .cc-booklet-cover .cc-cover-profile dt { margin: 2mm 0 0.5mm; font-size: 6.5pt; letter-spacing: 1.2px; color: #c0cbd3; }
 .cc-booklet-cover .cc-cover-profile dd { margin: 0; font-size: 10pt; line-height: 1.4; color: #fff !important; -webkit-text-fill-color: #fff; }
 .cc-booklet-cover .cc-cover-profile dd:first-of-type { text-transform: uppercase; font-family: 'Avenir Next', 'Helvetica Neue', Arial, sans-serif; font-size: 12pt; font-weight: 800; letter-spacing: 0.8px; line-height: 1.25; }
-.cc-cover-profile dt:nth-of-type(1), .cc-cover-profile dd:nth-of-type(1), .cc-cover-profile dt:nth-of-type(4), .cc-cover-profile dd:nth-of-type(4) { grid-column: 1 / -1; }
+.cc-cover-profile dt:nth-of-type(1), .cc-cover-profile dd:nth-of-type(1) { grid-column: 1 / -1; }
 .cc-cover-profile dt:nth-of-type(2) { grid-column: 1; grid-row: 3; }
 .cc-cover-profile dd:nth-of-type(2) { grid-column: 1; grid-row: 4; }
 .cc-cover-profile dt:nth-of-type(3) { grid-column: 2; grid-row: 3; }
 .cc-cover-profile dd:nth-of-type(3) { grid-column: 2; grid-row: 4; }
+.cc-cover-profile dt:nth-of-type(4) { grid-column: 1; grid-row: 5; }
+.cc-cover-profile dd:nth-of-type(4) { grid-column: 1; grid-row: 6; }
 .cc-booklet-cover footer { align-self: flex-start; max-width: 100mm; text-align: left; color: #fff; font-size: 8pt; letter-spacing: 0.5px; margin-top: 10mm; }
 .cc-booklet-brand { max-width: 65mm; font-size: 9pt; line-height: 1.6; letter-spacing: 1px; color: #ed2014; font-weight: 700; }
 .cc-booklet-eyebrow { font-size: 16pt; font-weight: 800; letter-spacing: 2px; color: #ed2014; margin: 0 0 2mm; }
@@ -1039,3 +1041,5 @@
   .cc-print-sheet .cc-instructions, .cc-print-sheet .cc-footer { break-inside: auto; break-before: auto; break-after: auto; page-break-inside: auto; page-break-before: auto; page-break-after: auto; }
   .cc-session-evaluation-page { break-before: page; }
 }
+
+.cc-booklet-card + .cc-session-evaluation-page { break-before: page; }

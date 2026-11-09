@@ -480,10 +480,10 @@ function buildChallengerCardHTML(data) {
 </div>`;
 }
 
-function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
+function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}, bookletGrowth = null) {
   const sessions = [];
   const currentCardId = Number(cardData.currentCardId || cardData.cardId || 1);
-  const currentGrowth = cardData.days && cardData.weeks
+  const currentGrowth = !bookletGrowth && cardData.days && cardData.weeks
     ? calculateScoresForData(cardData).totalScore
     : 0;
 
@@ -493,7 +493,7 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}) {
       sessionNumber,
       diligence: stored.diligence || {},
       bonus: stored.bonus || {},
-      growthPoints: sessionNumber === currentCardId
+      growthPoints: bookletGrowth ? (bookletGrowth[sessionNumber] || 0) : sessionNumber === currentCardId
         ? currentGrowth
         : Number(stored.growthPoints || 0),
     });
@@ -870,21 +870,29 @@ function buildChallengerCoverArt() {
   </svg>`;
 }
 
-function buildChallengerBookletHTML(cards, profile) {
+function buildBookletEvaluation(cards, profile, evaluations) {
+  const bySession = {};
+  for (const card of cards) {
+    bySession[card.currentCardId] = (bySession[card.currentCardId] || 0) + calculateScoresForData(card).totalScore;
+  }
+  return buildSessionEvaluationPrintHTML(evaluations, profile, bySession);
+}
+
+function buildChallengerBookletHTML(cards, profile, evaluations = {}) {
   const initials = (profile.username || 'Challenger').trim().split(/\s+/).map(part => part.charAt(0)).slice(0, 2).join('').toUpperCase();
   const portrait = `<div class="cc-back-portrait"><span>${escapeCardText(initials)}</span>${profile.profilePic ? `<img src="${escapeCardText(profile.profilePic)}" alt="${escapeCardText(profile.username || 'Challenger')}" onerror="this.hidden=true">` : ''}</div>`;
   const details = `<dl><dt>Name</dt><dd>${escapeCardText(profile.username || 'Challenger')}</dd>
     <dt>Cohort</dt><dd>${escapeCardText(profile.cohort || 'Not specified')}</dd>
     <dt>PEG number</dt><dd>${escapeCardText(profile.peg || 'Not specified')}</dd>
-    <dt>Church</dt><dd>${escapeCardText(profile.church || 'Not specified')}</dd></dl>`;
-  return `<section class="cc-booklet-cover">${buildChallengerCoverArt()}<div class="cc-booklet-brand">CBR / DAILY WORDFEAST FOUNDATION</div>
-    <div class="cc-cover-badge">CBR<br><span>CHALLENGER CARD</span></div>
+    <dt>Round</dt><dd>${escapeCardText(profile.round ?? 1)}</dd></dl>`;
+  return `<section class="cc-booklet-cover">${buildChallengerCoverArt()}<div class="cc-booklet-brand">DAILY WORDFEAST FOUNDATION</div>
     <div class="cc-cover-content"><p class="cc-booklet-eyebrow">THE</p><h1><span>CHALLENGER</span><br>CARD</h1>
     <p class="cc-cover-edition">Consistent Bible Reading</p>
     </div><div class="cc-cover-profile">${details}</div>
-    <footer>Daily Wordfeast Foundation · Nyeri, Kenya</footer></section>` +
+    <footer>Nyeri, Kenya</footer></section>` +
     cards.map((card, i) => `<section class="cc-booklet-card cc-print-sheet" id="booklet-card-${i}">
       ${buildChallengerCardHTML(card)}</section>`).join('') +
+    buildBookletEvaluation(cards, profile, evaluations) +
     `<section class="cc-booklet-cover cc-booklet-back">
       <div class="cc-back-scripture">${portrait}<p class="cc-booklet-eyebrow">KEEP GROWING</p>
       <blockquote class="cc-booklet-verse">“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.”<br><strong>2 Timothy 2:15 · KJV</strong></blockquote></div>
@@ -892,7 +900,7 @@ function buildChallengerBookletHTML(cards, profile) {
       <svg class="cc-back-accent" viewBox="0 0 600 70" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M0 28H600V70H0Z" fill="#071927"/><path d="M360 28 332 0H510L538 28Z" fill="#ed2014"/></svg></section>`;
 }
 
-function downloadChallengerBooklet() {
+async function downloadChallengerBooklet() {
   const wrapper = document.getElementById('card-print-wrapper');
   if (!wrapper) return;
   const cards = collectBookletCards(appState);
@@ -910,7 +918,7 @@ function downloadChallengerBooklet() {
     window.removeEventListener('afterprint', restore);
   };
   try {
-    wrapper.innerHTML = buildChallengerBookletHTML(cards, appState);
+    wrapper.innerHTML = buildChallengerBookletHTML(cards, appState, await getSessionEvaluationsForPrint());
     wrapper.style.cssText = 'display:block; position:absolute; left:0; top:0; width:198mm; visibility:hidden;';
     document.title = `CBR-Challenger-Booklet-${(appState.username || 'Challenger').replace(/[^a-z0-9-]/gi, '-')}`;
     // Force layout at the printable A4 width before drawing each card's graph.

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
-const context = vm.createContext({});
+const context = vm.createContext({ window: { addEventListener() {} } });
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../static/js/card-generator.js'), 'utf8'), context);
 
 test('PDF course totals include other sessions when printing card 1', () => {

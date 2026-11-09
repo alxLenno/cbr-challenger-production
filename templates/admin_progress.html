@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Member progress · Challenger Card</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/admin-progress.css') }}"></head><body>
+<header><div class="wrap bar"><strong><b>CBR</b> Challenger Card</strong><a href="/">← Dashboard</a></div></header>
+<main class="wrap"><p class="eyebrow">ADMINISTRATION</p><h1>Member progress</h1><p class="intro">Track participation across cohorts and see how far each member has progressed on their current card.</p>
+<section class="metrics" aria-label="Program overview">{% for label,value in [('Registered members',members|length),('Members with logged days',started),('Members with all 28 days logged',complete)] %}<article><span>{{ label }}</span><strong>{{ value }}</strong></article>{% endfor %}</section>
+<section class="panel"><h2>Member directory</h2><div class="filters"><label>Find a member<input type="search" id="search" placeholder="Name, email or PEG"></label><label>Cohort<select id="cohort"><option value="">All cohorts</option>{% for cohort in cohorts %}<option>{{ cohort }}</option>{% endfor %}</select></label></div>
+<div class="table-wrap"><table><thead><tr><th>Member</th><th>Cohort / PEG</th><th>Current card</th><th>Days logged</th><th>Chapters read</th></tr></thead><tbody>
+{% for m in members %}<tr data-member="{{ (m.name or '') ~ ' ' ~ m.email ~ ' ' ~ (m.peg or '') }}" data-cohort="{{ m.cohort or '' }}"><td><strong>{{ m.name or m.email }}</strong>{% if m.name %}<small>{{ m.email }}</small>{% endif %}</td><td>{{ m.cohort or '—' }}<small>{{ m.peg or '—' }}</small></td><td>{% if m.current_card_id %}Card {{ m.current_card_id }}<small>Round {{ m.round or 1 }}</small>{% else %}No card yet{% endif %}</td><td>{{ m.days or 0 }} / 28<progress aria-label="Days logged" max="28" value="{{ m.days or 0 }}"></progress></td><td>{{ m.chapters or 0 }}</td></tr>{% endfor %}
+</tbody></table></div><p id="count" aria-live="polite">{{ members|length }} members</p></section></main>
+<script>
+const search=document.getElementById('search'), cohort=document.getElementById('cohort');
+function filterMembers(){let count=0;for(const row of document.querySelectorAll('[data-member]')){
+ row.hidden=!(row.dataset.member.toLowerCase().includes(search.value.trim().toLowerCase()) && (!cohort.value || row.dataset.cohort===cohort.value));
+ if(!row.hidden) count++;
+}document.getElementById('count').textContent=count ? count+' of {{ members|length }} members' : 'No members match these filters.';}
+search.addEventListener('input',filterMembers);cohort.addEventListener('change',filterMembers);
+</script></body></html>

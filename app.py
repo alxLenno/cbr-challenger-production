@@ -3,7 +3,8 @@ from flask import Flask, render_template, redirect, url_for, make_response, send
 from flask_login import LoginManager, current_user
 from models import db, User, auto_migrate_db
 from auth import auth_bp, setup_oauth
-from routes import api_bp
+from routes import api_bp, is_admin_user
+from admin_progress import admin_progress
 from dotenv import load_dotenv
 
 # Bulletproof dotenv loading for PythonAnywhere
@@ -41,6 +42,7 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+app.register_blueprint(admin_progress)
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp, url_prefix='/api')
 
@@ -49,7 +51,7 @@ def serve_app():
     if not current_user.is_authenticated:
         return redirect(url_for('serve_login'))
     from engine.core import get_reference_pattern
-    resp = make_response(render_template('index.html', scripture_reference_pattern=get_reference_pattern()))
+    resp = make_response(render_template('index.html', show_admin_progress=is_admin_user(), scripture_reference_pattern=get_reference_pattern()))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
