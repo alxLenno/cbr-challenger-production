@@ -54,6 +54,11 @@
 
   function isExcluded(el) {
     while (el) {
+      // Mutation records can include comments and other non-element nodes.
+      if (el.nodeType !== Node.ELEMENT_NODE) {
+        el = el.parentElement;
+        continue;
+      }
       // SVG tagName is lowercase; HTML controls cannot be inserted into SVG text.
       if (el.namespaceURI === 'http://www.w3.org/2000/svg') return true;
       if (EXCLUDED_TAGS.has(el.tagName)) return true;
@@ -167,7 +172,8 @@
       records.forEach(record => {
         if (record.type === 'characterData') roots.add(record.target.parentElement);
         record.addedNodes.forEach(node => {
-          roots.add(node.nodeType === Node.TEXT_NODE ? node.parentElement : node);
+          if (node.nodeType === Node.TEXT_NODE) roots.add(node.parentElement);
+          else if (node.nodeType === Node.ELEMENT_NODE) roots.add(node);
         });
       });
       roots.forEach(root => {
