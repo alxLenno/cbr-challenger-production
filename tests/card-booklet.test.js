@@ -59,3 +59,24 @@ test('final evaluation counts each booklet card once and includes course diligen
   assert.match(html, /TOTAL POINTS<\/span><strong>63</);
   assert.ok(html.indexOf('TOTAL POINTS') < html.indexOf('cc-booklet-back'));
 });
+
+test('admin booklet uses only member records and pads missing days without duplicating them', () => {
+  const state = {adminExport:true, username:'Member Export', savedCards:[{
+    ...card(1,1,'member-only'), days:[{dayNumber:3,morningChapters:1}], weeks:[]
+  }]};
+  const cards = context.collectBookletCards(state);
+  assert.equal(cards.length,1);
+  assert.equal(cards[0].days[1].morningChapters,undefined);
+  assert.equal(cards[0].days[2].morningChapters,1);
+  assert.equal(cards[0].instanceId,'member-only');
+});
+test('personal cards do not require or display cohort and PEG fields', () => {
+  const state={...card(1,1),participationMode:'personal',activeInstanceId:'personal'};
+  const cards=context.collectBookletCards(state);
+  const html=context.buildChallengerCardHTML(cards[0]);
+  assert.match(html,/PERSONAL BIBLE READING/);
+  assert.doesNotMatch(html,/COHORT:|PEG NUMBER:/);
+  const cover=context.buildChallengerBookletHTML(cards,state).split('</section>')[0];
+  assert.match(cover,/<dd>Personal<\/dd>/);
+  assert.doesNotMatch(cover,/<dt>Cohort<\/dt>|<dt>PEG number<\/dt>/);
+});

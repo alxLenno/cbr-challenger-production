@@ -35,6 +35,7 @@ class CardState(db.Model):
     church = db.Column(db.String(120), nullable=True)
     peg = db.Column(db.String(120), nullable=True)
     cohort = db.Column(db.String(120), nullable=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=True)
     
     weaknesses = db.relationship('Weakness', backref='card_state', lazy=True, cascade="all, delete-orphan")
     days = db.relationship('DailyLog', backref='card_state', lazy=True, cascade="all, delete-orphan")
@@ -158,6 +159,61 @@ class SessionEvaluation(db.Model):
         db.UniqueConstraint('user_id', 'session_number', name='uq_user_session'),
     )
 
+class Course(db.Model):
+    __tablename__ = 'courses'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    cohort = db.Column(db.String(120), nullable=False)
+    cohort_key = db.Column(db.String(120), nullable=False, unique=True)
+
+
+class PegGroup(db.Model):
+    __tablename__ = 'peg_groups'
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    name_key = db.Column(db.String(120), nullable=False)
+    policy = db.Column(db.String(12), nullable=False, default='mixed')
+    minimum = db.Column(db.Integer, nullable=False, default=3)
+    maximum = db.Column(db.Integer, nullable=False, default=8)
+    __table_args__ = (db.UniqueConstraint('course_id', 'name_key', name='uq_course_peg'),)
+
+
+class Participation(db.Model):
+    __tablename__ = 'participation'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    mode = db.Column(db.String(12), nullable=False, default='personal')
+    gender = db.Column(db.String(12), nullable=False, default='unspecified')
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('peg_groups.id'), nullable=True)
+    requested_cohort = db.Column(db.String(120), nullable=False, default='')
+    requested_peg = db.Column(db.String(120), nullable=False, default='')
+
+
+class PegLeader(db.Model):
+    __tablename__ = 'peg_leaders'
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('peg_groups.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    __table_args__ = (db.UniqueConstraint('group_id', 'user_id', name='uq_peg_leader'),)
+
+
+class OverallAdmin(db.Model):
+    __tablename__ = 'overall_admins'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    granted_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    granted_at = db.Column(db.String(30), nullable=False)
+
+
+class AdminAccessEvent(db.Model):
+    __tablename__ = 'admin_access_events'
+    id = db.Column(db.Integer, primary_key=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    target_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action = db.Column(db.String(12), nullable=False)
+    occurred_at = db.Column(db.String(30), nullable=False)
+
+
 def auto_migrate_db(app):
     """
     Safely ensures all tables and new columns exist without requiring Alembic/manual migrations.
@@ -178,6 +234,8 @@ def auto_migrate_db(app):
                     db.session.execute(text("ALTER TABLE card_states ADD COLUMN cohort VARCHAR(120)"))
                 if 'round' not in existing_cols:
                     db.session.execute(text("ALTER TABLE card_states ADD COLUMN round INTEGER DEFAULT 1"))
+                if 'course_id' not in existing_cols:
+                    db.session.execute(text("ALTER TABLE card_states ADD COLUMN course_id INTEGER"))
             if 'archived_cards' in inspector.get_table_names():
                 existing_cols = [c['name'] for c in inspector.get_columns('archived_cards')]
                 if 'round' not in existing_cols:
@@ -194,6 +252,8 @@ def auto_migrate_db(app):
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN journal_notes TEXT"))
                 if 'reading_passages' not in existing_cols:
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN reading_passages JSON"))
+            if not Course.query.first():
+                db.session.add(Course(name='CBR Course',cohort='Cohort 18',cohort_key='cohort 18'))
             db.session.commit()
         except Exception as e:
             print("Auto-migration note:", e)

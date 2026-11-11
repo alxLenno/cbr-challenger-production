@@ -1,10 +1,11 @@
 import os
-from flask import Flask, render_template, redirect, url_for, make_response, send_from_directory, abort
+from flask import Flask, render_template, redirect, url_for, make_response, send_from_directory, abort, request
 from flask_login import LoginManager, current_user
-from models import db, User, auto_migrate_db
+from models import db, User, CardState, auto_migrate_db
 from auth import auth_bp, setup_oauth
 from routes import api_bp, is_admin_user
-from admin_progress import admin_progress
+from admin_progress import admin_progress, member_progress_context
+from courses import course_api, progress_access, csrf_token
 from dotenv import load_dotenv
 
 # Bulletproof dotenv loading for PythonAnywhere
@@ -42,6 +43,7 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+app.register_blueprint(course_api)
 app.register_blueprint(admin_progress)
 app.register_blueprint(auth_bp)
 app.register_blueprint(api_bp, url_prefix='/api')
@@ -51,7 +53,15 @@ def serve_app():
     if not current_user.is_authenticated:
         return redirect(url_for('serve_login'))
     from engine.core import get_reference_pattern
-    resp = make_response(render_template('index.html', show_admin_progress=is_admin_user(), scripture_reference_pattern=get_reference_pattern()))
+    csrf_token()
+    admin = progress_access()
+    saved_theme = db.session.query(CardState.theme).filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
+    initial_theme = 'light' if saved_theme and saved_theme[0] == 'light' else 'dark'
+    resp = make_response(render_template('index.html', show_admin_progress=admin, show_course_management=is_admin_user(),
+        initial_admin=admin and request.args.get('admin') == 'progress',
+        initial_theme=initial_theme, theme_storage_key=f'cbr.theme.{current_user.id}',
+        scripture_reference_pattern=get_reference_pattern(),
+        **(member_progress_context() if admin else {})))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'

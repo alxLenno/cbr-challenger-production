@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_login import current_user, login_required
-from models import db, CardState, Weakness, DailyLog, WeekLog, ArchivedCard, SessionEvaluation
+from models import db, CardState, Weakness, DailyLog, WeekLog, ArchivedCard, SessionEvaluation, Participation, OverallAdmin
 
 ADMIN_EMAILS = []  # Populated lazily — env may not be loaded at import time
 
@@ -18,10 +18,16 @@ PDF_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'pdfs')
 ALLOWED_PDF_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'zip'}
 os.makedirs(PDF_UPLOAD_FOLDER, exist_ok=True)
 
+def configured_admin_emails():
+    return {e.strip().casefold() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()}
+
+
 def is_admin_user():
-    # Read env dynamically so load_dotenv() order doesn't matter
-    admin_emails = [e.strip() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
-    return current_user.email in admin_emails if admin_emails else False
+    if not current_user.is_authenticated:
+        return False
+    return (current_user.email.casefold() in configured_admin_emails()
+            or db.session.get(OverallAdmin, current_user.id) is not None)
+
 
 def allowed_video(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
@@ -31,11 +37,15 @@ api_bp = Blueprint('api', __name__)
 @api_bp.route('/state', methods=['GET'])
 @login_required
 def get_state():
+    from courses import participation_data
     card_state = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
     
     if not card_state:
         return jsonify({
             "status": "no_active_card",
+            "participation": participation_data(),
+            "participationMode": participation_data()["mode"],
+            "courseId": participation_data()["courseId"],
             "username": current_user.name or current_user.email,
             "email": current_user.email,
             "isAdmin": is_admin_user(),
@@ -43,6 +53,9 @@ def get_state():
         }), 404
 
     state = {
+        "participation": participation_data(),
+        "courseId": card_state.course_id,
+        "participationMode": participation_data()["mode"],
         "username": current_user.name or current_user.email,
         "email": current_user.email,
         "isAdmin": is_admin_user(),
@@ -152,6 +165,14 @@ def save_state():
     card_state.church = data.get("church", "")
     card_state.peg = data.get("peg", "")
     card_state.cohort = data.get("cohort", "")
+    # Enrollment is changed only by the participation endpoint, never by a stale card save.
+    from courses import participation_data
+    participation = db.session.get(Participation, current_user.id)
+    if participation:
+        membership = participation_data()
+        card_state.course_id = membership['courseId'] if membership['mode']=='course' else None
+        card_state.cohort = membership['cohort']
+        card_state.peg = membership['peg']
 
     # New card states need an id before their related day/week rows are created.
     db.session.flush()
@@ -267,6 +288,10 @@ def save_state():
     snapshot["totalScore"] = snapshot.get("totalScore") or 0
     snapshot["totalLaxity"] = snapshot.get("totalLaxity") or 0
     snapshot["round"] = snapshot.get("round") or card_state.round or 1
+    snapshot["courseId"] = card_state.course_id
+    snapshot["participationMode"] = participation_data()["mode"]
+    snapshot["cohort"] = card_state.cohort
+    snapshot["peg"] = card_state.peg
 
     archived_card = ArchivedCard.query.filter_by(
         user_id=current_user.id,
@@ -316,6 +341,8 @@ def archive_card():
             inst_id = existing.instance_id
             data["instanceId"] = inst_id
 
+    board = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
+    data['courseId'] = (existing.snapshot_data or {}).get('courseId') if existing else (board.course_id if board else None)
     if existing:
         existing.instance_id = inst_id
         existing.round = round_num
@@ -390,7 +417,18 @@ def get_leaderboard():
         except:
             return None
             
-    users = User.query.all()
+    # Personal progress is private. PEG leaders never gain a global leaderboard.
+    from courses import full_admin, leader_groups
+    p = db.session.get(Participation, current_user.id)
+    if full_admin():
+        ids = db.session.query(Participation.user_id).filter_by(mode='course')
+    elif leader_groups():
+        ids = db.session.query(Participation.user_id).filter(Participation.mode=='course', Participation.group_id.in_(leader_groups()))
+    elif p and p.mode=='course' and p.group_id:
+        ids = db.session.query(Participation.user_id).filter_by(mode='course',group_id=p.group_id)
+    else:
+        ids = [current_user.id]
+    users = User.query.filter(User.id.in_(ids)).all()
     leaderboard = []
     
     for u in users:

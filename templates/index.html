@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ initial_theme }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CBR Challenger Card Digital Assistant</title>
   <meta name="description" content="A digital assistant to help Consistent Bible Reading (CBR) trainees log daily readings, track waking times, resolve consistency barriers, and calculate weekly growth points.">
   <meta name="theme-color" content="#080d17" id="meta-theme-color">
+  {% include 'components/theme_bootstrap.html' %}
   <!-- PWA Manifest & iOS Support -->
   <link rel="manifest" href="/static/manifest.json">
   <link rel="icon" type="image/png" href="/static/icon-192.png?v=2">
@@ -29,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=60">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=61">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/today.css') }}?v=85">
 
 
@@ -41,8 +42,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=73">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bible-journey.css') }}?v=3">
+  {% if show_admin_progress %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-progress.css') }}?v=3">{% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}?v=3">
+  <script src="{{ url_for('static', filename='js/sidebar.js') }}?v=2" defer></script>
+  {% if show_course_management %}<script src="{{ url_for('static', filename='js/admin-access.js') }}?v=1" defer></script>{% endif %}
 </head>
-<body>
+<body{% if initial_theme == 'light' %} class="light-mode"{% endif %}>
+  <script>window.cbrTheme.apply(window.cbrTheme.current());</script>
   <!-- Mobile Sidebar Overlay -->
   <div class="mobile-sidebar-overlay" id="mobile-sidebar-overlay"></div>
 
@@ -64,7 +70,6 @@
       <div class="header-actions">
         <button type="button" class="header-profile-pill booklet-shortcut" onclick="downloadChallengerBooklet()" aria-label="Download booklet" title="Download booklet">
           <svg width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></svg>
-          <span>Download booklet</span>
         </button>
         <button id="topbar-profile-btn" class="header-profile-pill" title="User Profile">
           <img src="" id="topbar-avatar-img" alt="" class="topbar-avatar" style="display:none;">
@@ -72,7 +77,7 @@
           <span id="topbar-username">Profile</span>
         </button>
         <button id="theme-toggle" class="btn-icon" title="Toggle Theme"><i data-lucide="sun"></i></button>
-        <button class="hamburger" id="hamburger-btn" aria-label="Open sidebar">
+        <button class="hamburger" id="hamburger-btn" aria-label="Open navigation" aria-controls="sidebar-section" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
       </div>
@@ -95,118 +100,79 @@
       <!-- Left Panel: Main Content Area -->
       <div class="left-column">
         <!-- CONSOLIDATED TODAY'S AT-A-GLANCE TAB -->
-        <div class="tab-content active" id="tab-today">
+        <div class="tab-content{% if not initial_admin %} active{% endif %}" id="tab-today">
           {% include 'components/today.html' %}
         </div><!-- end tab-today -->
 
-        <!-- Dashboard tab contents -->
-        <div class="tab-content" id="tab-dashboard">
-          {% include 'components/dashboard.html' %}
-        </div><!-- end tab-dashboard -->
-
-        <!-- Leaderboard tab contents -->
-        <div class="tab-content" id="tab-leaderboard">
-          {% include 'components/leaderboard.html' %}
+        <div class="tab-content" id="tab-progress">
+          <div class="workspace-page-heading"><h1>Progress</h1><p>Your reading overview, growth analysis and Bible completion plan.</p></div>
+          <nav class="workspace-section-nav" aria-label="Progress sections">
+            <button type="button" class="workspace-section-btn active" data-workspace-section="tab-dashboard" aria-controls="tab-dashboard" aria-pressed="true">Overview</button>
+            <button type="button" class="workspace-section-btn" data-workspace-section="tab-analytics" aria-controls="tab-analytics" aria-pressed="false">Analytics &amp; Growth</button>
+            <button type="button" class="workspace-section-btn" data-workspace-section="tab-bible-journey" aria-controls="tab-bible-journey" aria-pressed="false">Bible Completion</button>
+          </nav>
+          <section class="workspace-section" id="tab-dashboard" aria-label="Progress overview">{% include 'components/dashboard.html' %}</section>
+          <section class="workspace-section" id="tab-analytics" aria-label="Analytics and growth" hidden>{% include 'components/analytics.html' %}</section>
+          <section class="workspace-section" id="tab-bible-journey" aria-label="Bible completion" hidden>{% include 'components/bible_journey.html' %}</section>
         </div>
-
-        <!-- Session Evaluation tab -->
-        <div class="tab-content" id="tab-session-eval">
-          {% include 'components/session_eval.html' %}
+        <div class="tab-content" id="tab-records">
+          <div class="workspace-page-heading"><h1>My Records</h1><p>Your Challenger cards, session evaluations and booklet downloads.</p></div>
+          <nav class="workspace-section-nav" aria-label="Record sections">
+            <button type="button" class="workspace-section-btn active" data-workspace-section="tab-history" aria-controls="tab-history" aria-pressed="true">Card Archives</button>
+            <button type="button" class="workspace-section-btn" data-workspace-section="tab-session-eval" aria-controls="tab-session-eval" aria-pressed="false">Session Evaluation</button>
+          </nav>
+          <section class="workspace-section" id="tab-history" aria-label="Card archives">{% include 'components/history.html' %}</section>
+          <section class="workspace-section" id="tab-session-eval" aria-label="Session evaluation" hidden>{% include 'components/session_eval.html' %}</section>
         </div>
-
-<!-- CONSOLIDATED REFERENCE GUIDES TAB -->
-        <div class="tab-content" id="tab-reference">
-          {% include 'components/reference.html' %}
-        </div>
-
-        <!-- History tab contents -->
-        <div class="tab-content" id="tab-history">
-          {% include 'components/history.html' %}
-        </div>
-<!-- CONSOLIDATED ANALYTICS & GROWTH TAB -->
-        <div class="tab-content" id="tab-analytics">
-          {% include 'components/analytics.html' %}
-        </div>
-
-        <!-- CONSOLIDATED ACCOUNT & SETTINGS TAB -->
-        <div class="tab-content" id="tab-bible-journey">{% include 'components/bible_journey.html' %}</div>
-        <div class="tab-content" id="tab-account">
-          {% include 'components/account.html' %}
-        </div>
-
+        <div class="tab-content" id="tab-leaderboard">{% include 'components/leaderboard.html' %}</div>
+        <div class="tab-content" id="tab-reference">{% include 'components/reference.html' %}</div>
+        {% if show_admin_progress %}
+        <div class="tab-content{% if initial_admin %} active{% endif %}" id="tab-admin-progress">{% include 'components/admin_progress.html' %}</div>
+        {% endif %}
+        <div class="tab-content" id="tab-account">{% include 'components/account.html' %}</div>
 
       </div>
 
       <!-- Right Panel: Main Sidebar Navigation -->
       <aside class="right-column glass-panel sidebar-panel" id="sidebar-section">
 
-        <!-- Nav items -->
-        <nav class="sidebar-nav" role="navigation" aria-label="Main Navigation">
-          <button class="tab-btn active" data-tab="tab-today" role="tab">
+        <div class="sidebar-heading"><div><span class="sidebar-eyebrow">CBR WORKSPACE</span><p id="sidebar-participation">Personal reading</p></div><button type="button" id="sidebar-close" aria-label="Close navigation"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+        <nav class="sidebar-nav" aria-label="Main navigation"><div class="sidebar-nav-group"><p class="sidebar-group-title">My reading</p><button type="button" class="tab-btn{% if not initial_admin %} active{% endif %}" data-tab="tab-today" aria-controls="tab-today">
             <span class="nav-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             </span>
             <span class="nav-label">Today</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-dashboard" role="tab">
+          </button><button type="button" class="tab-btn" data-tab="tab-progress" aria-controls="tab-progress">
             <span class="nav-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             </span>
-            <span class="nav-label">Dashboard</span>
-          </button>
-          
-          <button class="tab-btn" data-tab="tab-leaderboard" role="tab">
+            <span class="nav-label">Progress</span>
+          </button><button type="button" class="tab-btn" data-tab="tab-records" aria-controls="tab-records">
             <span class="nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
             </span>
-            <span class="nav-label">Leaderboard</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-session-eval" role="tab">
-            <span class="nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            </span>
-            <span class="nav-label">Session Eval</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-reference" role="tab">
+            <span class="nav-label">My Records</span>
+          </button><button type="button" class="tab-btn" data-tab="tab-reference" aria-controls="tab-reference">
             <span class="nav-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             </span>
             <span class="nav-label">Reference Guides</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-analytics" role="tab">
+          </button></div><div class="sidebar-nav-group"><p class="sidebar-group-title">Community</p><button type="button" class="tab-btn" data-tab="tab-leaderboard" aria-controls="tab-leaderboard">
             <span class="nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
             </span>
-            <span class="nav-label">Analytics &amp; Growth</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-history" role="tab">
-            <span class="nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
-            </span>
-            <span class="nav-label">Card Archives</span>
-          </button>
-          <button class="tab-btn" data-tab="tab-bible-journey" role="tab"><span class="nav-icon">◷</span><span class="nav-label">Bible Completion</span></button>
-          <button class="tab-btn" data-tab="tab-account" role="tab">
-            <span class="nav-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </span>
-            <span class="nav-label">Account &amp; Settings</span>
-          </button>
-          {% if show_admin_progress %}
-          <a class="tab-btn" href="{{ url_for('admin_progress.dashboard') }}"><span class="nav-icon"><i data-lucide="users"></i></span><span class="nav-label">Member Progress</span></a>
-          {% endif %}
-        </nav>
-
+            <span class="nav-label">Leaderboard</span>
+          </button></div>{% if show_admin_progress %}<div class="sidebar-nav-group sidebar-admin-group"><p class="sidebar-group-title">{{ 'Administration' if show_course_management else 'PEG leadership' }}</p><button type="button" class="tab-btn{% if initial_admin %} active{% endif %}" data-tab="tab-admin-progress" aria-controls="tab-admin-progress"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/><circle cx="9" cy="7" r="4"/></svg></span><span class="nav-label">{{ 'Member Progress' if show_course_management else 'My PEG' }}</span></button></div>{% endif %}</nav>
         <!-- User footer -->
-        <div class="sidebar-user-footer">
+        <div class="sidebar-user-footer"><button type="button" id="sidebar-profile-shortcut" class="tab-btn" data-tab="tab-account" aria-controls="tab-account" aria-label="Open profile and settings" title="Profile & Settings">
           <div class="sidebar-user-avatar" id="sidebar-footer-avatar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
           <div class="sidebar-user-info">
-            <span class="sidebar-user-name" id="sidebar-footer-name">Profile</span>
+            <span class="sidebar-user-name" id="sidebar-footer-name">Profile</span><span class="sidebar-role">{{ "Administrator" if show_course_management else "PEG leader" if show_admin_progress else "Member" }}</span>
             <span class="sidebar-user-email" id="sidebar-footer-email">—</span>
           </div>
-          <a href="/logout" class="sidebar-signout-btn" title="Sign Out">
+          </button><a href="/logout" class="sidebar-signout-btn" title="Sign Out" aria-label="Sign out">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </a>
         </div>
@@ -498,14 +464,17 @@
   <!-- Custom Glassmorphism Toast Container -->
   <div id="toast-container" style="position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 14px; pointer-events: none;"></div>
 
+  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=2"></script>{% endif %}
+  <link rel="stylesheet" href="{{ url_for('static',filename='css/courses.css') }}?v=2">
+  <script src="{{ url_for('static',filename='js/courses.js') }}?v=2"></script>
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
   <script>window.scriptureReferencePattern = {{ scripture_reference_pattern|tojson }};</script>
   <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/date-utils.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=40"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=67"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=42"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=70"></script>
   <script src="{{ url_for('static', filename='js/tabs/bible-journey.js') }}?v=11"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->
   <script src="{{ url_for('static', filename='js/patrick_hand_font.js') }}?v=1"></script>
@@ -515,7 +484,7 @@
   <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=3"></script>
   <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/tabs/account.js') }}?v=4"></script>
   <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=4"></script>
   <script>
@@ -525,17 +494,24 @@
     const overlay = document.getElementById('mobile-sidebar-overlay');
 
     function openSidebar() {
+      sidebar.inert = false;
+      hamburger.setAttribute('aria-expanded', 'true');
       sidebar.classList.add('open');
       overlay.classList.add('open');
       hamburger.classList.add('open');
       document.body.style.overflow = 'hidden';
+      document.getElementById('sidebar-close').focus();
     }
 
     function closeSidebar() {
+      const restoreMenuFocus = sidebar.contains(document.activeElement);
+      sidebar.inert = window.innerWidth <= 900;
+      hamburger.setAttribute('aria-expanded', 'false');
       sidebar.classList.remove('open');
       overlay.classList.remove('open');
       hamburger.classList.remove('open');
       document.body.style.overflow = '';
+      if (restoreMenuFocus && window.innerWidth <= 900) hamburger.focus();
     }
     window.closeSidebar = closeSidebar;
 

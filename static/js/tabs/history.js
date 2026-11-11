@@ -246,8 +246,7 @@ function exitHistoricalView() {
   initUI();
   renderAll();
   
-  const historyTabBtn = document.querySelector('.tab-btn[data-tab="tab-history"]');
-  if (historyTabBtn) historyTabBtn.click();
+  openAppSection('tab-history');
 }
 
 // Delete completed card snapshot from database

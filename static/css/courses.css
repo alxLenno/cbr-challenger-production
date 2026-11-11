@@ -1,0 +1,29 @@
+.course-enrollment { border-top: 1px solid var(--panel-border); border-bottom: 1px solid var(--panel-border); padding: 1.2rem 0; margin-bottom: 1rem; }
+.course-enrollment p, .course-manager p { font-size: .78rem; line-height: 1.6; color: var(--text-secondary); }
+.course-enrollment h4 { margin: 0 0 .5rem; }
+.course-manager { padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+.course-manager summary { cursor: pointer; font-weight: 650; font-size: .9rem; }
+.course-manager summary span { color: var(--text-secondary); font-weight: 400; font-size: .75rem; margin-left: .6rem; }
+.course-manager .course-management-toolbar { display:flex; gap:1rem; align-items:end; margin:1rem 0; flex-wrap:wrap; }
+.course-manager .course-management-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.course-manager form { background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--radius-sm); padding:1rem; }
+.course-manager h3 { font-size:.9rem; margin:0 0 .8rem; }
+.course-manager label { display:block; font-size:.75rem; color:var(--text-secondary); margin-bottom:.7rem; }
+.course-manager input, .course-manager select { width:100%; display:block; font:inherit; color:var(--text-primary); background:var(--panel-bg-solid); border:1px solid var(--input-border); border-radius:var(--radius-sm); padding:.6rem; margin-top:.3rem; }
+.course-manager .course-rules, .course-manager .course-random-rules { display:flex; flex-wrap:wrap; gap:.8rem; align-items:end; }
+.course-manager .course-rules label { flex:1; min-width:90px; }
+.course-manager #random-peg-form { margin-top:1rem; }
+.course-manager #random-peg-preview { border:1px solid var(--primary); padding:1rem; margin-top:1rem; border-radius:var(--radius-sm); }
+.course-manager .course-group { padding:1rem 0; border-bottom:1px solid var(--panel-border); font-size:.8rem; }
+.course-manager .course-group strong { display:block; }
+.course-manager .course-group small { line-height:1.7; }
+.course-manager .course-group ul { margin:.5rem 0; padding-left:1rem; color:var(--text-secondary); }
+.course-feedback-error { color:var(--danger)!important; }
+@media(max-width:600px) { .course-manager .course-management-grid { grid-template-columns:1fr; } .course-manager summary span { display:block; margin:.5rem 0 0; } }
+
+.course-enrollment [hidden], .course-manager [hidden] { display: none !important; }
+#overall-admin-manager #overall-admin-form { margin: 1rem 0; max-width: 620px; }
+#overall-admin-manager .admin-access-history { margin-top: 1rem; }
+#overall-admin-manager .admin-access-history summary { font-size: .8rem; }
+#overall-admin-manager .admin-access-note { color: var(--text-secondary); font-size: .75rem; }
+#overall-admin-manager small { display: block; }

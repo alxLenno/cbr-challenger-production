@@ -1,0 +1,8 @@
+<details class="course-manager glass-panel" id="overall-admin-manager">
+  <summary>Overall admin access <span>Appoint administrators for all courses and PEGs</span></summary>
+  <p>Overall admins can manage every course, PEG group, PEG leader and other admins. PEG leaders have access only to their own group.</p>
+  <form id="overall-admin-form"><h3>Add an overall admin</h3><label for="overall-admin-email">Registered email</label><input id="overall-admin-email" name="email" type="email" maxlength="120" autocomplete="off" placeholder="person@example.com" required><p>The person must have signed in to the app at least once. They do not need to belong to a course.</p><button type="submit" class="btn btn-primary btn-small">Add admin</button></form>
+  <p id="overall-admin-feedback" role="status">Loading administrators…</p>
+  <div id="overall-admin-list" class="table-wrap"></div>
+  <details class="admin-access-history"><summary>Recent access changes</summary><div id="overall-admin-activity" class="table-wrap"></div></details>
+</details>

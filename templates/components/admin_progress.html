@@ -1,0 +1,36 @@
+<section class="admin-progress">
+  <div class="admin-heading"><div><p class="eyebrow">{{ "ADMINISTRATION / MEMBERS" if show_course_management else "PEG LEADERSHIP" }}</p><h1>{{ "Member progress" if show_course_management else "My PEG" }}</h1><p class="intro">{{ "Course participants, progress and PEG leadership. Personal participants are excluded." if show_course_management else "Progress and follow-up for members currently assigned to your PEG." }}</p></div><span class="admin-access"><i data-lucide="shield-check" aria-hidden="true"></i> {{ "Admin workspace" if show_course_management else "PEG workspace" }}</span></div>
+  {% if show_course_management %}{% include 'components/course_management.html' %}{% include 'components/admin_access.html' %}{% else %}<p class="admin-footnote">PEG leader access: only members currently assigned to your PEG are shown.</p>{% endif %}
+  <section class="metrics" aria-label="Program overview">
+    {% for label,value,note in [('Members',members|length,'Course registrations only'),('Participating',started,'With days logged on the current card'),('Needs support',support,'Missed days, inactivity or unresolved barriers'),('Cards fully logged',complete,'All 28 days have reading or a saved log')] %}
+    <article><span>{{ label }}</span><strong>{{ value }}</strong><small>{{ note }}</small></article>{% endfor %}
+  </section>
+  {% if cohort_summary %}<details class="admin-cohort-summary glass-panel"><summary>{{ "Cohort overview" if show_course_management else "Your PEG overview" }} <span>{{ "Participation and total points by cohort" if show_course_management else "Participation and points within your PEG" }}</span></summary><div class="table-wrap"><table><thead><tr><th>Cohort</th><th>Members</th><th>Participation</th><th>Total points</th><th>Needs support</th></tr></thead><tbody>{% for c in cohort_summary %}<tr><td>{{ c.name }}</td><td>{{ c.members }}</td><td>{{ c.participating }} participating · {{ c.participation }}%</td><td>{{ c.points }}</td><td>{{ c.support }}</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+  <section class="panel glass-panel">
+    <div class="admin-directory-heading"><div><h2>Member directory</h2><p>Open a member to review points, consistency and card records.</p></div><span id="admin-member-count" aria-live="polite">{{ members|length }} members</span></div>
+    <div class="filters">
+      <label class="admin-search">Find a member<input type="search" id="admin-member-search" placeholder="Search name, email or PEG"></label>
+      <label>Cohort<select id="admin-member-cohort"><option value="">All cohorts</option>{% for cohort in cohorts %}<option>{{ cohort }}</option>{% endfor %}</select></label>
+      <label>PEG<select id="admin-member-peg"><option value="">All PEGs</option>{% for peg in pegs %}<option>{{ peg }}</option>{% endfor %}</select></label>
+      <label>Card<select id="admin-member-card"><option value="">All cards</option>{% for n in range(1,8) %}<option value="{{ n }}">Card {{ n }}</option>{% endfor %}</select></label>
+      <label>Round<select id="admin-member-round"><option value="">All rounds</option>{% for n in rounds %}<option value="{{ n }}">Round {{ n }}</option>{% endfor %}</select></label>
+      <label>Activity<select id="admin-member-status"><option value="">All members</option><option>On track</option><option>Needs support</option><option>Not started</option></select></label>
+    </div>
+    <div class="table-wrap"><table class="admin-member-table"><caption class="admin-sr-only">Member participation and total course points</caption><thead><tr><th>Member</th><th>Cohort / PEG</th><th>Current card</th><th>Last activity</th><th>Total points</th><th>Progress</th><th>Actions</th></tr></thead><tbody>
+      {% for m in members %}<tr data-member="{{ m.name ~ ' ' ~ m.email ~ ' ' ~ (m.peg or '') }}" data-cohort="{{ m.cohort or '' }}" data-peg="{{ m.peg or '' }}" data-card="{{ m.current_card_id or '' }}" data-round="{{ m.round or '' }}" data-status="{{ m.status }}">
+        <td data-label="Member"><strong>{{ m.name }}</strong><small>{{ m.email }}</small></td>
+        <td data-label="Cohort / PEG">{{ m.cohort or 'Unassigned' }}<small>{{ m.peg or 'Awaiting PEG placement' }}</small>{% if not m.groupId %}<small>Not assigned yet</small>{% endif %}</td>
+        <td data-label="Current card">{% if m.current_card_id %}Card {{ m.current_card_id }} · Round {{ m.round }}{% else %}No card yet{% endif %}<small>{{ m.days }} / 28 days logged</small><progress aria-label="Days logged" max="28" value="{{ m.days }}"></progress></td>
+        <td data-label="Last activity">{{ m.lastActivity or 'No activity recorded' }}</td>
+        <td data-label="Total points"><strong class="admin-points">{{ m.totalPoints }}</strong><small>{{ m.currentPoints }} / 40 current card</small></td>
+        <td data-label="Progress"><span class="admin-status {{ 'warning' if m.status == 'Needs support' else 'success' if m.status == 'On track' else 'muted' }}">{{ m.status }}</span>{% if m.missed %}<small>{{ m.missed }} missed past days</small>{% endif %}</td>
+        <td data-label="Actions"><button type="button" class="btn btn-secondary btn-small" data-admin-member="{{ m.id }}" aria-label="View {{ m.name }}">View member</button></td>
+      </tr>{% endfor %}
+    </tbody></table><p id="admin-empty" hidden>No members match these filters. Try another search or cohort.</p></div>
+    <p class="admin-footnote">Total points = growth across all card records + session diligence + course bonuses. Missed days count past scheduled days only. Activity includes saved card updates.</p>
+  </section>
+  <dialog id="admin-member-dialog" aria-labelledby="admin-detail-title">
+    <div class="admin-dialog-top"><div><p class="eyebrow">MEMBER RECORD</p><h2 id="admin-detail-title">Member details</h2></div><button type="button" class="btn btn-secondary btn-small" id="admin-detail-close">Close</button></div>
+    <div id="admin-member-detail" aria-live="polite"></div>
+  </dialog>
+</section>

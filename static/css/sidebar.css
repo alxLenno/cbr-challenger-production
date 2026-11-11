@@ -1,0 +1,47 @@
+/* Shared navigation for personal readers, course members and PEG leaders. */
+#sidebar-section.sidebar-panel { padding: 1rem .75rem .75rem !important; background: var(--panel-bg-solid) !important; border-right-color: var(--panel-border) !important; overflow: hidden; }
+#sidebar-section .sidebar-heading { display: flex; align-items: center; justify-content: space-between; padding: .35rem .8rem 1rem; border-bottom: 1px solid var(--panel-border); flex: 0 0 auto; }
+#sidebar-section .sidebar-eyebrow { color: var(--primary); font-size: .64rem; font-weight: 750; letter-spacing: .14em; }
+#sidebar-section #sidebar-participation { color: var(--text-secondary); font-size: .75rem; margin: .45rem 0 0; line-height: 1.5; }
+#sidebar-section #sidebar-close { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--panel-border); background: var(--input-bg); color: var(--text-primary); border-radius: 8px; cursor: pointer; }
+#sidebar-section .sidebar-nav { display: block; padding: .35rem 0 1rem; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--panel-border) transparent; }
+#sidebar-section .sidebar-nav::-webkit-scrollbar { display: block; width: 3px; }
+#sidebar-section .sidebar-nav::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 3px; }
+#sidebar-section .sidebar-nav-group { margin-top: .85rem; }
+#sidebar-section .sidebar-group-title { padding: 0 .8rem; margin: 0 0 .4rem; font-size: .59rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary); opacity: .85; }
+#sidebar-section .tab-btn { padding: .55rem .8rem; margin: .15rem 0; gap: .65rem; border-radius: 8px; font-size: .8rem; min-height: 40px; color: var(--text-secondary); box-shadow: none; background: transparent; font-weight: 500; }
+#sidebar-section .tab-btn .nav-icon { width: 25px; height: 25px; color: inherit; background: transparent; border: none; }
+#sidebar-section .tab-btn .nav-icon svg { width: 17px; height: 17px; }
+#sidebar-section .tab-btn .nav-label { color: inherit; font-size: inherit; }
+#sidebar-section .tab-btn:hover { background: var(--panel-hover); color: var(--text-primary); }
+#sidebar-section .tab-btn.active, #sidebar-section .tab-btn.active:hover { background: rgba(var(--primary-rgb), .12); color: var(--primary); box-shadow: none; font-weight: 650; }
+#sidebar-section .tab-btn.active::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; background: var(--primary); border-radius: 3px; }
+#sidebar-section .sidebar-user-footer { gap: .3rem; padding: .7rem .2rem 0; border-top-color: var(--panel-border); }
+#sidebar-profile-shortcut { display: flex; align-items: center; gap: .65rem; background: transparent; border: 0; padding: .4rem; border-radius: 8px; color: var(--text-primary); cursor: pointer; min-width: 0; flex: 1; text-align: left; font: inherit; }
+#sidebar-profile-shortcut:hover { background: var(--panel-hover); }
+#sidebar-section .sidebar-user-avatar { width: 32px; height: 32px; border-radius: 10px; }
+#sidebar-section .sidebar-user-name { font-size: .8rem; }
+#sidebar-section .sidebar-user-email { color: var(--text-secondary); font-size: .63rem; }
+#sidebar-section .sidebar-role { color: var(--primary); font-size: .6rem; line-height: 1.7; }
+#sidebar-section .sidebar-signout-btn { color: var(--text-secondary); }
+#sidebar-section :is(button, a):focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+@media (max-width: 900px) {
+  #sidebar-section.sidebar-panel { top: var(--header-height) !important; bottom: 0; height: calc(100dvh - var(--header-height)); width: min(300px, 88vw) !important; }
+  #sidebar-section #sidebar-close { display: inline-flex; }
+  #sidebar-section .tab-btn { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { #sidebar-section.sidebar-panel, #sidebar-section .tab-btn { transition: none !important; } }
+
+#sidebar-section #sidebar-profile-shortcut { padding: .4rem; margin: 0; gap: .65rem; min-height: 48px; }
+#sidebar-section #sidebar-profile-shortcut.active::before { display: none; }
+
+.workspace-page-heading { margin-bottom: 1rem; }
+.workspace-page-heading h1 { color: var(--text-primary); font: 700 clamp(1.5rem,3vw,2.1rem) 'Outfit', sans-serif; margin: 0 0 .4rem; }
+.workspace-page-heading p { color: var(--text-secondary); font-size: .85rem; line-height: 1.6; margin: 0; }
+.workspace-section-nav { display: flex; flex-wrap: wrap; gap: .4rem; padding: .4rem; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius-sm); margin: 0 0 1.5rem; }
+.workspace-section-btn { border: 0; border-radius: 7px; background: transparent; color: var(--text-secondary); padding: .7rem 1rem; font: 600 .8rem 'Inter', sans-serif; cursor: pointer; }
+.workspace-section-btn:hover { color: var(--text-primary); background: var(--panel-hover); }
+.workspace-section-btn.active { color: var(--primary); background: rgba(var(--primary-rgb), .12); }
+.workspace-section-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.workspace-section[hidden] { display: none !important; }
+@media (max-width: 600px) { .workspace-section-nav { gap: .25rem; } .workspace-section-btn { flex: 1; min-width: 100px; padding: .7rem .5rem; font-size: .75rem; } }

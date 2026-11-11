@@ -504,6 +504,7 @@ async function loadState() {
     }
     
     appState = await response.json();
+    if (window.cbrTheme) appState.theme = window.cbrTheme.current();
     
     // Migration checks
     if (!appState.days || (appState.days.length !== 28 && appState.days.length !== 35)) {
@@ -680,6 +681,8 @@ function syncActiveCardToArchiveIfNeeded() {
   const stats = calculateScores();
   const syncedArchive = {
     instanceId: instId,
+    courseId: appState.courseId ?? null,
+    participationMode: appState.participationMode || appState.participation?.mode || "personal",
     currentCardId: appState.currentCardId,
     cardId: appState.currentCardId,
     round: appState.round || 1,
@@ -741,6 +744,9 @@ function initDefaultState(seedState = {}) {
     email: seedState.email || "",
     isAdmin: Boolean(seedState.isAdmin),
     profilePic: seedState.profilePic || "",
+    participation: seedState.participation || {mode:"personal"},
+    participationMode: seedState.participationMode || "personal",
+    courseId: seedState.courseId ?? null,
     contact: "",
     church: "",
     peg: "",
@@ -757,7 +763,7 @@ function initDefaultState(seedState = {}) {
     days: [],
     weeks: [],
     savedCards: [],
-    theme: 'dark'
+    theme: window.cbrTheme ? window.cbrTheme.current() : (seedState.theme || 'dark')
   };
 
   // Generate the four complete weeks and their 28 days.
@@ -777,7 +783,8 @@ function getActiveData() {
 function initUI() {
   const data = getActiveData();
 
-  // Theme setup
+  // The first paint already has this theme; keep the controls in sync.
+  if (window.cbrTheme) window.cbrTheme.apply(appState.theme);
   if (appState.theme === 'light') {
     document.body.classList.add('light-mode');
     elements.themeToggle.innerHTML = '<i data-lucide="moon"></i>';
@@ -917,6 +924,36 @@ function initUI() {
   if (window.linkifyScriptureRefsIn) linkifyScriptureRefsIn(document.body);
 }
 
+// Open a top-level page or one of its grouped sections, including legacy shortcuts.
+function openAppSection(target) {
+  const parents = {
+    'tab-dashboard': 'tab-progress', 'tab-analytics': 'tab-progress', 'tab-bible-journey': 'tab-progress',
+    'tab-history': 'tab-records', 'tab-session-eval': 'tab-records'
+  };
+  const pageId = parents[target] || target;
+  const page = document.getElementById(pageId);
+  if (!page || !page.classList.contains('tab-content')) return;
+  elements.tabButtons.forEach(button => button.classList.toggle('active', button.dataset.tab === pageId));
+  elements.tabContents.forEach(content => content.classList.toggle('active', content === page));
+  let section = parents[target] ? target : page.querySelector('.workspace-section:not([hidden])')?.id;
+  if (section) {
+    page.querySelectorAll('.workspace-section').forEach(content => { content.hidden = content.id !== section; });
+    page.querySelectorAll('[data-workspace-section]').forEach(button => {
+      const active = button.dataset.workspaceSection === section;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  }
+  if (pageId === 'tab-leaderboard') fetchLeaderboard();
+  if (section === 'tab-session-eval') initSessionEval();
+  if (section === 'tab-bible-journey' && typeof renderBibleJourney === 'function') renderBibleJourney();
+  if (section === 'tab-analytics') renderChart();
+  if (section === 'tab-history') renderLibraryList();
+  const scroller = document.querySelector('.page-wrapper');
+  if (scroller) scroller.scrollTop = 0;
+  if (window.innerWidth <= 900 && typeof window.closeSidebar === 'function') window.closeSidebar();
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
   if (elements.topbarProfileBtn) {
@@ -1012,44 +1049,16 @@ function setupEventListeners() {
     document.body.classList.toggle('light-mode');
     const isLight = document.body.classList.contains('light-mode');
     appState.theme = isLight ? 'light' : 'dark';
+    if (window.cbrTheme) window.cbrTheme.apply(appState.theme, true);
     elements.themeToggle.innerHTML = isLight ? '<i data-lucide="moon"></i>' : '<i data-lucide="sun"></i>';
     refreshIcons(elements.themeToggle);
     saveState();
   });
 
-  // Tabs Handler
-  elements.tabButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.tab;
-      elements.tabButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      elements.tabContents.forEach(c => {
-        if (c.id === target) {
-          c.classList.add('active');
-        } else {
-          c.classList.remove('active');
-        }
-      });
-      
-      if (target === 'tab-leaderboard') {
-        fetchLeaderboard();
-      }
-      if (target === 'tab-session-eval') {
-        initSessionEval();
-      }
-      
-      // On mobile, automatically close sidebar after making a selection
-      if (window.innerWidth <= 900) {
-        if (typeof window.closeSidebar === 'function') {
-          window.closeSidebar();
-        } else if (elements.sidebarSection && elements.sidebarSection.classList.contains('open')) {
-          elements.sidebarSection.classList.remove('open');
-          if (elements.mobileSidebarOverlay) elements.mobileSidebarOverlay.classList.remove('open');
-          if (elements.hamburgerBtn) elements.hamburgerBtn.classList.remove('open');
-        }
-      }
-    });
+  // Main pages and their grouped sections share one navigation path.
+  elements.tabButtons.forEach(btn => btn.addEventListener('click', () => openAppSection(btn.dataset.tab)));
+  document.querySelectorAll('[data-workspace-section]').forEach(btn => {
+    btn.addEventListener('click', () => openAppSection(btn.dataset.workspaceSection));
   });
 
   // Subnav Tabs Handler
@@ -3097,8 +3106,7 @@ function exitHistoricalView() {
   initUI();
   renderAll();
   
-  const historyTabBtn = document.querySelector('.tab-btn[data-tab="tab-history"]');
-  if (historyTabBtn) historyTabBtn.click();
+  openAppSection('tab-history');
 }
 
 

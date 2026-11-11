@@ -1,1 +1,83 @@
-*{box-sizing:border-box}body{margin:0;background:#f5f7f8;color:#132d35;font:16px/1.5 system-ui,sans-serif}.wrap{max-width:1160px;margin:auto;padding:0 clamp(16px,4vw,48px)}header{background:#102f36;color:white}.bar{display:flex;justify-content:space-between;align-items:center;min-height:66px}.bar b{color:#91e0c4;margin-right:12px}.bar a{color:white}.eyebrow{color:#17644f;letter-spacing:.15em;font-weight:750;font-size:.75rem;margin:42px 0 4px}h1{font-size:clamp(2rem,5vw,3rem);line-height:1.15;margin:0}.intro,small,#count{color:#50666a}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0}.metrics article,.panel{background:white;border:1px solid #d8e2e1;border-radius:12px}.metrics article{padding:20px;border-top:3px solid #36836d}.metrics span,small,progress{display:block}.metrics strong{font-size:2rem}.panel{padding:clamp(14px,3vw,28px);margin-bottom:48px}h2{margin:0}.filters{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px}label{font-size:.85rem;font-weight:650}input,select{display:block;font:inherit;padding:9px 12px;margin-top:4px;border:1px solid #a8baba;border-radius:6px;background:white;color:inherit}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left}th,td{padding:12px;border-bottom:1px solid #dce6e4}th{background:#edf4f1;font-size:.8rem}td{font-size:.9rem}progress{width:90px;height:8px;accent-color:#197056}#count{font-size:.85rem}@media(max-width:650px){.metrics{gap:6px}.metrics article{padding:10px}.metrics span{font-size:.75rem}.metrics strong{font-size:1.5rem}th,td{min-width:105px}}
+.admin-progress { color: var(--text-primary); }
+.admin-progress .eyebrow { color: var(--primary); letter-spacing: .14em; font-size: .72rem; font-weight: 700; margin: 0 0 .4rem; }
+.admin-progress h1 { font-family: 'Outfit', sans-serif; font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 0; }
+.admin-progress .intro, .admin-progress small, .admin-progress #admin-member-count { color: var(--text-secondary); }
+.admin-progress .intro { margin: .6rem 0 1.5rem; font-size: .9rem; line-height: 1.6; }
+.admin-progress .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 0 0 1.5rem; }
+.admin-progress .metrics article { padding: 1rem; border: 1px solid var(--panel-border); border-radius: var(--radius-md); background: var(--panel-bg); border-top: 3px solid var(--primary); }
+.admin-progress .metrics span, .admin-progress small, .admin-progress progress { display: block; }
+.admin-progress .metrics span { color: var(--text-secondary); font-size: .75rem; line-height: 1.5; }
+.admin-progress .metrics strong { font-family: 'Outfit', sans-serif; font-size: 2rem; }
+.admin-progress .panel { padding: 1.25rem; }
+.admin-progress h2 { font-size: 1.1rem; margin: 0; }
+.admin-progress .filters { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.admin-progress label { font-size: .8rem; color: var(--text-secondary); }
+.admin-progress input, .admin-progress select { display: block; margin-top: .4rem; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); font: inherit; padding: .65rem .8rem; border-radius: var(--radius-sm); }
+.admin-progress option { background: var(--panel-bg-solid); color: var(--text-primary); }
+.admin-progress .table-wrap { overflow-x: auto; }
+.admin-progress table { border-collapse: collapse; text-align: left; width: 100%; }
+.admin-progress th, .admin-progress td { padding: .8rem; border-bottom: 1px solid var(--panel-border); }
+.admin-progress th { background: var(--surface); color: var(--text-secondary); font-size: .72rem; }
+.admin-progress td { font-size: .85rem; }
+.admin-progress small { margin-top: .2rem; font-size: .7rem; }
+.admin-progress progress { width: 90px; height: 6px; accent-color: var(--primary); margin-top: .4rem; }
+.admin-progress #admin-member-count { font-size: .8rem; margin: 1rem 0 0; }
+@media (max-width: 600px) { .admin-progress .metrics { grid-template-columns: 1fr; } .admin-progress .metrics article { display: flex; align-items: center; justify-content: space-between; padding: .6rem 1rem; } .admin-progress th, .admin-progress td { min-width: 110px; } }
+.admin-progress .admin-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.admin-progress .admin-access { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-secondary); border: 1px solid var(--panel-border); padding: .45rem .7rem; border-radius: 99px; white-space: nowrap; }
+.admin-progress .admin-access svg { width: 14px; height: 14px; }
+.admin-progress .metrics { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.admin-progress .metrics small { font-size: .7rem; line-height: 1.5; }
+.admin-progress .admin-directory-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.admin-progress .admin-directory-heading p, .admin-progress .admin-detail-subtitle { font-size: .8rem; color: var(--text-secondary); margin: .4rem 0 0; line-height: 1.5; }
+.admin-progress .filters { padding: 1rem 0; border-bottom: 1px solid var(--panel-border); gap: .7rem; }
+.admin-progress .filters label { flex: 1; min-width: 100px; }
+.admin-progress .filters .admin-search { flex: 2; min-width: 180px; }
+.admin-progress .filters input, .admin-progress .filters select { width: 100%; }
+.admin-progress .admin-status { display: inline-block; white-space: nowrap; font-size: .68rem; font-weight: 650; padding: .3rem .5rem; border-radius: 99px; border: 1px solid var(--panel-border); }
+.admin-progress .admin-status.warning { color: var(--primary); background: rgba(var(--primary-rgb),.1); }
+.admin-progress .admin-status.success { color: var(--success); background: rgba(var(--success-rgb),.08); }
+.admin-progress .admin-status.muted { color: var(--text-secondary); background: var(--input-bg); }
+.admin-progress .admin-points { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.admin-progress .admin-footnote { font-size: .72rem; color: var(--text-secondary); line-height: 1.6; margin: 1rem 0 0; }
+.admin-progress .table-wrap { max-width: 100%; }
+.admin-progress th { white-space: nowrap; }
+.admin-progress td { vertical-align: top; }
+.admin-progress .btn-small { white-space: nowrap; }
+.admin-progress dialog { width: min(1050px,94vw); max-height: 90dvh; margin: auto; padding: 1.5rem; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: var(--radius-md); background: var(--panel-bg-solid); color: var(--text-primary); box-shadow: var(--shadow-lg); }
+.admin-progress dialog::backdrop { background: rgba(0,0,0,.65); backdrop-filter: blur(4px); }
+.admin-progress .admin-dialog-top { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+.admin-progress .admin-dialog-top h2 { font-size: 1.5rem; }
+.admin-progress .admin-detail-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: 1.2rem 0; }
+.admin-progress .admin-detail-actions span { color: var(--text-secondary); font-size: .75rem; }
+.admin-progress .admin-detail-section { padding: 1.2rem 0; border-top: 1px solid var(--panel-border); }
+.admin-progress .admin-detail-section h3 { font-size: .95rem; margin: 0 0 1rem; }
+.admin-progress .admin-detail-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; margin: 0; }
+.admin-progress dt { color: var(--text-secondary); font-size: .7rem; }
+.admin-progress dd { font-size: .85rem; margin: .3rem 0 0; overflow-wrap: anywhere; }
+.admin-progress .admin-flags { margin: 1rem 0 0; padding-left: 1.1rem; color: var(--text-secondary); font-size: .8rem; line-height: 1.8; }
+.admin-progress .admin-discipline-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .8rem; }
+.admin-progress .admin-discipline-grid div { background: var(--input-bg); padding: .8rem; border-radius: var(--radius-sm); }
+.admin-progress .admin-discipline-grid span { display: block; color: var(--text-secondary); font-size: .72rem; }
+.admin-progress .admin-discipline-grid strong { display: block; margin-top: .5rem; font-size: 1rem; }
+.admin-progress .admin-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 900px) { .admin-progress .metrics, .admin-progress .admin-detail-grid, .admin-progress .admin-discipline-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .admin-progress .admin-heading { display: block; } .admin-progress .admin-access { margin-bottom: 1rem; } .admin-progress .metrics article { display: block; } .admin-progress .metrics span { display: block; } .admin-progress .panel, .admin-progress dialog { padding: 1rem; } .admin-progress .admin-detail-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media print { .admin-progress dialog, .admin-progress dialog::backdrop { display: none !important; } }
+
+.admin-progress .admin-cohort-summary { padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
+.admin-progress .admin-cohort-summary summary { cursor: pointer; font-size: .85rem; font-weight: 600; }
+.admin-progress .admin-cohort-summary summary span { color: var(--text-secondary); font-size: .75rem; font-weight: 400; margin-left: .8rem; }
+.admin-progress .admin-cohort-summary .table-wrap { margin-top: 1rem; }
+@media (max-width: 600px) {
+  .admin-progress .admin-member-table, .admin-progress .admin-member-table tbody { display: block; }
+  .admin-progress .admin-member-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .admin-progress .admin-member-table tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; padding: 1rem 0; border-bottom: 1px solid var(--panel-border); }
+  .admin-progress .admin-member-table tr[hidden] { display: none; }
+  .admin-progress .admin-member-table td { padding: 0; border: 0; min-width: 0; overflow-wrap: anywhere; }
+  .admin-progress .admin-member-table td::before { content: attr(data-label); display: block; color: var(--text-secondary); font-size: .65rem; margin-bottom: .35rem; }
+  .admin-progress .admin-member-table td:first-child, .admin-progress .admin-member-table td:last-child { grid-column: 1 / -1; }
+  .admin-progress .admin-member-table td:first-child::before, .admin-progress .admin-member-table td:last-child::before { display: none; }
+  .admin-progress .admin-member-table td:last-child button { width: 100%; }
+  .admin-progress .admin-cohort-summary summary span { display: block; margin: .5rem 0 0; }
+}

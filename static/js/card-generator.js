@@ -417,7 +417,7 @@ function buildChallengerCardHTML(data) {
     <span class="rr-label">CARD ROUND NUMBER</span>
     ${[0,1,2,3,4,5,6,7,8].map(n => `<span class="cc-round-num${n===data.currentCardId?' selected':''}">${n}</span>`).join('')}
     <span style="flex:1;"></span>
-    <span style="font-weight:700; font-size:6.5pt;">DATE: <span style="font-style:italic;">${data.commencingDate || '____________'}</span></span>
+    <span style="font-weight:700; font-size:6.5pt;">DATE: <span style="font-style:italic;">${escapeCardText(data.commencingDate || '____________')}</span></span>
   </div>
 
   <!-- NAME / TELEPHONE / CHURCH -->
@@ -436,11 +436,12 @@ function buildChallengerCardHTML(data) {
     </div>
   </div>
 
-  <div class="cc-date-row">
+  ${(data.participationMode || data.participation?.mode) === 'personal' ? `<div class="cc-date-row"><span class="field-label">PERSONAL BIBLE READING</span><span>Round ${escapeCardText(data.round || 1)}</span></div>` : `  <div class="cc-date-row">
     <div class="field-group"><span class="field-label">COHORT:</span><span class="field-val">${escapeCardText(data.cohort || 'Not specified')}</span></div>
     <div class="field-group"><span class="field-label">PEG NUMBER:</span><span class="field-val">${escapeCardText(data.peg || 'Not specified')}</span></div>
     <div class="field-group"><span class="field-label">ROUND:</span><span class="field-val">${escapeCardText(data.round || 1)}</span></div>
-  </div>
+  </div>`}
+
 
   <!-- BODY: Speed, ERT, Calendar — all share section-num layout -->
   <div style="display:block; border-bottom:1.5px solid #000;">
@@ -557,7 +558,7 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}, boo
         <p>Generated from the editable Session Evaluation in the CBR Challenger app.</p>
       </div>
       <div class="cc-eval-reader-meta">
-        <strong>${cardData.username || 'Bible Reader'}</strong>
+        <strong>${escapeCardText(cardData.username || 'Bible Reader')}</strong>
         <span>Active Card ${currentCardId}</span>
       </div>
     </header>
@@ -795,7 +796,7 @@ function renderChallengerCardInto(containerId, data) {
 }
 
 // Main print trigger: generate the card and its editable-data evaluation page.
-async function printChallengerCard(data) {
+async function printChallengerCard(data, memberEvaluations = null, memberGrowth = null) {
   const wrapper = document.getElementById('card-print-wrapper');
   if (!wrapper) return;
 
@@ -803,8 +804,8 @@ async function printChallengerCard(data) {
     showToast('Preparing Challenger Card and Session Evaluation…', 'info', 1800);
   }
 
-  const evaluationData = await getSessionEvaluationsForPrint();
-  wrapper.innerHTML = `<section class="cc-print-sheet">${buildChallengerCardHTML(data)}</section>` + buildSessionEvaluationPrintHTML(evaluationData, data);
+  const evaluationData = memberEvaluations ?? await getSessionEvaluationsForPrint();
+  wrapper.innerHTML = `<section class="cc-print-sheet">${buildChallengerCardHTML(data)}</section>` + buildSessionEvaluationPrintHTML(evaluationData, data, memberGrowth);
 
   // Temporarily show to calculate SVG coordinates correctly
   const originalDisplay = wrapper.style.display;
@@ -846,11 +847,11 @@ function collectBookletCards(state) {
     const previous = cards.get(key);
     if (!previous || (Date.parse(card.savedAt) || 0) >= (Date.parse(previous.savedAt) || 0)) cards.set(key, card);
   }
-  cards.set(keyFor({ ...state, instanceId: state.activeInstanceId }), state);
+  if (!state.adminExport) cards.set(keyFor({ ...state, instanceId: state.activeInstanceId }), state);
   return [...cards.values()].map(card => ({
     ...card,
     currentCardId: Number(card.currentCardId || card.cardId || 1),
-    days: Array.from({ length: 28 }, (_, i) => (card.days || []).find(d => d.dayNumber === i + 1) || (card.days || [])[i] || { dayNumber: i + 1 }),
+    days: Array.from({ length: 28 }, (_, i) => (card.days || []).find(d => d.dayNumber === i + 1) || ((card.days || [])[i]?.dayNumber == null ? (card.days || [])[i] : null) || { dayNumber: i + 1 }),
     weeks: Array.from({ length: 4 }, (_, i) => (card.weeks || [])[i] || { weekNumber: i + 1, sharedFid: false })
   })).sort((a, b) => Number(a.round || 1) - Number(b.round || 1) ||
     a.currentCardId - b.currentCardId || String(a.commencingDate || '').localeCompare(String(b.commencingDate || '')));
@@ -882,8 +883,7 @@ function buildChallengerBookletHTML(cards, profile, evaluations = {}) {
   const initials = (profile.username || 'Challenger').trim().split(/\s+/).map(part => part.charAt(0)).slice(0, 2).join('').toUpperCase();
   const portrait = `<div class="cc-back-portrait"><span>${escapeCardText(initials)}</span>${profile.profilePic ? `<img src="${escapeCardText(profile.profilePic)}" alt="${escapeCardText(profile.username || 'Challenger')}" onerror="this.hidden=true">` : ''}</div>`;
   const details = `<dl><dt>Name</dt><dd>${escapeCardText(profile.username || 'Challenger')}</dd>
-    <dt>Cohort</dt><dd>${escapeCardText(profile.cohort || 'Not specified')}</dd>
-    <dt>PEG number</dt><dd>${escapeCardText(profile.peg || 'Not specified')}</dd>
+    ${(profile.participationMode || profile.participation?.mode) === 'personal' ? '<dt>Participation</dt><dd>Personal</dd>' : `<dt>Cohort</dt><dd>${escapeCardText(profile.cohort || 'Not specified')}</dd><dt>PEG number</dt><dd>${escapeCardText(profile.peg || 'Not specified')}</dd>`}
     <dt>Round</dt><dd>${escapeCardText(profile.round ?? 1)}</dd></dl>`;
   return `<section class="cc-booklet-cover">${buildChallengerCoverArt()}<div class="cc-booklet-brand">DAILY WORDFEAST FOUNDATION</div>
     <div class="cc-cover-content"><p class="cc-booklet-eyebrow">THE</p><h1><span>CHALLENGER</span><br>CARD</h1>
@@ -900,10 +900,11 @@ function buildChallengerBookletHTML(cards, profile, evaluations = {}) {
       <svg class="cc-back-accent" viewBox="0 0 600 70" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M0 28H600V70H0Z" fill="#071927"/><path d="M360 28 332 0H510L538 28Z" fill="#ed2014"/></svg></section>`;
 }
 
-async function downloadChallengerBooklet() {
+async function downloadChallengerBooklet(memberState = null, memberEvaluations = null) {
+  const bookletState = memberState || appState;
   const wrapper = document.getElementById('card-print-wrapper');
   if (!wrapper) return;
-  const cards = collectBookletCards(appState);
+  const cards = collectBookletCards(bookletState);
   const originalTitle = document.title;
   const originalStyle = wrapper.getAttribute('style');
   const originalHTML = wrapper.innerHTML;
@@ -918,9 +919,9 @@ async function downloadChallengerBooklet() {
     window.removeEventListener('afterprint', restore);
   };
   try {
-    wrapper.innerHTML = buildChallengerBookletHTML(cards, appState, await getSessionEvaluationsForPrint());
+    wrapper.innerHTML = buildChallengerBookletHTML(cards, bookletState, memberEvaluations ?? await getSessionEvaluationsForPrint());
     wrapper.style.cssText = 'display:block; position:absolute; left:0; top:0; width:198mm; visibility:hidden;';
-    document.title = `CBR-Challenger-Booklet-${(appState.username || 'Challenger').replace(/[^a-z0-9-]/gi, '-')}`;
+    document.title = `CBR-Challenger-Booklet-${(bookletState.username || 'Challenger').replace(/[^a-z0-9-]/gi, '-')}`;
     // Force layout at the printable A4 width before drawing each card's graph.
     wrapper.getBoundingClientRect();
     cards.forEach((_, i) => drawERTGraph(`booklet-card-${i}`));

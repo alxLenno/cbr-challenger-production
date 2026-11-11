@@ -1,0 +1,23 @@
+<script>
+  // Apply the user's theme before styles or page content can paint.
+  window.cbrTheme = (() => {
+    const key = {{ theme_storage_key|tojson }};
+    let value = {{ initial_theme|tojson }};
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved === 'light' || saved === 'dark') value = saved;
+    } catch (_) { /* The server-rendered preference works when storage is blocked. */ }
+    function apply(theme, persist = false) {
+      value = theme === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = value;
+      document.documentElement.style.colorScheme = value;
+      document.documentElement.style.backgroundColor = value === 'light' ? '#f0f4f8' : '#080d17';
+      if (document.body) document.body.classList.toggle('light-mode', value === 'light');
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = value === 'light' ? '#f0f4f8' : '#080d17';
+      if (persist) { try { localStorage.setItem(key, value); } catch (_) {} }
+    }
+    apply(value);
+    return { current: () => value, apply };
+  })();
+</script>
