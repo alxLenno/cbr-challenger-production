@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const feedback=document.getElementById('participation-feedback');
   const manager=document.getElementById('course-manager');
   let csrf='', catalog=null, management=null, preview=null;
+  const choices=[...enrollment.querySelectorAll('[name="participation-choice"]')];
+  const savePreference=enrollment.querySelector('#participation-save');
   async function api(path, data) {
     const response=await fetch('/api/courses'+path, data===undefined ? {cache:'no-store'} : {
       method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify(data)
@@ -18,12 +20,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(!response.ok) throw new Error(result.error||'Could not save this change. Please try again.');
     return result;
   }
-  function message(target,value,error=false){target.textContent=value;target.classList.toggle('course-feedback-error',error);}
+  function message(target,value,error=false){target.textContent=value;target.classList.toggle('course-feedback-error',error);target.dataset.state=error?'error':value==='Unsaved changes'?'pending':'saved';}
   function modeFields(){
     const course=mode.value==='course';
     document.getElementById('participation-course-fields').hidden=!course;
     document.getElementById('participation-gender-field').hidden=!course;
     cohort.required=course;
+    document.getElementById('participation-personal-note').hidden=course;
+    choices.forEach(choice=>{choice.checked=choice.value===mode.value;choice.closest('.participation-choice').classList.toggle('is-selected',choice.checked);});
   }
   function pegOptions(){
     const c=catalog?.courses.find(c=>c.cohort.toLowerCase()===cohort.value.trim().toLowerCase() || c.cohort.replace(/\D/g,'')===cohort.value.trim());
@@ -36,18 +40,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('participation-cohorts').innerHTML=data.courses.map(c=>`<option value="${esc(c.cohort)}">${esc(c.name)}</option>`).join('');
     document.getElementById('participation-placement').textContent=p.assigned ? `Assigned to ${p.cohort} · ${p.peg}.` : 'Existing cohort and PEG details are matched automatically when the group has space and is eligible. Otherwise an admin will help with placement.';
     modeFields();pegOptions();
+    enrollment.querySelector('.participation-choices').disabled=false;
+    savePreference.disabled=false;
+    document.getElementById('participation-current').textContent='Current · '+(p.mode==='personal'?'Personal Reading':p.assigned ? `${p.cohort} · ${p.peg}` : `${p.cohort} · ${p.courseId?'awaiting PEG':'awaiting confirmation'}`);
     window.dispatchEvent(new CustomEvent('cbr:participation', {detail:p}));
   }
+  choices.forEach(choice=>choice.addEventListener('change',()=>{if(choice.checked){mode.value=choice.value;modeFields();message(feedback,'Unsaved changes');}}));
   mode.addEventListener('change',modeFields);cohort.addEventListener('input',pegOptions);
+  [gender,cohort,peg].forEach(input=>input.addEventListener('input',()=>message(feedback,'Unsaved changes')));
   enrollment.querySelector('form').addEventListener('submit',async event=>{
-    event.preventDefault();const button=event.target.querySelector('button');button.disabled=true;
+    event.preventDefault();const button=savePreference;button.disabled=true;button.textContent='Saving…';
     try{
       const result=await api('/participation',{mode:mode.value,gender:gender.value,cohort:cohort.value,peg:peg.value});
       const p=result.participation;
       if(typeof appState!=='undefined' && appState){appState.participation=p;appState.participationMode=p.mode;appState.peg=p.peg;appState.cohort=p.cohort;appState.courseId=p.courseId;}
       renderEnrollment(await api('/participation'));message(feedback,result.message);
       if(manager) await refreshManagement();
-    }catch(error){message(feedback,error.message,true);}finally{button.disabled=false;}
+    }catch(error){message(feedback,error.message,true);}finally{button.disabled=!csrf;button.textContent='Save reading preference';}
   });
   const mgFeedback=manager?.querySelector('#course-management-feedback');
   const selectedCourse=()=>Number(manager.querySelector('#manage-course').value);
@@ -102,5 +111,5 @@ document.addEventListener('DOMContentLoaded', async () => {
       try{const result=await api('/'+preview.courseId+'/random-apply',{token:preview.token});message(mgFeedback,result.message+' Refresh Member Progress to see the updated directory.');await refreshManagement();}
       catch(error){message(mgFeedback,error.message,true);button.disabled=false;}
     });
-  }catch(error){message(feedback,error.message,true);if(mgFeedback)message(mgFeedback,error.message,true);}
+  }catch(error){if(!csrf)document.getElementById('participation-current').textContent='Preference unavailable';message(feedback,error.message,true);if(mgFeedback)message(mgFeedback,error.message,true);}
 });

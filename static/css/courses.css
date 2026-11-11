@@ -27,3 +27,46 @@
 #overall-admin-manager .admin-access-history summary { font-size: .8rem; }
 #overall-admin-manager .admin-access-note { color: var(--text-secondary); font-size: .75rem; }
 #overall-admin-manager small { display: block; }
+/* Reading participation is a self-contained profile preference card. */
+#course-enrollment { padding: 1.4rem; margin: 0; border: 1px solid var(--panel-border); border-radius: var(--radius-md); }
+#course-enrollment .participation-heading-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.2rem; }
+#course-enrollment h3 { margin: 0; font-size: 1.05rem; color: var(--text-primary); }
+#course-enrollment .participation-heading-row p { margin: .3rem 0 0; }
+#course-enrollment .participation-current { font-size: .72rem; line-height: 1.5; padding: .35rem .65rem; border-radius: 99px; background: var(--input-bg); border: 1px solid var(--panel-border); color: var(--text-secondary); }
+#course-enrollment .participation-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; border: 0; margin: 0; padding: 0; }
+#course-enrollment .participation-choice { position: relative; display: flex; align-items: flex-start; gap: .8rem; padding: 1.1rem; border: 1.5px solid var(--panel-border); border-radius: var(--radius-sm); background: var(--input-bg); cursor: pointer; transition: border-color .15s, background .15s; }
+#course-enrollment .participation-choice.is-selected { border-color: var(--primary); background: rgba(var(--primary-rgb),.055); }
+#course-enrollment .participation-choice:focus-within { outline: 2px solid var(--primary); outline-offset: 3px; }
+#course-enrollment .participation-choice input { width: 17px; height: 17px; padding: 0; margin: .15rem 0 0; accent-color: var(--primary); flex-shrink: 0; }
+#course-enrollment .participation-choice-content { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; gap: .55rem; }
+#course-enrollment .participation-choice-icon { display: inline-flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: .15rem; }
+#course-enrollment .participation-choice strong { font-size: .9rem; color: var(--text-primary); }
+#course-enrollment .participation-choice-description { color: var(--text-secondary); font-size: .78rem; line-height: 1.6; }
+#course-enrollment .participation-selection-mark { position: absolute; right: .8rem; top: .8rem; color: var(--primary); font-size: .65rem; opacity: 0; }
+#course-enrollment .participation-choice.is-selected .participation-selection-mark { opacity: 1; }
+#course-enrollment .participation-note { display: flex; gap: .6rem; align-items: flex-start; color: var(--text-secondary); font-size: .76rem; line-height: 1.6; padding: .9rem 0 0; }
+#course-enrollment .participation-note svg { flex-shrink: 0; margin-top: .15rem; }
+#course-enrollment .participation-note span { color: var(--text-secondary); }
+#course-enrollment .participation-course-details { padding: 1.1rem; margin-top: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--panel-border); }
+#course-enrollment .participation-details-heading h4 { font-size: .9rem; margin: 0; }
+#course-enrollment .participation-details-heading p { margin: .35rem 0 1rem; }
+#course-enrollment .participation-fields-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .85rem; }
+#course-enrollment .profile-form-group label { text-transform: none; font-size: .75rem; letter-spacing: 0; color: var(--text-primary); }
+#course-enrollment .profile-form-group label span { display: block; color: var(--text-secondary); font-size: .65rem; font-weight: 400; margin-top: .2rem; }
+#course-enrollment .profile-input { margin: 0; min-height: 44px; font-size: .85rem; background: var(--input-bg); border-color: var(--input-border); color: var(--text-primary); }
+#course-enrollment .participation-placement { margin: .8rem 0 0; font-size: .74rem; }
+#course-enrollment .participation-save-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1rem; margin-top: 1rem; border-top: 1px solid var(--panel-border); }
+#course-enrollment .participation-save-row p { margin: 0; font-size: .72rem; line-height: 1.6; }
+#course-enrollment #participation-feedback:not(:empty) { margin-top: .35rem; color: var(--success); }
+#course-enrollment .participation-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#course-enrollment #participation-save { flex-shrink: 0; font-size: .8rem; padding: .7rem 1rem; }
+@media (max-width: 600px) {
+  #course-enrollment { padding: 1rem; }
+  #course-enrollment .participation-heading-row { align-items: flex-start; flex-direction: column; gap: .65rem; }
+  #course-enrollment .participation-choices, #course-enrollment .participation-fields-grid { grid-template-columns: 1fr; }
+  #course-enrollment .participation-save-row { align-items: stretch; flex-direction: column; }
+  #course-enrollment .participation-course-details { padding: .9rem; }
+}
+
+#course-enrollment #participation-feedback { min-height: 1.15rem; }
+#course-enrollment #participation-feedback[data-state="pending"] { color: var(--primary); }

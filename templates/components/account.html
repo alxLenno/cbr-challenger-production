@@ -46,6 +46,7 @@
           </div>
         </div>
 
+        {% include 'components/participation.html' %}
         <section id="profile-bible-progress" class="glass-panel bj-panel" aria-label="Bible reading history"></section>
         <div class="profile-cards-grid">
 
@@ -70,20 +71,7 @@
                 <label for="profile-input-church">Church / Fellowship</label>
                 <input type="text" id="profile-input-church" class="profile-input" placeholder="e.g. Grace Chapel">
               </div>
-              <section class="course-enrollment" id="course-enrollment">
-                <h4>Personal or course participation</h4>
-                <p>Personal is the default. Course participation shares your current card and evaluations with course admins and your PEG leaders.</p>
-                <form id="participation-form">
-                  <div class="profile-form-row"><div class="profile-form-group"><label for="participation-mode">Participation</label><select id="participation-mode" class="profile-input"><option value="personal">Personal</option><option value="course">Course</option></select></div>
-                  <div class="profile-form-group" id="participation-gender-field" hidden><label for="participation-gender">Gender · for PEG placement</label><select id="participation-gender" class="profile-input"><option value="unspecified">Prefer not to say</option><option value="woman">Woman</option><option value="man">Man</option></select></div></div>
-                  <div id="participation-course-fields" hidden><div class="profile-form-row">
-                    <div class="profile-form-group"><label for="participation-cohort">Cohort number</label><input type="text" id="participation-cohort" class="profile-input" list="participation-cohorts" placeholder="Cohort 18"><datalist id="participation-cohorts"></datalist></div>
-                    <div class="profile-form-group"><label for="participation-peg">PEG number · if known</label><input type="text" id="participation-peg" class="profile-input" list="participation-pegs" placeholder="e.g. PEG 11"><datalist id="participation-pegs"></datalist></div>
-                  </div><p id="participation-placement">An existing eligible PEG will be matched automatically. Otherwise an admin can place you.</p></div>
-                  <button type="submit" class="btn btn-secondary btn-small">Save participation</button>
-                  <p id="participation-feedback" role="status"></p>
-                </form>
-              </section>
+
               <div class="profile-form-row">
                 <div class="profile-form-group">
                   <label>Current Card</label>
