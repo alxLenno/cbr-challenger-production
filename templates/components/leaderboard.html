@@ -1,7 +1,7 @@
 <div class="content-header">
   <div class="title-text">
-    <h2>LEADERBOARD <span class="leaderboard-subtitle">| Global Rankings</span></h2>
-    <p>Compare your progress against other challengers. Keep pushing forward!</p>
+    <h2>LEADERBOARD <span class="leaderboard-subtitle" id="leaderboard-scope-title">| Your rankings</span></h2>
+    <p id="leaderboard-scope-description">Your results are shown according to your course and PEG access.</p>
   </div>
 </div>
 
@@ -26,7 +26,7 @@
   </div>
   
   <!-- Loading State -->
-  <div id="leaderboard-loader" class="leaderboard-loader">
+  <div id="leaderboard-loader" class="leaderboard-loader" role="status" aria-live="polite">
     <div class="spinner"></div>
     <p>Fetching rankings...</p>
   </div>

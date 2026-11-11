@@ -421,12 +421,16 @@ def get_leaderboard():
     from courses import full_admin, leader_groups
     p = db.session.get(Participation, current_user.id)
     if full_admin():
+        scope = 'courses'
         ids = db.session.query(Participation.user_id).filter_by(mode='course')
     elif leader_groups():
+        scope = 'peg'
         ids = db.session.query(Participation.user_id).filter(Participation.mode=='course', Participation.group_id.in_(leader_groups()))
     elif p and p.mode=='course' and p.group_id:
+        scope = 'peg'
         ids = db.session.query(Participation.user_id).filter_by(mode='course',group_id=p.group_id)
     else:
+        scope = 'awaiting-peg' if p and p.mode=='course' else 'personal'
         ids = [current_user.id]
     users = User.query.filter(User.id.in_(ids)).all()
     leaderboard = []
@@ -434,6 +438,11 @@ def get_leaderboard():
     for u in users:
         c_state = CardState.query.filter_by(user_id=u.id).order_by(CardState.id.desc()).first()
         evaluations = SessionEvaluation.query.filter_by(user_id=u.id).all()
+        membership = db.session.get(Participation, u.id)
+        course_id = membership.course_id if membership and membership.mode == 'course' else None
+        if scope != 'personal' and (not course_id or not c_state or c_state.course_id != course_id):
+            c_state = None
+            evaluations = []
         def evaluation_points(e):
             diligence = sum(10 for n in range(1, 7) if getattr(e, f'diligence_{n}'))
             bonus = sum(50 for n in range(7, 13) if getattr(e, f'bonus_{n}')) if e.session_number == 7 else 0
@@ -441,6 +450,8 @@ def get_leaderboard():
         evaluation_total = sum(evaluation_points(e) for e in evaluations)
         # 1. Archived scores (for Cumulative)
         archived = ArchivedCard.query.filter_by(user_id=u.id).all()
+        if scope != 'personal':
+            archived = [a for a in archived if course_id and (a.snapshot_data or {}).get('courseId') == course_id]
         # Saving the active card also creates an archive snapshot. Count it only
         # through the live logs below, not again through that snapshot.
         if c_state:
@@ -448,8 +459,7 @@ def get_leaderboard():
         archived_score = sum(a.total_score for a in archived if a.total_score)
         archived_laxity = sum(a.total_laxity for a in archived if a.total_laxity)
         
-        # Get latest active card state
-        c_state = CardState.query.filter_by(user_id=u.id).order_by(CardState.id.desc()).first()
+        # The latest board above is already scoped to the member's current course.
         if not c_state:
             leaderboard.append({
                 "id": u.id,
@@ -559,7 +569,19 @@ def get_leaderboard():
             "daily_laxity": daily_laxity
         })
         
-    return jsonify({"leaderboard": leaderboard})
+    contexts = {
+        'courses': dict(title='Course rankings', description='Registered course members only. Personal participants are excluded.',
+            emptyTitle='No course members yet', emptyMessage='Existing accounts start in Personal mode. Members appear here after choosing Course in Profile & Settings. Their saved reading progress is retained.', action='manage'),
+        'peg': dict(title='Your PEG rankings', description='Compare progress with current members of your PEG only.',
+            emptyTitle='No PEG members to show', emptyMessage='Your PEG membership may have changed. Refresh your profile or contact your course admin.', action='profile'),
+        'personal': dict(title='Your personal progress', description='Personal mode shows your own totals. Join a course and PEG to compare progress with a group.',
+            emptyTitle='No personal record yet', emptyMessage='Log your reading to start tracking your progress.', action='profile'),
+        'awaiting-peg': dict(title='Awaiting PEG placement', description='Only your own course totals are shown until you are assigned to a PEG.',
+            emptyTitle='Waiting for PEG placement', emptyMessage='Your course registration is saved. A course admin can assign your PEG.', action='profile'),
+    }
+    response = jsonify(leaderboard=leaderboard, context=dict(scope=scope, **contexts[scope]))
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response
 
 
 # ─── SESSION EVALUATION ROUTES ─────────────────────────────────────────────

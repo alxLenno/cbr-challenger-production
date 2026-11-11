@@ -262,3 +262,30 @@ class CourseTest(unittest.TestCase):
         self.assertEqual(self.woman.get('/admin/api/members/3/progress').status_code,200)
         self.assertEqual(self.woman.get('/admin/api/members/5/progress').status_code,403)
         self.assertIn(b'My PEG',self.woman.get('/?admin=progress').data)
+
+    def test_empty_course_leaderboard_explains_personal_default(self):
+        response=self.admin.get('/api/leaderboard')
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json['leaderboard'],[])
+        self.assertEqual(response.json['context']['scope'],'courses')
+        self.assertEqual(response.json['context']['emptyTitle'],'No course members yet')
+        self.assertEqual(response.json['context']['action'],'manage')
+        self.assertIn('no-store',response.headers['Cache-Control'])
+        # An empty ranking does not enroll or alter any personal account.
+        self.assertEqual(self.personal.get('/api/courses/participation').json['participation']['mode'],'personal')
+        personal=self.personal.get('/api/leaderboard').json
+        self.assertEqual(personal['context']['scope'],'personal')
+        self.assertEqual([m['id'] for m in personal['leaderboard']],[4])
+
+    def test_peg_leaderboard_excludes_personal_and_other_course_history(self):
+        from models import CardState,ArchivedCard,db
+        gid=self.group();self.enroll(self.woman,'woman','11');self.enroll(self.man,'man','11')
+        self.post(self.admin,f'/groups/{gid}/leaders',{'email':'woman@example.test'})
+        with self.app.app_context():
+            db.session.add(CardState(user_id=3,course_id=1,current_card_id=1,active_instance_id='live-lb',commencing_date='2026-11-10'))
+            for instance,cid,points in [('private',None,500),('elsewhere',2,300),('course',1,2)]:
+                db.session.add(ArchivedCard(user_id=3,instance_id=instance,card_id=1,commencing_date='2026-10-01',saved_at='2026-10-28',total_score=points,total_laxity=0,snapshot_data={'courseId':cid}))
+            db.session.commit()
+        response=self.woman.get('/api/leaderboard').json
+        self.assertEqual(response['context']['scope'],'peg')
+        self.assertEqual(next(m['cumulative_points'] for m in response['leaderboard'] if m['id']==3),2)

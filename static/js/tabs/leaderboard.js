@@ -1,63 +1,71 @@
-async function prefetchLeaderboard() {
-  // Fire-and-forget background fetch
-  try {
-    leaderboardFetching = true;
-    const res = await fetch('/api/leaderboard');
-    if (!res.ok) throw new Error('fetch failed');
+let leaderboardContext = null;
+let leaderboardRequest = null;
+
+function escapeLeaderboardText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateLeaderboardContext() {
+  const title=document.getElementById('leaderboard-scope-title');
+  const description=document.getElementById('leaderboard-scope-description');
+  if(title) title.textContent = '| ' + (leaderboardContext?.title || 'Your rankings');
+  if(description) description.textContent = leaderboardContext?.description || 'Your results are shown according to your course and PEG access.';
+}
+
+async function requestLeaderboard() {
+  if (leaderboardRequest) return leaderboardRequest;
+  leaderboardFetching = true;
+  leaderboardRequest = (async () => {
+    const res = await fetch('/api/leaderboard', {cache:'no-store'});
+    if (!res.ok || res.redirected || !res.headers.get('content-type')?.includes('application/json')) throw new Error('Could not load rankings. Check your connection and sign-in session.');
     const data = await res.json();
-    leaderboardCache = data.leaderboard || [];
-  } catch (e) {
-    leaderboardCache = null; // allow retry on tab click
-  } finally {
-    leaderboardFetching = false;
+    if (!Array.isArray(data.leaderboard)) throw new Error('Could not load rankings. Please try again.');
+    leaderboardCache = data.leaderboard;
+    leaderboardContext = data.context || null;
+    updateLeaderboardContext();
+    return leaderboardCache;
+  })().finally(() => { leaderboardFetching=false; leaderboardRequest=null; });
+  return leaderboardRequest;
+}
+
+async function prefetchLeaderboard() {
+  try { await requestLeaderboard(); }
+  catch (_) { leaderboardCache=null; }
+}
+
+function showLeaderboardEmpty(loader) {
+  loader.replaceChildren();
+  const title=document.createElement('h3');
+  title.textContent=leaderboardContext?.emptyTitle || 'No rankings to show';
+  const text=document.createElement('p');
+  text.textContent=leaderboardContext?.emptyMessage || 'There are no members in your available ranking group.';
+  loader.append(title,text);
+  const action=leaderboardContext?.action;
+  if (action==='manage'||action==='profile') {
+    const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';
+    button.textContent=action==='manage'?'Manage courses & PEGs':'Profile & Settings';
+    button.addEventListener('click',()=>{
+      openAppSection(action==='manage'?'tab-admin-progress':'tab-account');
+      if(action==='manage') {const manager=document.getElementById('course-manager');if(manager){manager.open=true;manager.scrollIntoView({block:'start'});}}
+      else {document.querySelector('[data-subtab="tab-profile"]')?.click();document.getElementById('course-enrollment')?.scrollIntoView({block:'center'});}
+    });
+    loader.append(button);
   }
 }
 
 async function fetchLeaderboard() {
-  const loader = document.getElementById('leaderboard-loader');
-  const podium = document.getElementById('leaderboard-podium');
-  const listWrapper = document.getElementById('leaderboard-list-wrapper');
-  const tbody = document.getElementById('leaderboard-tbody');
-  
-  // Show cached rankings immediately, then refresh saved scores on every visit.
-  if (leaderboardCache !== null) {
-    renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
-  }
-  
-  // Still loading or first click before prefetch finished — show spinner briefly
-  loader.style.display = 'flex';
-  podium.style.display = 'none';
-  listWrapper.style.display = 'none';
-  
-  // If already fetching in background, poll until done
-  if (leaderboardFetching) {
-    const interval = setInterval(() => {
-      if (!leaderboardFetching) {
-        clearInterval(interval);
-        if (leaderboardCache !== null) {
-          loader.style.display = 'none';
-          renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
-        } else {
-          loader.innerHTML = '<p style="color:var(--danger)">Error loading leaderboard. Please try again.</p>';
-        }
-      }
-    }, 100);
-    return;
-  }
-  
-  // Fallback: fetch on demand
-  try {
-    leaderboardFetching = true;
-    const res = await fetch('/api/leaderboard');
-    if (!res.ok) throw new Error('fetch failed');
-    const data = await res.json();
-    leaderboardCache = data.leaderboard || [];
-    loader.style.display = 'none';
-    renderLeaderboard(leaderboardCache, podium, listWrapper, tbody);
-  } catch (err) {
-    loader.innerHTML = '<p style="color:var(--danger)">Error loading leaderboard.</p>';
-  } finally {
-    leaderboardFetching = false;
+  const loader=document.getElementById('leaderboard-loader');
+  const podium=document.getElementById('leaderboard-podium');
+  const listWrapper=document.getElementById('leaderboard-list-wrapper');
+  const tbody=document.getElementById('leaderboard-tbody');
+  if(leaderboardCache!==null) renderLeaderboard(leaderboardCache,podium,listWrapper,tbody);
+  else {loader.style.display='flex';podium.style.display='none';listWrapper.style.display='none';loader.innerHTML='<div class="spinner"></div><p>Fetching rankings…</p>';}
+  try {await requestLeaderboard();renderLeaderboard(leaderboardCache,podium,listWrapper,tbody);}
+  catch(error) {
+    podium.style.display='none';listWrapper.style.display='none';loader.style.display='flex';loader.replaceChildren();
+    const text=document.createElement('p');text.textContent=error.message;
+    const retry=document.createElement('button');retry.type='button';retry.className='btn btn-secondary';retry.textContent='Retry';retry.addEventListener('click',fetchLeaderboard);
+    loader.append(text,retry);
   }
 }
 
@@ -69,7 +77,7 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
   
   if (!leaderboardData || leaderboardData.length === 0) {
     loader.style.display = 'flex';
-    loader.innerHTML = '<p>No leaderboard data available yet.</p>';
+    showLeaderboardEmpty(loader);
     return;
   }
   
@@ -103,8 +111,8 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
     if (!user) return;
     const avatarSrc = user.avatar || '';
     const avatarHtml = avatarSrc
-      ? `<img src="${avatarSrc}" alt="${user.name}" class="podium-avatar">`
-      : `<div class="podium-avatar podium-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
+      ? `<img src="${escapeLeaderboardText(avatarSrc)}" alt="${escapeLeaderboardText(user.name)}" class="podium-avatar">`
+      : `<div class="podium-avatar podium-avatar-placeholder">${escapeLeaderboardText(String(user.name || '?').charAt(0).toUpperCase())}</div>`;
     
     const crownHtml = user._currentRank === 1
       ? `<div class="podium-crown"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3a1 1 0 0 0 0 2h10a1 1 0 0 0 0-2H7z"/></svg></div>`
@@ -117,7 +125,7 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
     pItem.innerHTML = `
       ${crownHtml}
       ${avatarHtml}
-      <div class="podium-name" title="${user.name}">${user.name}</div>
+      <div class="podium-name" title="${escapeLeaderboardText(user.name)}">${escapeLeaderboardText(user.name)}</div>
       <div class="podium-points"><strong>${displayPoints}</strong> PTS</div>
       <div class="podium-card-label">Card ${user.cardLevel}</div>
       <div class="podium-rank-badge">${user._currentRank}</div>
@@ -132,8 +140,8 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
     rest.forEach(user => {
       const avatarSrc = user.avatar || '';
       const avatarHtml = avatarSrc
-        ? `<img src="${avatarSrc}" alt="${user.name}" class="user-avatar-small">`
-        : `<div class="user-avatar-small user-avatar-placeholder">${user.name.charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${escapeLeaderboardText(avatarSrc)}" alt="${escapeLeaderboardText(user.name)}" class="user-avatar-small">`
+        : `<div class="user-avatar-small user-avatar-placeholder">${escapeLeaderboardText(String(user.name || '?').charAt(0).toUpperCase())}</div>`;
         
       const displayPoints = user[pointsKey] || 0;
       const displayLaxity = user[laxityKey] || 0;
@@ -141,7 +149,7 @@ function renderLeaderboard(leaderboardData, podium, listWrapper, tbody) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="col-rank">#${user._currentRank}</td>
-        <td class="col-user"><div class="user-cell-content">${avatarHtml}<span>${user.name}</span></div></td>
+        <td class="col-user"><div class="user-cell-content">${avatarHtml}<span>${escapeLeaderboardText(user.name)}</span></div></td>
         <td class="col-card"><span class="card-badge">Card ${user.cardLevel}</span></td>
         <td class="col-points text-right">${displayPoints}</td>
         <td class="col-laxity text-center">${displayLaxity}</td>

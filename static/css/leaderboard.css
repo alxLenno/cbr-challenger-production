@@ -722,3 +722,6 @@ body.light-mode .lb-filter-btn.active,
     font-size: 0.8rem;
   }
 }
+.leaderboard-loader h3 { color: var(--text-primary); font-size: 1.2rem; margin: 0; }
+.leaderboard-loader p { max-width: 560px; line-height: 1.7; text-align: center; color: var(--text-secondary); margin: 0; }
+@media (max-width: 600px) { .leaderboard-loader { padding: 2rem 1rem; } }
