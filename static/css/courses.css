@@ -70,3 +70,22 @@
 
 #course-enrollment #participation-feedback { min-height: 1.15rem; }
 #course-enrollment #participation-feedback[data-state="pending"] { color: var(--primary); }
+
+/* Keep management actions aligned across forms with different field counts. */
+.course-manager .course-management-toolbar label { margin-bottom:0; min-width:220px; }
+.course-manager .course-management-toolbar > .btn { min-height:44px; display:inline-flex; align-items:center; justify-content:center; margin:0; }
+.course-manager .course-management-grid > form { display:flex; flex-direction:column; min-width:0; }
+.course-manager .course-management-grid input, .course-manager .course-management-grid select { min-height:44px; box-sizing:border-box; }
+.course-manager .course-form-footer { margin-top:auto; padding-top:.4rem; }
+.course-manager .course-form-footer p { margin:.55rem 0 0; min-height:2.5em; }
+.course-manager .course-rules { align-items:start; }
+.admin-role-guide { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1rem 0; }
+.admin-role-guide article { padding:1rem; border:1px solid var(--panel-border); border-radius:var(--radius-sm); background:var(--input-bg); }
+.admin-role-guide strong { font-size:.85rem; color:var(--text-primary); }
+.admin-role-guide p { margin:.4rem 0 0; }
+@media(max-width:700px) {
+  .admin-role-guide, .course-manager .course-management-grid { grid-template-columns:1fr; }
+  .course-manager .course-management-toolbar { align-items:stretch; }
+  .course-manager .course-management-toolbar label { width:100%; }
+  .course-manager .course-form-footer p { min-height:0; }
+}
