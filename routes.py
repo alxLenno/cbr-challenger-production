@@ -450,8 +450,10 @@ def get_leaderboard():
         evaluation_total = sum(evaluation_points(e) for e in evaluations)
         # 1. Archived scores (for Cumulative)
         archived = ArchivedCard.query.filter_by(user_id=u.id).all()
+        from admin_progress import course_archive_visible, member_report
         if scope != 'personal':
-            archived = [a for a in archived if course_id and (a.snapshot_data or {}).get('courseId') == course_id]
+            archived = [a for a in archived if course_archive_visible(a, course_id)]
+        report_total = member_report(u, c_state, archived, evaluations)['member']['totalPoints']
         # Saving the active card also creates an archive snapshot. Count it only
         # through the live logs below, not again through that snapshot.
         if c_state:
@@ -466,7 +468,7 @@ def get_leaderboard():
                 "name": u.name or u.email.split('@')[0],
                 "avatar": u.profile_pic,
                 "cardLevel": 1,
-                "cumulative_points": archived_score + evaluation_total, "cumulative_laxity": archived_laxity,
+                "cumulative_points": report_total, "cumulative_laxity": archived_laxity,
                 "session_points": 0, "session_laxity": 0,
                 "weekly_points": 0, "weekly_laxity": 0,
                 "daily_points": 0, "daily_laxity": 0
@@ -559,7 +561,7 @@ def get_leaderboard():
             "name": u.name or u.email.split('@')[0],
             "avatar": u.profile_pic,
             "cardLevel": c_id,
-            "cumulative_points": cumulative_score,
+            "cumulative_points": report_total,
             "cumulative_laxity": cumulative_laxity,
             "session_points": session_score,
             "session_laxity": session_laxity,

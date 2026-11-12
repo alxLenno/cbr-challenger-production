@@ -139,7 +139,7 @@ class CourseTest(unittest.TestCase):
             db.session.add(board);db.session.flush()
             db.session.add(DailyLog(card_state_id=board.id,day_number=1,morning_chapters=1,fid_focus='PRIVATE TEXT'))
             for instance,cid in [('personal-history',None),('different-course',2),('this-course',1)]:
-                db.session.add(ArchivedCard(user_id=5,instance_id=instance,card_id=1,commencing_date='2026-10-01',saved_at='2026-10-28',snapshot_data={'courseId':cid,'days':[],'weeks':[]}))
+                db.session.add(ArchivedCard(user_id=5,instance_id=instance,card_id=1,commencing_date='2026-10-01',saved_at='2026-10-28',snapshot_data={'courseId':cid,'participationMode':'personal' if cid is None else 'course','days':[],'weeks':[]}))
             db.session.commit()
         report=self.woman.get('/admin/api/members/5/progress')
         self.assertEqual(report.status_code,200)
@@ -286,6 +286,13 @@ class CourseTest(unittest.TestCase):
             for instance,cid,points in [('private',None,500),('elsewhere',2,300),('course',1,2)]:
                 db.session.add(ArchivedCard(user_id=3,instance_id=instance,card_id=1,commencing_date='2026-10-01',saved_at='2026-10-28',total_score=points,total_laxity=0,snapshot_data={'courseId':cid}))
             db.session.commit()
+        with self.app.app_context():
+            db.session.add(ArchivedCard(user_id=3,instance_id='legacy-null-course',card_id=2,
+                commencing_date='2026-09-01',saved_at='2026-09-28',total_score=13,total_laxity=27,
+                snapshot_data={'courseId':None}))
+            db.session.commit()
         response=self.woman.get('/api/leaderboard').json
         self.assertEqual(response['context']['scope'],'peg')
-        self.assertEqual(next(m['cumulative_points'] for m in response['leaderboard'] if m['id']==3),2)
+        points=next(m['cumulative_points'] for m in response['leaderboard'] if m['id']==3)
+        self.assertEqual(points,15)
+        self.assertEqual(self.woman.get('/admin/api/members/3/progress').json['member']['totalPoints'],points)

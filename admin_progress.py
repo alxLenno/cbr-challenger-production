@@ -53,8 +53,9 @@ def clean_card(raw):
     card['currentCardId'] = max(1, min(7, number(raw.get('currentCardId') or raw.get('cardId'), 1)))
     card['participationMode'] = 'course'
     card['round'] = max(1, number(raw.get('round'), 1))
-    unique_days = {number(day.get('dayNumber')): {key: day.get(key) for key in DAY_FIELDS}
-                   for day in (raw.get('days') or []) if isinstance(day, dict) and 1 <= number(day.get('dayNumber')) <= 28}
+    unique_days = {number(day.get('dayNumber') if day.get('dayNumber') is not None else index): {key: day.get(key) for key in DAY_FIELDS}
+                   for index, day in enumerate(raw.get('days') or [], 1)
+                   if isinstance(day, dict) and 1 <= number(day.get('dayNumber') if day.get('dayNumber') is not None else index) <= 28}
     card['days'] = [dict(unique_days[n], dayNumber=n) for n in sorted(unique_days)]
     for day in card['days']:
         day['readingPassages'] = [{k: passage.get(k) for k in ('book', 'startChapter', 'endChapter')}
@@ -104,7 +105,7 @@ def score_card(card):
         points = sum(weight for key, weight in [('reading', 3), ('waking', 2), ('prayer', 2), ('recitation', 1), ('journaling', 1)] if counts[key] == 7)
         points += bool(card['weeks'][week]['sharedFid'])
         weeks.append(dict(week=week + 1, points=points, **counts, shared=bool(card['weeks'][week]['sharedFid'])))
-    return dict(points=sum(w['points'] for w in weeks), weeks=weeks)
+    return dict(points=card.get('archivedGrowthPoints', sum(w['points'] for w in weeks)), weeks=weeks)
 
 
 def member_report(user, board, archives, evaluations, today=None):
@@ -119,6 +120,10 @@ def member_report(user, board, archives, evaluations, today=None):
                    round=archive.round or 1, commencingDate=archive.commencing_date, savedAt=archive.saved_at)
         raw.setdefault('username', user.name or user.email)
         card = clean_card(raw)
+        # Some legacy archives retained a score but no detailed daily snapshot.
+        stored = number(getattr(archive, 'total_score', None) or raw.get('totalScore'))
+        if not raw.get('days') and not raw.get('weeks') and 0 <= stored <= 40:
+            card['archivedGrowthPoints'] = stored
         cards[key(card)] = card
     active = live_card(user, board) if board else None
     if active:
@@ -187,14 +192,22 @@ def member_report(user, board, archives, evaluations, today=None):
     return dict(member=summary, state=state, evaluations=sessions, records=records)
 
 
+def course_archive_visible(archive, course_id):
+    raw = archive.snapshot_data or {}
+    if not course_id or raw.get('participationMode') == 'personal':
+        return False
+    if raw.get('courseId') is not None:
+        return str(raw['courseId']) == str(course_id)
+    # Legacy archives may have acquired a null ID when edited after migration.
+    # Explicit Personal snapshots remain private.
+    return raw.get('participationMode') != 'personal'
+
+
 def course_report(user, board, archives, evaluations, participant):
     cid = participant.course_id
     eligible_board = board if cid and board and board.course_id == cid else None
     report = member_report(user, eligible_board,
-        [a for a in archives if cid and (
-            (a.snapshot_data or {}).get('courseId') == cid or
-            ('courseId' not in (a.snapshot_data or {}) and
-             (a.snapshot_data or {}).get('participationMode') != 'personal'))],
+        [a for a in archives if course_archive_visible(a, cid)],
         evaluations if eligible_board else [])
     report['member'].update(cohort=participant.requested_cohort, peg=participant.requested_peg,
                             groupId=participant.group_id, courseId=cid,
