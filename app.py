@@ -58,7 +58,8 @@ def serve_app():
     saved_theme = db.session.query(CardState.theme).filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
     initial_theme = 'light' if saved_theme and saved_theme[0] == 'light' else 'dark'
     resp = make_response(render_template('index.html', show_admin_progress=admin, show_course_management=is_admin_user(),
-        initial_admin=admin and request.args.get('admin') == 'progress',
+        initial_admin=admin and (request.args.get('admin') == 'progress' or (is_admin_user() and request.args.get('admin') == 'pegs')),
+        initial_pegs=is_admin_user() and request.args.get('admin') == 'pegs',
         initial_theme=initial_theme, theme_storage_key=f'cbr.theme.{current_user.id}',
         scripture_reference_pattern=get_reference_pattern(),
         **(member_progress_context() if admin else {})))

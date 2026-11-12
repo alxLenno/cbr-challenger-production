@@ -47,6 +47,8 @@ class AdminProgressTest(unittest.TestCase):
             self.assertEqual(client.get('/admin/api/members/999999/progress').status_code, 404)
             self.assertIn(b'id="main-header"', response.data)
             self.assertIn(b'id="theme-toggle"', response.data)
+            self.assertIn(b'data-tab="tab-admin-pegs"', response.data)
+            self.assertIn(b'class="tab-content active" id="tab-admin-pegs"', client.get('/?admin=pegs').data)
             self.assertIn(b'class="tab-content active" id="tab-admin-progress"', response.data)
             self.assertNotIn(b'class="tab-content active" id="tab-today"', response.data)
 

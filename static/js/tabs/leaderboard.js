@@ -45,8 +45,8 @@ function showLeaderboardEmpty(loader) {
     const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';
     button.textContent=action==='manage'?'Manage courses & PEGs':'Profile & Settings';
     button.addEventListener('click',()=>{
-      openAppSection(action==='manage'?'tab-admin-progress':'tab-account');
-      if(action==='manage') {const manager=document.getElementById('course-manager');if(manager){manager.open=true;manager.scrollIntoView({block:'start'});}}
+      openAppSection(action==='manage'?'tab-admin-pegs':'tab-account');
+      if(action==='manage') {const manager=document.getElementById('course-manager');if(manager){manager.scrollIntoView({block:'start'});}}
       else {document.querySelector('[data-subtab="tab-profile"]')?.click();document.getElementById('course-enrollment')?.scrollIntoView({block:'center'});}
     });
     loader.append(button);

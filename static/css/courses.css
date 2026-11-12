@@ -97,3 +97,26 @@
 .course-manager .course-random-rules > .btn { height:46px; min-height:46px; margin:0; display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; }
 @media(max-width:1000px) { .course-manager .course-random-rules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) { .course-manager .course-random-rules { grid-template-columns:1fr; } .course-manager .course-random-rules > .btn { width:100%; white-space:normal; } }
+
+#overall-admin-manager { min-width:0; }
+#overall-admin-manager #overall-admin-form { box-sizing:border-box; width:100%; max-width:620px; padding:1.25rem; display:flex; flex-direction:column; align-items:stretch; gap:.75rem; }
+#overall-admin-manager #overall-admin-form h3, #overall-admin-manager #overall-admin-form label, #overall-admin-manager #overall-admin-form input, #overall-admin-manager #overall-admin-form p { margin:0; }
+#overall-admin-manager #overall-admin-form input { box-sizing:border-box; min-width:0; min-height:44px; }
+#overall-admin-manager #overall-admin-form p { line-height:1.6; overflow-wrap:anywhere; }
+#overall-admin-manager #overall-admin-form button { align-self:flex-start; min-height:44px; padding:.65rem 1rem; }
+#overall-admin-manager .table-wrap { width:100%; min-width:0; }
+#overall-admin-manager td { overflow-wrap:anywhere; }
+@media(max-width:600px) { #overall-admin-manager #overall-admin-form { padding:1rem; } #overall-admin-manager #overall-admin-form button { width:100%; } }
+.peg-workspace-tabs { display:flex; gap:.35rem; flex-wrap:wrap; border-bottom:1px solid var(--panel-border); padding-bottom:.7rem; margin-bottom:1.2rem; }
+.peg-workspace-tabs button { border:1px solid transparent; border-radius:8px; background:transparent; color:var(--text-secondary); padding:.7rem 1rem; font:inherit; font-size:.82rem; font-weight:600; cursor:pointer; min-height:44px; }
+.peg-workspace-tabs button[aria-selected="true"] { color:var(--primary); background:rgba(var(--primary-rgb),.1); border-color:rgba(var(--primary-rgb),.25); }
+.peg-workspace-tabs button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+#peg-panel-cohorts > form, .course-placement-manual { max-width:620px; }
+#peg-panel-access h2 { font-size:1.05rem; margin:1.2rem 0 .5rem; }
+@media(max-width:600px) { .peg-workspace-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .peg-workspace-tabs button { padding:.65rem .4rem; } }
+
+#peg-panel-create > form, #peg-panel-groups .course-management-grid { max-width:620px; }
+#peg-panel-groups .course-management-grid { grid-template-columns:1fr; }
+
+#peg-panel-leaders > form { max-width:620px; }
+#course-group-list > h3 { margin:1.2rem 0 .5rem; }
