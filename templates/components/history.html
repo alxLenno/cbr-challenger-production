@@ -6,9 +6,12 @@
     </div>
   </div>
 
-  <div style="margin-bottom:1rem;">
-    <button type="button" class="btn btn-primary" onclick="downloadChallengerBooklet()">Download all cards as a booklet</button>
-    <p style="font-size:0.8rem; margin-top:0.5rem;">Includes your Challenger cards with front and back covers. Choose Save as PDF in the print dialog.</p>
+  <div class="history-booklet-action">
+    <button type="button" class="btn download-action history-booklet-button" onclick="downloadChallengerBooklet()" aria-describedby="history-booklet-hint">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg>
+      <span>Download booklet</span>
+    </button>
+    <p id="history-booklet-hint">All cards, cover pages and your evaluation. Select Save as PDF when prompted.</p>
   </div>
 
   <div id="history-progress-bar-container" class="history-progress-wrapper"></div>

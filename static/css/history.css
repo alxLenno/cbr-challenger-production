@@ -270,3 +270,11 @@
   gap: 4px;
 }
 
+
+.history-booklet-action { display:flex; flex-wrap:wrap; align-items:center; gap:.8rem 1.2rem; margin-bottom:1.5rem; }
+.history-booklet-action .history-booklet-button { display:inline-flex; align-items:center; justify-content:center; gap:.6rem; min-height:44px; padding:.7rem 1rem; border:1px solid rgba(var(--primary-rgb),.35); border-radius:10px; background:rgba(var(--primary-rgb),.1); color:var(--primary); font-size:.85rem; font-weight:600; box-shadow:none; white-space:nowrap; transition:background .15s,border-color .15s; }
+.history-booklet-action .history-booklet-button:hover { background:rgba(var(--primary-rgb),.18); border-color:var(--primary); transform:none; }
+.history-booklet-action .history-booklet-button:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+.history-booklet-button svg { flex-shrink:0; }
+.history-booklet-action p { margin:0; max-width:440px; color:var(--text-muted); font-size:.78rem; line-height:1.6; }
+@media(max-width:600px) { .history-booklet-action { align-items:flex-start; flex-direction:column; gap:.6rem; } }

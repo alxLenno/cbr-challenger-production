@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/session_eval.css') }}?v=9">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/reference.css') }}?v=48">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}?v=46">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=46">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/history.css') }}?v=47">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=73">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bible-journey.css') }}?v=3">
@@ -68,7 +68,7 @@
         <div class="header-stat-pill danger" id="header-pill-laxity"><i data-lucide="zap" style="color:#fb7185;"></i> Laxity: <strong id="header-laxity-val">—</strong></div>
       </div>
       <div class="header-actions">
-        <button type="button" class="header-profile-pill booklet-shortcut" onclick="downloadChallengerBooklet()" aria-label="Download booklet" title="Download booklet">
+        <button type="button" class="header-profile-pill booklet-shortcut download-action download-action-icon" onclick="downloadChallengerBooklet()" aria-label="Download booklet" title="Download booklet">
           <svg width="18" height="18" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></svg>
         </button>
         <button id="topbar-profile-btn" class="header-profile-pill" title="User Profile">
@@ -464,11 +464,13 @@
   <!-- Custom Glassmorphism Toast Container -->
   <div id="toast-container" style="position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 14px; pointer-events: none;"></div>
 
-  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=3"></script>{% endif %}
+  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=4"></script>{% endif %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/courses.css') }}?v=4">
   <script src="{{ url_for('static',filename='js/courses.js') }}?v=3"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themed-select.css') }}?v=1">
   <script src="{{ url_for('static', filename='js/themed-select.js') }}?v=1" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/download-actions.css') }}?v=1">
+  <script src="{{ url_for('static', filename='js/download-actions.js') }}?v=1" defer></script>
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="{{ url_for('static', filename='js/data.js') }}?v=9"></script>
@@ -486,7 +488,7 @@
   <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=4"></script>
   <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=6"></script>
+  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/account.js') }}?v=4"></script>
   <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=4"></script>
   <script>
