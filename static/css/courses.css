@@ -89,3 +89,11 @@
   .course-manager .course-management-toolbar label { width:100%; }
   .course-manager .course-form-footer p { min-height:0; }
 }
+
+/* Align random placement inputs and action independently of label height. */
+.course-manager .course-random-rules { display:grid; grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) minmax(180px,1.5fr) auto; align-items:end; gap:1rem; margin-top:1rem; }
+.course-manager .course-random-rules > label { margin:0; min-width:0; }
+.course-manager .course-random-rules input, .course-manager .course-random-rules .themed-select-trigger { height:46px; min-height:46px; box-sizing:border-box; margin-top:.4rem; }
+.course-manager .course-random-rules > .btn { height:46px; min-height:46px; margin:0; display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; }
+@media(max-width:1000px) { .course-manager .course-random-rules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .course-manager .course-random-rules { grid-template-columns:1fr; } .course-manager .course-random-rules > .btn { width:100%; white-space:normal; } }
