@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/account.css') }}?v=45">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/card-print.css') }}?v=73">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bible-journey.css') }}?v=3">
-  {% if show_admin_progress %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-progress.css') }}?v=3">{% endif %}
+  {% if show_admin_progress %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-progress.css') }}?v=4">{% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}?v=3">
   <script src="{{ url_for('static', filename='js/sidebar.js') }}?v=2" defer></script>
   {% if show_course_management %}<script src="{{ url_for('static', filename='js/admin-access.js') }}?v=1" defer></script>{% endif %}
@@ -464,7 +464,7 @@
   <!-- Custom Glassmorphism Toast Container -->
   <div id="toast-container" style="position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 14px; pointer-events: none;"></div>
 
-  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=2"></script>{% endif %}
+  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=3"></script>{% endif %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/courses.css') }}?v=3">
   <script src="{{ url_for('static',filename='js/courses.js') }}?v=3"></script>
   <!-- Lucide Icons & Application Runner -->

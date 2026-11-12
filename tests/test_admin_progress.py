@@ -91,3 +91,28 @@ class AdminProgressTest(unittest.TestCase):
         report=member_report(user,board,[],[],today=date(2026,11,10))
         self.assertEqual(report['member']['missed'],0)
         self.assertEqual(report['member']['status'],'Not started')
+
+    def test_legacy_history_restores_points_and_booklet_without_private_records(self):
+        from admin_progress import course_report
+        from types import SimpleNamespace as NS
+        user = NS(id=12, name='Legacy Member', email='legacy@example.test')
+        board = NS(course_id=1, active_instance_id='current', current_card_id=6, round=1,
+                   commencing_date='2026-11-01', contact='', church='', cohort='Cohort 18', peg='PEG 11', days=[], weeks=[])
+        archives = []
+        for n, count in [(1,28),(2,28),(3,21)]:
+            days = [dict(dayNumber=d, morningChapters=n, wakingTime='04:00', prayer10mins=True,
+                         recitedMemory=True, fidJournaling=True) for d in range(1,count+1)]
+            archives.append(NS(id=n, instance_id=f'legacy-{n}', card_id=n, round=1,
+                commencing_date='2026-08-01', saved_at='2026-09-01', snapshot_data=dict(days=days,
+                weeks=[dict(weekNumber=w, sharedFid=True) for w in range(1,count//7+1)])))
+        for n, private in [(4,{'courseId':None}),(5,{'courseId':2}),(6,{'participationMode':'personal'})]:
+            archives.append(NS(id=n,instance_id=f'excluded-{n}',card_id=n,round=1,
+                commencing_date='2026-08-01',saved_at='2026-09-01',snapshot_data=private))
+        evaluations = [NS(session_number=7, submitted_at=None,
+            **{f'diligence_{i}':False for i in range(1,7)}, **{f'bonus_{i}':True for i in range(7,13)})]
+        report = course_report(user,board,archives,evaluations,NS(course_id=1,group_id=1,requested_cohort='Cohort 18',requested_peg='PEG 11'))
+        self.assertEqual(report['member']['growthPoints'],110)
+        self.assertEqual(report['member']['totalPoints'],410)
+        self.assertEqual(report['member']['cardNumbers'],[1,2,3,6])
+        self.assertEqual(len(report['state']['savedCards']),4)
+        self.assertEqual({r['instanceId'] for r in report['records']},{'legacy-1','legacy-2','legacy-3','current'})

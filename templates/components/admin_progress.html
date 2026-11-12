@@ -17,7 +17,7 @@
       <label>Activity<select id="admin-member-status"><option value="">All members</option><option>On track</option><option>Needs support</option><option>Not started</option></select></label>
     </div>
     <div class="table-wrap"><table class="admin-member-table"><caption class="admin-sr-only">Member participation and total course points</caption><thead><tr><th>Member</th><th>Cohort / PEG</th><th>Current card</th><th>Last activity</th><th>Total points</th><th>Progress</th><th>Actions</th></tr></thead><tbody>
-      {% for m in members %}<tr data-member="{{ m.name ~ ' ' ~ m.email ~ ' ' ~ (m.peg or '') }}" data-cohort="{{ m.cohort or '' }}" data-peg="{{ m.peg or '' }}" data-card="{{ m.current_card_id or '' }}" data-round="{{ m.round or '' }}" data-status="{{ m.status }}">
+      {% for m in members %}<tr data-member="{{ m.name ~ ' ' ~ m.email ~ ' ' ~ (m.peg or '') }}" data-cohort="{{ m.cohort or '' }}" data-peg="{{ m.peg or '' }}" data-card="{{ m.cardNumbers|join(',') }}" data-round="{{ m.recordRounds|join(',') }}" data-status="{{ m.status }}">
         <td data-label="Member"><strong>{{ m.name }}</strong><small>{{ m.email }}</small></td>
         <td data-label="Cohort / PEG">{{ m.cohort or 'Unassigned' }}<small>{{ m.peg or 'Awaiting PEG placement' }}</small>{% if not m.groupId %}<small>Not assigned yet</small>{% endif %}</td>
         <td data-label="Current card">{% if m.current_card_id %}Card {{ m.current_card_id }} · Round {{ m.round }}{% else %}No card yet{% endif %}<small>{{ m.days }} / 28 days logged</small><progress aria-label="Days logged" max="28" value="{{ m.days }}"></progress></td>

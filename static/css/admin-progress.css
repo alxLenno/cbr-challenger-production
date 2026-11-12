@@ -81,3 +81,14 @@
   .admin-progress .admin-member-table td:last-child button { width: 100%; }
   .admin-progress .admin-cohort-summary summary span { display: block; margin: .5rem 0 0; }
 }
+
+.admin-progress .filters select[hidden] { display:none !important; }
+.admin-filter-picker { position:relative; min-width:0; }
+.admin-filter-picker summary { list-style:none; cursor:pointer; padding:14px 16px; border:1px solid var(--border-color, #475569); border-radius:12px; background:var(--bg-secondary, #1e293b); color:var(--text-main); display:flex; justify-content:space-between; gap:12px; }
+.admin-filter-picker summary::-webkit-details-marker { display:none; }
+.admin-filter-picker summary::after { content:'⌄'; }
+.admin-filter-picker summary:focus-visible, .admin-filter-options button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+.admin-filter-options { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:30; padding:6px; max-height:260px; overflow:auto; border:1px solid var(--border-color, #475569); border-radius:12px; background:var(--bg-secondary, #1e293b); box-shadow:0 12px 32px #0003; }
+.admin-filter-options button { display:block; width:100%; border:0; border-radius:7px; padding:10px; text-align:left; background:transparent; color:var(--text-main); cursor:pointer; font:inherit; }
+.admin-filter-options button:hover, .admin-filter-options button[aria-pressed="true"] { background:var(--primary-light, #d9770620); color:var(--primary); }
+body.light-mode .admin-filter-picker summary, body.light-mode .admin-filter-options { background:#fff; border-color:#e2e8f0; color:#0f172a; }

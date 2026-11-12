@@ -177,6 +177,8 @@ def member_report(user, board, archives, evaluations, today=None):
         diligencePoints=diligence, bonusPoints=bonus, totalPoints=growth + diligence + bonus,
         lastActivity=last[:10] if last else None, status=status, flags=flags,
         pendingEvaluations=pending, barriers=barriers, disciplines=metrics,
+        cardNumbers=sorted({c['currentCardId'] for c in records}),
+        recordRounds=sorted({c['round'] for c in records}),
         completedCards=sum(len({d['dayNumber'] for d in c['days'] if d.get('logTimestamp') or d.get('morningChapters') or d.get('laterChapters')}) == 28 for c in records))
     profile = dict(username=user.name or user.email, contact=summary['contact'], church=summary['church'],
                    cohort=summary['cohort'], peg=summary['peg'], round=summary['round'] or 1)
@@ -189,7 +191,10 @@ def course_report(user, board, archives, evaluations, participant):
     cid = participant.course_id
     eligible_board = board if cid and board and board.course_id == cid else None
     report = member_report(user, eligible_board,
-        [a for a in archives if cid and (a.snapshot_data or {}).get('courseId') == cid],
+        [a for a in archives if cid and (
+            (a.snapshot_data or {}).get('courseId') == cid or
+            ('courseId' not in (a.snapshot_data or {}) and
+             (a.snapshot_data or {}).get('participationMode') != 'personal'))],
         evaluations if eligible_board else [])
     report['member'].update(cohort=participant.requested_cohort, peg=participant.requested_peg,
                             groupId=participant.group_id, courseId=cid,
@@ -219,7 +224,7 @@ def member_progress_context():
             participation=round(100 * participating / len(group)),
             points=sum(m['totalPoints'] for m in group), support=sum(m['status'] == 'Needs support' for m in group)))
     return dict(members=members, cohorts=cohorts, pegs=pegs, cohort_summary=cohort_summary,
-        rounds=sorted({m['round'] for m in members if m['round']}),
+        rounds=sorted({r for m in members for r in m['recordRounds']}),
         started=sum(m['days'] > 0 for m in members),
         support=sum(m['status'] == 'Needs support' for m in members),
         complete=sum(m['completedCards'] for m in members))

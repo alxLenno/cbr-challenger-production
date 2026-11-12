@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let count = 0;
     for (const row of rows) {
       row.hidden = !(row.dataset.member.toLowerCase().includes(search.value.trim().toLowerCase()) &&
-        filters.every(([key, input]) => !input.value || row.dataset[key] === input.value));
+        filters.every(([key, input]) => !input.value || (['card', 'round'].includes(key) ? row.dataset[key].split(',').includes(input.value) : row.dataset[key] === input.value)));
       if (!row.hidden) count++;
     }
     panel.querySelector('#admin-member-count').textContent = `${count} of ${rows.length} members`;
@@ -21,6 +21,49 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   search.addEventListener('input', filterMembers);
   filters.forEach(([, input]) => input.addEventListener('change', filterMembers));
+  // Render themed controls instead of the operating system's select popup.
+  filters.forEach(([key, input]) => {
+    const wrapper = document.createElement('details');
+    wrapper.className = 'admin-filter-picker';
+    const trigger = document.createElement('summary');
+    trigger.setAttribute('aria-label', `Filter by ${key}`);
+    const list = document.createElement('div');
+    list.className = 'admin-filter-options';
+    [...input.options].forEach(option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = option.textContent;
+      button.setAttribute('aria-pressed', String(option.selected));
+      button.addEventListener('click', () => {
+        input.value = option.value;
+        trigger.textContent = option.textContent;
+        list.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        wrapper.open = false;
+        trigger.focus();
+        input.dispatchEvent(new Event('change'));
+      });
+      list.append(button);
+    });
+    trigger.textContent = input.selectedOptions[0].textContent;
+    input.hidden = true;
+    input.after(wrapper);
+    wrapper.append(trigger, list);
+    wrapper.addEventListener('toggle', () => {
+      if (wrapper.open) panel.querySelectorAll('.admin-filter-picker').forEach(other => { if (other !== wrapper) other.open = false; });
+    });
+    wrapper.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { wrapper.open = false; trigger.focus(); }
+      if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
+        event.preventDefault();
+        wrapper.open = true;
+        const options = [...list.querySelectorAll('button')];
+        const index = options.indexOf(document.activeElement);
+        options[(index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length].focus();
+      }
+    });
+  });
+  document.addEventListener('click', event => panel.querySelectorAll('.admin-filter-picker[open]').forEach(picker => { if (!picker.contains(event.target)) picker.open = false; }));
+
   panel.querySelector('#admin-detail-close').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => { selected = null; requestId++; });
   function renderMember(data) {
