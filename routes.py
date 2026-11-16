@@ -405,7 +405,8 @@ def get_leaderboard():
         4: {"chapters": 4, "ert": 5.0},    # 05:00 = 5.0
         5: {"chapters": 5, "ert": 4.75},   # 04:45 = 4.75
         6: {"chapters": 6, "ert": 4.5},    # 04:30 = 4.5
-        7: {"chapters": 7, "ert": 4.25},   # 04:15 = 4.25
+        7: {"chapters": 6, "ert": 4.5},
+        8: {"chapters": 7, "ert": 4.25},   # 04:15 = 4.25
     }
     
     def time_to_decimal(t_str):
@@ -554,7 +555,7 @@ def get_leaderboard():
                 
         cumulative_score = archived_score + session_score + evaluation_total
         cumulative_laxity = archived_laxity + session_laxity
-        session_score += sum(evaluation_points(e) for e in evaluations if e.session_number == c_id)
+        session_score += sum(evaluation_points(e) for e in evaluations if e.session_number == c_id - 1)
             
         leaderboard.append({
             "id": u.id,

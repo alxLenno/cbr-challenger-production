@@ -387,12 +387,12 @@ async function checkAndAdvanceCompletedCard() {
     // explicit decision, it just doesn't require digging for the button.
     setTimeout(async () => {
       const startNewRound = await showModal({
-        title: `Round ${currentRound} Complete!`,
+        title: `Card archived · Round ${currentRound}`,
         subtitle: `Start Round ${currentRound + 1}?`,
         message: `Card 7's timeframe ended, so it was archived to your history. Would you like to start Round ${currentRound + 1} from Card 1?`,
         type: "info",
         confirmText: `Start Round ${currentRound + 1}`,
-        cancelText: "Not Yet"
+        cancelText: "Continue This Round"
       });
       if (startNewRound) {
         await loadOrResetBoardForNewCard(1, currentRound + 1, nextCycleStart);
@@ -928,7 +928,7 @@ function initUI() {
 function openAppSection(target) {
   const parents = {
     'tab-dashboard': 'tab-progress', 'tab-analytics': 'tab-progress', 'tab-bible-journey': 'tab-progress',
-    'tab-history': 'tab-records', 'tab-session-eval': 'tab-records'
+    'tab-history': 'tab-records', 'tab-session-eval': 'tab-records', 'tab-evaluation-record': 'tab-records'
   };
   const pageId = parents[target] || target;
   const page = document.getElementById(pageId);
@@ -946,6 +946,7 @@ function openAppSection(target) {
   }
   if (pageId === 'tab-leaderboard') fetchLeaderboard();
   if (section === 'tab-session-eval') initSessionEval();
+  if (section === 'tab-evaluation-record') renderEvaluationRecord();
   if (section === 'tab-bible-journey' && typeof renderBibleJourney === 'function') renderBibleJourney();
   if (section === 'tab-analytics') renderChart();
   if (section === 'tab-history') renderLibraryList();
@@ -2987,7 +2988,7 @@ async function archiveActiveCard(silent = false) {
   
   if (!silent) {
     showToast("Card successfully archived to your library!", "success");
-    if (appState.currentCardId < 7) {
+    if (appState.currentCardId < 8) {
       const upgrade = await showModal({
         title: "Upgrade Card?",
         subtitle: `Advance to Card ${appState.currentCardId + 1}`,
@@ -3002,16 +3003,16 @@ async function archiveActiveCard(silent = false) {
         return true;
       }
     } else {
-      // Card 7 archived — finishing a round is a milestone the trainee should
+      // Card 8 archived — finishing a round is a milestone the trainee should
       // decide on explicitly, not something that happens for them.
       const currentRound = appState.round || 1;
       const startNewRound = await showModal({
-        title: `Round ${currentRound} Complete!`,
+        title: `Card archived · Round ${currentRound}`,
         subtitle: `Start Round ${currentRound + 1}?`,
-        message: `Card 7 is archived to your history. Would you like to start Round ${currentRound + 1} from Card 1?`,
+        message: `Card 8 is archived. Start Round ${currentRound + 1} only if you have completed every Bible book from Genesis to Revelation. Otherwise, stay in this round and continue reading.`,
         type: "info",
         confirmText: `Start Round ${currentRound + 1}`,
-        cancelText: "Not Yet"
+        cancelText: "Continue This Round"
       });
       if (startNewRound) {
         await loadOrResetBoardForNewCard(1, currentRound + 1);

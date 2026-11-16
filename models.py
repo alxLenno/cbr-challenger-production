@@ -252,6 +252,8 @@ def auto_migrate_db(app):
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN journal_notes TEXT"))
                 if 'reading_passages' not in existing_cols:
                     db.session.execute(text("ALTER TABLE daily_logs ADD COLUMN reading_passages JSON"))
+            from card_numbering import migrate_card_numbering
+            migrate_card_numbering(db)
             if not Course.query.first():
                 db.session.add(Course(name='CBR Course',cohort='Cohort 18',cohort_key='cohort 18'))
             db.session.commit()

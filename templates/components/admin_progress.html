@@ -12,7 +12,7 @@
       <label class="admin-search">Find a member<input type="search" id="admin-member-search" placeholder="Search name, email or PEG"></label>
       <label>Cohort<select id="admin-member-cohort"><option value="">All cohorts</option>{% for cohort in cohorts %}<option>{{ cohort }}</option>{% endfor %}</select></label>
       <label>PEG<select id="admin-member-peg"><option value="">All PEGs</option>{% for peg in pegs %}<option>{{ peg }}</option>{% endfor %}</select></label>
-      <label>Card<select id="admin-member-card"><option value="">All cards</option>{% for n in range(1,8) %}<option value="{{ n }}">Card {{ n }}</option>{% endfor %}</select></label>
+      <label>Card<select id="admin-member-card"><option value="">All cards</option>{% for n in range(1,9) %}<option value="{{ n }}">Card {{ n }}</option>{% endfor %}</select></label>
       <label>Round<select id="admin-member-round"><option value="">All rounds</option>{% for n in rounds %}<option value="{{ n }}">Round {{ n }}</option>{% endfor %}</select></label>
       <label>Activity<select id="admin-member-status"><option value="">All members</option><option>On track</option><option>Needs support</option><option>Not started</option></select></label>
     </div>

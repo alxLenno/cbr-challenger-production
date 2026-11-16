@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stat = (label, value) => `<article><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`;
     const item = (label, value) => `<div><dt>${esc(label)}</dt><dd>${esc(value || 'Not recorded')}</dd></div>`;
     detail.innerHTML = `<p class="admin-detail-subtitle">${esc(m.email)} · ${esc(m.cohort || 'Cohort not set')} · ${esc(m.peg || 'PEG not set')}</p>
-      <div class="admin-detail-actions"><button type="button" class="btn download-action" data-admin-booklet ${data.records.length ? '' : 'disabled'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg><span>Download booklet</span></button><span>Includes all cards and the evaluation card. Choose Save as PDF.</span></div>
+      <div class="admin-detail-actions"><button type="button" class="btn download-action" data-admin-booklet ${data.records.length ? '' : 'disabled'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg><span>Download booklet</span></button><button type="button" class="btn download-action" data-admin-evaluation>Evaluation record</button><span>Includes all cards and the evaluation card. Choose Save as PDF.</span></div>
       <div class="metrics admin-detail-metrics">${stat('Total points', m.totalPoints)}${stat('Growth points', m.growthPoints)}${stat('Diligence', m.diligencePoints)}${stat('Bonuses', m.bonusPoints)}</div>
       <section class="admin-detail-section"><h3>Progress & follow-up</h3><dl class="admin-detail-grid">${item('Current card', m.current_card_id ? `Card ${m.current_card_id} · Round ${m.round}` : 'No card yet')}${item('Started', m.startDate)}${item('Days logged', `${m.days} / 28`)}${item('Chapters read · current card', String(m.chapters))}${item('Last activity', m.lastActivity)}${item('Evaluations not submitted', String(m.pendingEvaluations))}${item('Contact', m.contact)}${item('Church', m.church)}</dl>
       <ul class="admin-flags">${m.flags.length ? m.flags.map(flag => `<li>${esc(flag)}</li>`).join('') : '<li>No follow-up flags on the current card.</li>'}</ul></section>
@@ -100,11 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   detail.addEventListener('click', async event => {
-    const button = event.target.closest('[data-admin-booklet], [data-admin-card]');
+    const button = event.target.closest('[data-admin-booklet], [data-admin-card], [data-admin-evaluation]');
     if (!button || !selected || button.disabled) return;
     button.disabled = true;
     try {
-      if (button.hasAttribute('data-admin-booklet')) await downloadChallengerBooklet(selected.state, selected.evaluations);
+      if (button.hasAttribute('data-admin-evaluation')) await printEvaluationRecord(selected.state, selected.evaluations);
+      else if (button.hasAttribute('data-admin-booklet')) await downloadChallengerBooklet(selected.state, selected.evaluations);
       else {
         const card = collectBookletCards(selected.state)[Number(button.dataset.adminCard)];
         const growth = {};

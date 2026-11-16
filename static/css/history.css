@@ -278,3 +278,28 @@
 .history-booklet-button svg { flex-shrink:0; }
 .history-booklet-action p { margin:0; max-width:440px; color:var(--text-muted); font-size:.78rem; line-height:1.6; }
 @media(max-width:600px) { .history-booklet-action { align-items:flex-start; flex-direction:column; gap:.6rem; } }
+
+.evaluation-record-sheet { margin-top:1.2rem; }.evaluation-record-sheet h3 { margin:1.5rem 0 .6rem; }.evaluation-record-sheet > p { color:var(--text-secondary); line-height:1.6; }.evaluation-record-totals { display:flex; flex-wrap:wrap; gap:1rem; }.evaluation-record-totals > div { padding:1rem; border:1px solid var(--panel-border); border-radius:10px; min-width:100px; }.evaluation-record-totals dd { margin:.5rem 0 0; font-size:1.5rem; font-weight:700; }
+
+.evaluation-record-workspace .table-wrap { overflow-x:auto; }.evaluation-record-sheet table { width:100%; border-collapse:collapse; text-align:left; }.evaluation-record-sheet th,.evaluation-record-sheet td { padding:.8rem; border-bottom:1px solid var(--panel-border); }.evaluation-record-sheet th { font-size:.8rem; color:var(--text-secondary); }
+
+.evaluation-record-toolbar{display:flex;justify-content:flex-end;align-items:center;max-width:794px;margin:0 auto;padding:.25rem 0}.evaluation-record-workspace .evaluation-record-sheet{margin-top:.5rem}
+
+/* Evaluation lives in the same branded panel as the rest of My Records. */
+.evaluation-record-frame { max-width:900px; margin:0 auto; padding:0; overflow:hidden; }
+.evaluation-record-frame .evaluation-record-toolbar { max-width:none; margin:0; padding:1.25rem 1.5rem; gap:1rem; justify-content:space-between; border-bottom:1px solid var(--panel-border); }
+.evaluation-record-eyebrow { color:var(--primary); font-size:.65rem; font-weight:700; letter-spacing:.12em; }
+.evaluation-record-heading h2 { color:var(--text-main); margin:.3rem 0; font-size:1.2rem; }
+.evaluation-record-heading p { color:var(--text-secondary); margin:0; font-size:.8rem; line-height:1.5; }
+.evaluation-record-toolbar .download-action-icon { width:44px; height:44px; min-height:44px; align-self:center; border-radius:10px; }
+.evaluation-record-workspace .evaluation-record-sheet { max-width:none; margin:0; padding:1.5rem; background:transparent; color:var(--text-main); }
+.evaluation-record-workspace .evaluation-record-sheet h2 { font-size:1rem; color:var(--text-main); margin-bottom:1.5rem; }
+.evaluation-record-workspace .er-brand { border-color:var(--primary); }
+.evaluation-record-workspace .er-brand-mark { color:var(--primary); }
+.evaluation-record-workspace .er-brand-caption, .evaluation-record-workspace .er-notice, .evaluation-record-workspace .er-empty { color:var(--text-secondary); }
+.evaluation-record-workspace .evaluation-record-sheet table { color:var(--text-main); }
+.evaluation-record-workspace .evaluation-record-sheet th, .evaluation-record-workspace .evaluation-record-sheet td { border-color:var(--panel-border); color:var(--text-main); }
+.evaluation-record-workspace .evaluation-record-sheet th { background:var(--input-bg); }
+.evaluation-record-workspace .er-identity span { border-color:var(--panel-border); }
+.evaluation-record-workspace .er-summary h3 { font-size:1rem; text-decoration:none; letter-spacing:.05em; color:var(--primary); }
+@media(max-width:600px) { .evaluation-record-frame .evaluation-record-toolbar { padding:1rem; }.evaluation-record-workspace .evaluation-record-sheet { padding:1rem; }.evaluation-record-heading h2 { font-size:1rem; }.evaluation-record-heading p { font-size:.75rem; } }

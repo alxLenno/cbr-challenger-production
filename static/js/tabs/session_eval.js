@@ -1,3 +1,4 @@
+function seSessionForCard(cardId) { return Math.max(1, Math.min(7, (Number(cardId) || 1) - 1)); }
 let seData = {};   // { sessionNumber: { diligence:{}, bonus:{}, growthPoints } }
 let seInitialized = false;
 let seCurrentViewSession = 1;
@@ -21,7 +22,7 @@ async function initSessionEval() {
     }
     
     // Default to the user's current card session
-    seCurrentViewSession = appState && appState.currentCardId ? appState.currentCardId : 1;
+    seCurrentViewSession = seSessionForCard(appState && appState.currentCardId);
     
     seInitialized = true;
     seRenderSelector();
@@ -34,7 +35,7 @@ async function initSessionEval() {
 }
 
 function syncSessionEvalToActiveCard() {
-  seCurrentViewSession = Number(appState && appState.currentCardId) || 1;
+  seCurrentViewSession = seSessionForCard(appState && appState.currentCardId);
   if (!seInitialized) return;
 
   seRenderSelector();
@@ -50,7 +51,7 @@ function seBindPrintButton() {
 
 function seGetLatestArchivedCard(sessionNum) {
   const cards = appState && Array.isArray(appState.savedCards)
-    ? appState.savedCards.filter(card => Number(card.currentCardId || card.cardId) === Number(sessionNum))
+    ? appState.savedCards.filter(card => Number(card.currentCardId || card.cardId) === Number(sessionNum) + 1)
     : [];
 
   return cards.reduce((latest, card) => {
@@ -62,9 +63,9 @@ function seGetLatestArchivedCard(sessionNum) {
 }
 
 function seGetSessionGrowthPoints(sessionNum) {
-  const currentCard = Number(appState && appState.currentCardId) || 1;
+  const currentCard = seSessionForCard(appState && appState.currentCardId);
   if (Number(sessionNum) > currentCard) return 0;
-  if (Number(sessionNum) === currentCard && appState) {
+  if (Number(sessionNum) + 1 === Number(appState?.currentCardId) && appState) {
     return calculateScoresForData(appState).totalScore;
   }
 
@@ -101,8 +102,8 @@ function seGetSessionScores(sessionNum) {
 }
 
 function seRenderSelectedSessionSummary(sessionNum) {
-  const currentCard = Number(appState && appState.currentCardId) || 1;
-  const isFuture = Number(sessionNum) > currentCard;
+  const currentCard = seSessionForCard(appState && appState.currentCardId);
+  const isFuture = Number(sessionNum) > currentCard || Number(appState?.currentCardId) < 2;
   const scores = isFuture
     ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
     : seGetSessionScores(sessionNum);
@@ -124,17 +125,17 @@ function seRenderSelector() {
   if (!select) return;
   select.innerHTML = '';
   
-  const currentCard = appState ? appState.currentCardId : 1;
+  const currentCard = seSessionForCard(appState && appState.currentCardId);
   
   for (let s = 1; s <= 7; s++) {
     const option = document.createElement('option');
     option.value = s;
     if (s < currentCard) {
-      option.textContent = `Session ${s} — Completed`;
+      option.textContent = `Session ${s} · Card ${s+1} — Available`;
     } else if (s === currentCard) {
-      option.textContent = `Session ${s} — Active`;
+      option.textContent = `Session ${s} · Card ${s+1} — Active`;
     } else {
-      option.textContent = `Session ${s} — Upcoming`;
+      option.textContent = `Session ${s} · Card ${s+1} — Upcoming`;
     }
     select.appendChild(option);
   }
@@ -153,13 +154,13 @@ function seBindSelector() {
 }
 
 function seRenderSessionView(sessionNum) {
-  const currentCard = appState ? appState.currentCardId : 1;
+  const currentCard = seSessionForCard(appState && appState.currentCardId);
   const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
   
   const isPast = sessionNum < currentCard;
   const isCurrent = sessionNum === currentCard;
-  const isFuture = sessionNum > currentCard;
-  const isEditable = isCurrent; // Only the current session is editable
+  const isFuture = sessionNum > currentCard || Number(appState?.currentCardId) < 2;
+  const isEditable = isCurrent && Number(appState?.currentCardId) >= 2; // Only the current session is editable
   const sessionScores = isFuture
     ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
     : seGetSessionScores(sessionNum);

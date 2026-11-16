@@ -28,7 +28,7 @@ class LeaderboardTest(unittest.TestCase):
                 self.db.session.add(DailyLog(card_state_id=state.id, day_number=day, morning_chapters=4))
             for instance, score in [('active-test', 3), ('prior-test', 16)]:
                 self.db.session.add(ArchivedCard(user_id=uid, instance_id=instance, card_id=4 if instance == 'active-test' else 2, commencing_date='2026-01-01', saved_at='2026-01-01', total_score=score, total_laxity=0, snapshot_data={}))
-            self.db.session.add(SessionEvaluation(user_id=uid, session_number=4, growth_points=999, **{f'diligence_{i}': True for i in range(1, 7)}))
+            self.db.session.add(SessionEvaluation(user_id=uid, session_number=3, growth_points=999, **{f'diligence_{i}': True for i in range(1, 7)}))
             self.db.session.add(SessionEvaluation(user_id=uid, session_number=7, bonus_7=True))
             self.db.session.commit()
         client = self.app.test_client()

@@ -50,7 +50,7 @@ def clean_card(raw):
     """Return only card-printing data, never journal/prayer/CB narrative text."""
     card = {key: raw.get(key, '') for key in (
         'instanceId', 'commencingDate', 'username', 'contact', 'church', 'peg', 'cohort', 'savedAt')}
-    card['currentCardId'] = max(1, min(7, number(raw.get('currentCardId') or raw.get('cardId'), 1)))
+    card['currentCardId'] = max(1, number(raw.get('currentCardId') or raw.get('cardId'), 1))
     card['participationMode'] = 'course'
     card['round'] = max(1, number(raw.get('round'), 1))
     unique_days = {number(day.get('dayNumber') if day.get('dayNumber') is not None else index): {key: day.get(key) for key in DAY_FIELDS}
@@ -78,7 +78,8 @@ def live_card(user, board):
 
 def score_card(card):
     """Same 3/2/2/1/1/1 weekly growth rules used by the printed cards."""
-    target = card['currentCardId']
+    level = min(card['currentCardId'], 8)
+    target = 6 if level == 7 else min(level, 7)
     ert = 6 - target / 4
     redeemed = set()
     weeks = []
@@ -169,7 +170,7 @@ def member_report(user, board, archives, evaluations, today=None):
     barriers = sum(bool(d.get('cbId')) and not d.get('cbResolved') for d in current['days'])
     if barriers:
         flags.append(f'{barriers} unresolved barrier log' + ('s' if barriers != 1 else ''))
-    pending = sum(1 for n in {c['currentCardId'] for c in records} if not sessions.get(str(n), {}).get('submittedAt'))
+    pending = sum(1 for n in {c['currentCardId'] for c in records} if 2 <= n <= 8 and not sessions.get(str(n - 1), {}).get('submittedAt'))
     status = 'Not started' if not logged and not activity else 'Needs support' if missed or inactive or barriers else 'On track'
     metrics = {key: sum(bool(d.get(key)) for d in current['days']) for key in ['recitedMemory', 'fidJournaling', 'prayer10mins', 'dataValidity']}
     summary = dict(id=user.id, name=user.name or user.email, email=user.email,

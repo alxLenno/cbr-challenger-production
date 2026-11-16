@@ -245,7 +245,7 @@ const CBR_DATA = {
     }
   ],
 
-  // The 7 Card levels, their target chapters and target Waking Times (ERT)
+  // Eight card levels; seven course evaluation sessions, their target chapters and target Waking Times (ERT)
   cards: [
     { cardId: 1, chaptersTarget: 1, ertTarget: "05:45", description: "Card 1: 1 Chapter, Target Waking Time: 5:45 AM" },
     { cardId: 2, chaptersTarget: 2, ertTarget: "05:30", description: "Card 2: 2 Chapters, Target Waking Time: 5:30 AM" },
@@ -253,6 +253,7 @@ const CBR_DATA = {
     { cardId: 4, chaptersTarget: 4, ertTarget: "05:00", description: "Card 4: 4 Chapters, Target Waking Time: 5:00 AM" },
     { cardId: 5, chaptersTarget: 5, ertTarget: "04:45", description: "Card 5: 5 Chapters, Target Waking Time: 4:45 AM" },
     { cardId: 6, chaptersTarget: 6, ertTarget: "04:30", description: "Card 6: 6 Chapters, Target Waking Time: 4:30 AM" },
-    { cardId: 7, chaptersTarget: 7, ertTarget: "04:15", description: "Card 7: 7 Chapters, Target Waking Time: 4:15 AM" }
+    { cardId: 7, chaptersTarget: 6, ertTarget: "04:30", description: "Card 7: 6 Chapters, Target Waking Time: 4:30 AM" },
+    { cardId: 8, chaptersTarget: 7, ertTarget: "04:15", description: "Card 8: 7 Chapters, Target Waking Time: 4:15 AM · Session 7" }
   ]
 };

@@ -5,33 +5,6 @@
 
 // Note: CBR Card scripture memory is dynamically extracted from CBR_DATA.sessions
 
-// ── Toggle accordion open/close ──────────────────────────────────────────────
-function toggleAccord(id) {
-  const body    = document.getElementById('today-accord-body-' + id);
-  const chevron = document.getElementById('today-chevron-' + id);
-  const header  = body ? body.previousElementSibling : null;
-  const accord  = body ? body.closest('.today-accord') : null;
-  const grid    = accord ? accord.closest('.today-accord-grid') : null;
-  if (!body || !chevron) return;
-
-  const isOpen = body.style.display !== 'none';
-  body.style.display    = isOpen ? 'none' : 'block';
-  chevron.classList.toggle('open', !isOpen);
-  if (accord) accord.classList.toggle('is-open', !isOpen);
-  if (grid) grid.classList.toggle('has-open', Boolean(grid.querySelector('.today-accord.is-open')));
-  if (header) header.setAttribute('aria-expanded', String(!isOpen));
-
-  if (!isOpen && id === 'memory' && window.currentMemoryRef) {
-    fetchAndDisplayMemoryVerse(window.currentMemoryRef, window.currentBibleVersion || 'NIV');
-  }
-  if (!isOpen && id === 'daily' && window.currentDailyRef) {
-    fetchAndDisplayDailyVerse(window.currentDailyRef, 'NIV');
-  }
-}
-
-// Legacy alias kept for backward compatibility
-window.toggleStudyQuestions = function() { toggleAccord('questions'); };
-
 // ── Scripture Memory Version Dropdown & Full Text Fetching ───────────────────
 window.currentBibleVersion = 'NIV';
 window.currentMemoryRef = '';

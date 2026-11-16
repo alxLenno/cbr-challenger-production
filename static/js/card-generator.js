@@ -16,7 +16,7 @@ function escapeCardText(value) {
 
 function buildChallengerCardHTML(data) {
   if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
-  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
+  const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[CBR_DATA.cards.length - 1];
   const stats = calculateScoresForData(data);
 
   // Get calendar dates for the 28 days
@@ -494,7 +494,7 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}, boo
       sessionNumber,
       diligence: stored.diligence || {},
       bonus: stored.bonus || {},
-      growthPoints: bookletGrowth ? (bookletGrowth[sessionNumber] || 0) : sessionNumber === currentCardId
+      growthPoints: bookletGrowth ? (bookletGrowth[sessionNumber + 1] || 0) : sessionNumber + 1 === currentCardId
         ? currentGrowth
         : Number(stored.growthPoints || 0),
     });
@@ -528,8 +528,8 @@ function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}, boo
   // This evaluation is the full course record, so its totals must include
   // every displayed session, regardless of which card is being printed.
   const courseSessionScore = sessions.reduce((total, session) => (
-    total + diligenceScore(session) + session.growthPoints
-  ), 0);
+    total + diligenceScore(session) + (bookletGrowth ? 0 : session.growthPoints)
+  ), 0) + (bookletGrowth ? Object.values(bookletGrowth).reduce((sum, value) => sum + Number(value || 0), 0) : 0);
   const courseTotalPoints = courseSessionScore + bonusScore;
 
   const diligenceRows = diligenceCriteria.map((criterion, index) => `
@@ -675,7 +675,7 @@ async function getSessionEvaluationsForPrint() {
 // Helper: calculate scores using a given data object (handles both active & historical cards)
 function calculateScoresForData(data) {
   if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
-  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[0];
+  const card = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[CBR_DATA.cards.length - 1];
   const targetChapters = card.chaptersTarget;
   const targetERT = timeStringToDecimal(card.ertTarget);
 
@@ -893,6 +893,7 @@ function buildChallengerBookletHTML(cards, profile, evaluations = {}) {
     cards.map((card, i) => `<section class="cc-booklet-card cc-print-sheet" id="booklet-card-${i}">
       ${buildChallengerCardHTML(card)}</section>`).join('') +
     buildBookletEvaluation(cards, profile, evaluations) +
+    (typeof buildEvaluationRecordHTML === 'function' ? `<section class="cc-evaluation-record-page">${buildEvaluationRecordHTML({...profile,savedCards:cards,adminExport:true},evaluations)}</section>` : '') +
     `<section class="cc-booklet-cover cc-booklet-back">
       <div class="cc-back-scripture">${portrait}<p class="cc-booklet-eyebrow">KEEP GROWING</p>
       <blockquote class="cc-booklet-verse">“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.”<br><strong>2 Timothy 2:15 · KJV</strong></blockquote></div>

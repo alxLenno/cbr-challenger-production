@@ -1043,3 +1043,17 @@
 }
 
 .cc-booklet-card + .cc-session-evaluation-page { break-before: page; }
+
+.cc-evaluation-record-page { width:194mm; margin:0 auto; padding:8mm 0; color:#111; background:white; font:10pt Arial,sans-serif; break-before:page; }
+.cc-evaluation-record-page h2 { font-size:16pt; margin:0 0 5mm; }
+.cc-evaluation-record-page h3 { font-size:12pt; margin:6mm 0 3mm; }
+.cc-evaluation-record-page table { width:100%; border-collapse:collapse; }
+.cc-evaluation-record-page th, .cc-evaluation-record-page td { border:1px solid #aaa; padding:2mm; text-align:left; }
+.cc-evaluation-record-page tr { break-inside:avoid; }
+.cc-evaluation-record-page thead { display:table-header-group; }
+.cc-evaluation-record-page .evaluation-record-totals { display:flex; flex-wrap:wrap; gap:5mm; }
+.cc-evaluation-record-page dd { font-size:16pt; margin:2mm 0; font-weight:bold; }
+
+.cc-evaluation-record-page{width:198mm;padding:0;break-before:page}.cc-evaluation-record-page .evaluation-record-sheet{width:198mm;height:280mm;max-width:none;margin:0}.cc-evaluation-record-page .er-value{font-size:13pt}.cc-evaluation-record-page .er-title{font-size:17pt}.cc-evaluation-record-page .er-card-label{font-size:13pt}
+
+.cc-evaluation-record-page .evaluation-record-sheet{height:auto;min-height:0;padding:10mm 5mm}.cc-evaluation-record-page .er-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
