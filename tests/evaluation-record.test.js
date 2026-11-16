@@ -25,3 +25,18 @@ test('record includes cards beyond eight and finalizes only with submitted Sessi
  const html=c.buildEvaluationRecordHTML({adminExport:true,savedCards:[card(8),card(9)]},{7:{submittedAt:'2026-11-12',diligence:{1:true},bonus:{7:true}}});
  assert.match(html,/Challenger Card 09/);assert.match(html,/FINAL EVALUATION/);assert.match(html,/<td>60<\/td>/);
 });
+test('a renamed card changes its displayed number without changing scoring targets',()=>{
+ const card={currentCardId:2,displayCardNumber:3,days:Array.from({length:7},(_,i)=>({dayNumber:i+1,morningChapters:2})),weeks:Array.from({length:4},(_,i)=>({weekNumber:i+1}))};
+ assert.equal(c.cardDisplayNumber(card),3);
+ assert.equal(c.calculateScoresForData(card).totalScore,3);
+ const html=c.buildEvaluationRecordHTML({adminExport:true,savedCards:[card]},{});
+ assert.match(html,/Challenger Card 03/);
+});
+
+test('case-specific sequence starts at Card 3 / Session 2 without placeholders',()=>{
+ const cards=Array.from({length:6},(_,i)=>({currentCardId:i===5?8:i+2,displayCardNumber:i+3,instanceId:'case-'+i,commencingDate:'2099-01-01',days:[{dayNumber:1,morningChapters:1}],weeks:[]}));
+ const html=c.buildEvaluationRecordHTML({adminExport:true,savedCards:cards},{2:{diligence:{1:true}}});
+ assert.match(html,/Challenger Card 03/);assert.match(html,/Challenger Card 08/);
+ assert.match(html,/From Session 2/);assert.match(html,/From Session 7/);
+ assert.doesNotMatch(html,/From Session 1/);assert.doesNotMatch(html,/Challenger Card 02/);
+});

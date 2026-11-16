@@ -31,3 +31,22 @@ class CardNumberingTest(unittest.TestCase):
                 board.current_card_id=7;db.session.commit()
                 migrate_card_numbering(db);db.session.commit()
                 self.assertEqual(board.current_card_id,7)
+
+                from card_numbering import apply_requested_card_label
+                user=db.session.get(User,990)
+                user.email='lennoxkahati@gmail.com'
+                label_card=ArchivedCard(user_id=990,instance_id='label-only',card_id=2,round=1,total_score=18,
+                    commencing_date='2026-06-08',saved_at='2026-07-01',snapshot_data={'currentCardId':2,'days':[{'dayNumber':1,'morningChapters':2}]})
+                db.session.add(label_card);db.session.commit()
+                apply_requested_card_label(db);db.session.commit()
+                self.assertEqual(label_card.snapshot_data['displayCardNumber'],3)
+                self.assertEqual((label_card.card_id,label_card.total_score,label_card.commencing_date),(2,18,'2026-06-08'))
+                self.assertEqual(label_card.snapshot_data['days'][0]['morningChapters'],2)
+
+                from card_numbering import REQUESTED_SEQUENCE, requested_card_label
+                self.assertEqual(list(REQUESTED_SEQUENCE.values()),[3,4,5,6,7,8])
+                other=User(name='Other',email='other@example.test',google_id='other-case')
+                self.assertIsNone(requested_card_label(other,'2026-06-08'))
+                self.assertIsNone(requested_card_label(user,'2026-06-08',2))
+                for day,label in REQUESTED_SEQUENCE.items():
+                    self.assertEqual(requested_card_label(user,day),label)

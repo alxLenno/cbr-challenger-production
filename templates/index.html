@@ -469,7 +469,7 @@
   <!-- Custom Glassmorphism Toast Container -->
   <div id="toast-container" style="position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 14px; pointer-events: none;"></div>
 
-  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=5"></script>{% endif %}
+  {% if show_admin_progress %}<script src="{{ url_for('static', filename='js/admin-progress.js') }}?v=6"></script>{% endif %}
   <link rel="stylesheet" href="{{ url_for('static',filename='css/courses.css') }}?v=9">
   <script src="{{ url_for('static',filename='js/courses.js') }}?v=3"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/themed-select.css') }}?v=1">
@@ -477,17 +477,19 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/download-actions.css') }}?v=1">
   <script src="{{ url_for('static', filename='js/download-actions.js') }}?v=1" defer></script>
   {% if show_course_management %}<script src="{{ url_for('static', filename='js/peg-workspace.js') }}?v=1" defer></script>{% endif %}
-  <script src="{{ url_for('static', filename='js/evaluation-record.js') }}?v=7" defer></script>
+  <script src="{{ url_for('static', filename='js/evaluation-record.js') }}?v=9" defer></script>
   <script src="{{ url_for('static', filename='js/evaluation-pdf.js') }}?v=1" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/offline-resources.css') }}?v=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/milestone.css') }}?v=1">
+  <script src="{{ url_for('static', filename='js/milestone.js') }}?v=1" defer></script>
   <!-- Lucide Icons & Application Runner -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="{{ url_for('static', filename='js/data.js') }}?v=10"></script>
   <script>window.scriptureReferencePattern = {{ scripture_reference_pattern|tojson }};</script>
   <script src="{{ url_for('static', filename='js/scripture-refs.js') }}?v=6"></script>
   <script src="{{ url_for('static', filename='js/date-utils.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=43"></script>
-  <script src="{{ url_for('static', filename='js/app.js') }}?v=71"></script>
+  <script src="{{ url_for('static', filename='js/card-generator.js') }}?v=45"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=73"></script>
   <script src="{{ url_for('static', filename='js/tabs/bible-journey.js') }}?v=11"></script>
   <!-- Tab-specific JS modules (must load after app.js) -->
   <script src="{{ url_for('static', filename='js/patrick_hand_font.js') }}?v=1"></script>
@@ -495,9 +497,9 @@
   <script src="{{ url_for('static', filename='js/tabs/today.js') }}?v=41"></script>
   <script src="{{ url_for('static', filename='js/tabs/dashboard.js') }}?v=7"></script>
   <script src="{{ url_for('static', filename='js/tabs/leaderboard.js') }}?v=5"></script>
-  <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=8"></script>
+  <script src="{{ url_for('static', filename='js/tabs/session_eval.js') }}?v=9"></script>
   <script src="{{ url_for('static', filename='js/tabs/reference.js') }}?v=2"></script>
-  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=7"></script>
+  <script src="{{ url_for('static', filename='js/tabs/history.js') }}?v=9"></script>
   <script src="{{ url_for('static', filename='js/tabs/account.js') }}?v=4"></script>
   <script src="{{ url_for('static', filename='js/tabs/analytics.js') }}?v=4"></script>
   <script>

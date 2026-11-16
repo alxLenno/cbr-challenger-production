@@ -31,7 +31,7 @@ function renderLibraryList() {
       bar.style.cssText = 'margin-bottom:0.4rem;';
       bar.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-secondary);margin-bottom:2px;">
-          <span>Card ${card.cardId} · ${card.commencingDate}</span>
+          <span>Card ${cardDisplayNumber(card)} · ${card.commencingDate}</span>
           <span>${card.totalScore}/${maxScore} pts (${pct}%)</span>
         </div>
         <div style="background:rgba(var(--primary-rgb),0.12);border-radius:99px;height:6px;overflow:hidden;">
@@ -49,7 +49,7 @@ function renderLibraryList() {
     
     // Card round
     const tdCard = document.createElement('td');
-    tdCard.innerHTML = `<strong>Card ${card.cardId}</strong><br><span style="font-size:0.68rem;color:var(--text-muted);">${card.username}</span>`;
+    tdCard.innerHTML = `<strong>Card ${cardDisplayNumber(card)}</strong><br><span style="font-size:0.68rem;color:var(--text-muted);">${card.username}</span>`;
     tr.appendChild(tdCard);
     
     // Dates
@@ -164,6 +164,7 @@ async function restoreArchivedToActive(instanceId) {
     }
 
     appState.currentCardId = cardId;
+    appState.displayCardNumber = targetCard.displayCardNumber || null;
     appState.activeInstanceId = targetCard.instanceId;
     appState.round = targetCard.round || 1;
     appState.commencingDate = targetCard.commencingDate;

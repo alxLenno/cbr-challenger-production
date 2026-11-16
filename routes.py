@@ -126,6 +126,11 @@ def get_state():
             "sharedFid": w.shared_fid
         })
     state["weeks"].sort(key=lambda x: x["weekNumber"])
+    from card_numbering import requested_card_label
+    display_number = requested_card_label(current_user, card_state.commencing_date, card_state.round)
+    if display_number:
+        state['displayCardNumber'] = display_number
+        state['evaluationSessionStart'] = 2
     
     archives = ArchivedCard.query.filter_by(user_id=current_user.id).order_by(ArchivedCard.id.desc()).all()
     for arch in archives:
@@ -137,7 +142,8 @@ def get_state():
         snap["instanceId"] = inst_id
         snap["round"] = arch.round or snap.get("round") or 1
         state["savedCards"].append(snap)
-        
+    if any(card.get('displayCardNumber') for card in state['savedCards']) and (card_state.round or 1) == 1:
+        state['evaluationSessionStart'] = 2
     return jsonify(state)
 
 @api_bp.route('/save_state', methods=['POST'])
@@ -298,6 +304,8 @@ def save_state():
         instance_id=instance_id,
     ).first()
     if archived_card:
+        if (archived_card.snapshot_data or {}).get('displayCardNumber'):
+            snapshot['displayCardNumber'] = archived_card.snapshot_data['displayCardNumber']
         archived_card.card_id = card_state.current_card_id
         archived_card.round = snapshot["round"]
         archived_card.commencing_date = card_state.commencing_date
@@ -344,6 +352,8 @@ def archive_card():
     board = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
     data['courseId'] = (existing.snapshot_data or {}).get('courseId') if existing else (board.course_id if board else None)
     if existing:
+        if (existing.snapshot_data or {}).get('displayCardNumber'):
+            data['displayCardNumber'] = existing.snapshot_data['displayCardNumber']
         existing.instance_id = inst_id
         existing.round = round_num
         existing.commencing_date = data.get("commencingDate")
@@ -805,3 +815,14 @@ def api_get_versions():
     """Dynamically list available Bible translations discovered by engine."""
     from engine import get_available_versions
     return jsonify({"versions": get_available_versions()})
+
+@api_bp.get('/milestone')
+@login_required
+def milestone_points():
+    from admin_progress import member_report
+    board = CardState.query.filter_by(user_id=current_user.id).order_by(CardState.id.desc()).first()
+    report = member_report(current_user, board, ArchivedCard.query.filter_by(user_id=current_user.id).all(),
+                           SessionEvaluation.query.filter_by(user_id=current_user.id).all())
+    response = jsonify(userId=current_user.id, points=report['member']['totalPoints'])
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response

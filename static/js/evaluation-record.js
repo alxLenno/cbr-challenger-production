@@ -23,8 +23,8 @@ function buildEvaluationRecordHTML(state, evaluations = {}) {
       return sum+(elapsed>=(index+1)*7||filled===7?week.laxity:0);
     },0);
     laxity+=weekLaxity;
-    const n=Number(card.currentCardId),session=n-1;
-    let html=box(`Challenger Card ${String(n).padStart(2,'0')}`,['GROWTH<br>POINTS','LAXITY'],[stats.totalScore,weekLaxity]);
+    const n=cardDisplayNumber(card),session=n-1;
+    let html=box(`Challenger Card ${String(cardDisplayNumber(card)).padStart(2,'0')}`,['GROWTH<br>POINTS','LAXITY'],[stats.totalScore,weekLaxity]);
     if(session>=1&&session<=7){
       const e=evaluations[session];availableSessions.add(session);
       const score=e?Object.values(e.diligence||{}).filter(Boolean).length*10:'—';

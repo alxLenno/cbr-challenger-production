@@ -22,7 +22,7 @@ async function initSessionEval() {
     }
     
     // Default to the user's current card session
-    seCurrentViewSession = seSessionForCard(appState && appState.currentCardId);
+    seCurrentViewSession = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
     
     seInitialized = true;
     seRenderSelector();
@@ -35,7 +35,7 @@ async function initSessionEval() {
 }
 
 function syncSessionEvalToActiveCard() {
-  seCurrentViewSession = seSessionForCard(appState && appState.currentCardId);
+  seCurrentViewSession = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
   if (!seInitialized) return;
 
   seRenderSelector();
@@ -51,7 +51,7 @@ function seBindPrintButton() {
 
 function seGetLatestArchivedCard(sessionNum) {
   const cards = appState && Array.isArray(appState.savedCards)
-    ? appState.savedCards.filter(card => Number(card.currentCardId || card.cardId) === Number(sessionNum) + 1)
+    ? appState.savedCards.filter(card => cardDisplayNumber(card) === Number(sessionNum) + 1)
     : [];
 
   return cards.reduce((latest, card) => {
@@ -63,9 +63,9 @@ function seGetLatestArchivedCard(sessionNum) {
 }
 
 function seGetSessionGrowthPoints(sessionNum) {
-  const currentCard = seSessionForCard(appState && appState.currentCardId);
+  const currentCard = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
   if (Number(sessionNum) > currentCard) return 0;
-  if (Number(sessionNum) + 1 === Number(appState?.currentCardId) && appState) {
+  if (Number(sessionNum) + 1 === Number(appState ? cardDisplayNumber(appState) : 1) && appState) {
     return calculateScoresForData(appState).totalScore;
   }
 
@@ -102,8 +102,8 @@ function seGetSessionScores(sessionNum) {
 }
 
 function seRenderSelectedSessionSummary(sessionNum) {
-  const currentCard = seSessionForCard(appState && appState.currentCardId);
-  const isFuture = Number(sessionNum) > currentCard || Number(appState?.currentCardId) < 2;
+  const currentCard = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
+  const isFuture = Number(sessionNum) > currentCard || Number(appState ? cardDisplayNumber(appState) : 1) < 2;
   const scores = isFuture
     ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
     : seGetSessionScores(sessionNum);
@@ -125,9 +125,9 @@ function seRenderSelector() {
   if (!select) return;
   select.innerHTML = '';
   
-  const currentCard = seSessionForCard(appState && appState.currentCardId);
+  const currentCard = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
   
-  for (let s = 1; s <= 7; s++) {
+  for (let s = Number(appState?.evaluationSessionStart) || 1; s <= 7; s++) {
     const option = document.createElement('option');
     option.value = s;
     if (s < currentCard) {
@@ -154,13 +154,13 @@ function seBindSelector() {
 }
 
 function seRenderSessionView(sessionNum) {
-  const currentCard = seSessionForCard(appState && appState.currentCardId);
+  const currentCard = seSessionForCard(appState ? cardDisplayNumber(appState) : 1);
   const sData = seData[String(sessionNum)] || { diligence: {}, bonus: {}, growthPoints: 0 };
   
   const isPast = sessionNum < currentCard;
   const isCurrent = sessionNum === currentCard;
-  const isFuture = sessionNum > currentCard || Number(appState?.currentCardId) < 2;
-  const isEditable = isCurrent && Number(appState?.currentCardId) >= 2; // Only the current session is editable
+  const isFuture = sessionNum > currentCard || Number(appState ? cardDisplayNumber(appState) : 1) < 2;
+  const isEditable = isCurrent && Number(appState ? cardDisplayNumber(appState) : 1) >= 2; // Only the current session is editable
   const sessionScores = isFuture
     ? { diligence: 0, growth: 0, bonus: 0, total: 0 }
     : seGetSessionScores(sessionNum);

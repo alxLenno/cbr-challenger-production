@@ -2634,7 +2634,7 @@ function renderSavedCardsCarousel() {
     tile.innerHTML = `
       <div>
         <div class="saved-card-tile-top">
-          <span class="saved-card-level">Card ${cardId}</span>
+          <span class="saved-card-level">Card ${cardDisplayNumber(card)}</span>
           <span class="saved-card-badge">${isActive ? 'Active Now' : 'Restore'}</span>
         </div>
         <div class="saved-card-date">Started: ${card.commencingDate || '—'}</div>
@@ -2695,6 +2695,7 @@ async function restoreArchivedToActive(instanceId) {
     }
 
     appState.currentCardId = cardId;
+    appState.displayCardNumber = targetCard.displayCardNumber || null;
     appState.activeInstanceId = targetCard.instanceId;
     appState.commencingDate = targetCard.commencingDate;
     appState.peg = targetCard.peg ?? '';
@@ -2822,6 +2823,7 @@ function resetActiveBoardForNewCard(newCardId, newRound, commencingDate) {
   const timeline = calculateCardTimeline(startStr);
 
   appState.currentCardId = newCardId;
+  appState.displayCardNumber = null;
   appState.activeInstanceId = createCardInstanceId(newCardId);
   appState.round = newRound || appState.round || 1;
   appState.commencingDate = timeline.startStr;
@@ -2902,7 +2904,9 @@ async function loadOrResetBoardForNewCard(newCardId, round, commencingDate) {
     // Selecting a previous card always resumes its latest permanent snapshot.
     // Starting over remains available only through the explicit Reset action.
     appState.currentCardId = newCardId;
+  appState.displayCardNumber = null;
     appState.activeInstanceId = existingSave.instanceId;
+    appState.displayCardNumber = existingSave.displayCardNumber || null;
     appState.round = existingSave.round || targetRound;
     appState.commencingDate = existingSave.commencingDate;
     appState.peg = existingSave.peg ?? '';

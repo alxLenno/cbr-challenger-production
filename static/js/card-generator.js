@@ -14,6 +14,10 @@ function escapeCardText(value) {
   })[char]);
 }
 
+function cardDisplayNumber(card) {
+  return Number(card.displayCardNumber || card.currentCardId || card.cardId || 1);
+}
+
 function buildChallengerCardHTML(data) {
   if (data && !data.currentCardId) data.currentCardId = data.cardId || 1;
   const cardConfig = CBR_DATA.cards.find(c => c.cardId === data.currentCardId) || CBR_DATA.cards[CBR_DATA.cards.length - 1];
@@ -401,7 +405,7 @@ function buildChallengerCardHTML(data) {
   <!-- HEADER -->
   <div class="cc-header">
     <div class="cc-header-left">
-      <div class="cc-title">THE CHALLENGER<sup style="font-size:7pt;">${data.currentCardId}</sup> CARD</div>
+      <div class="cc-title">THE CHALLENGER<sup style="font-size:7pt;">${cardDisplayNumber(data)}</sup> CARD</div>
       <div class="cc-subtitle">CONSISTENCY ANALYZER &amp; RESOLVE DISPLAYER</div>
       <div class="cc-tagline">By Daily Wordfeast Foundation — P.O. Box 2131, Nyeri, KENYA</div>
     </div>
@@ -483,7 +487,7 @@ function buildChallengerCardHTML(data) {
 
 function buildSessionEvaluationPrintHTML(evaluationData = {}, cardData = {}, bookletGrowth = null) {
   const sessions = [];
-  const currentCardId = Number(cardData.currentCardId || cardData.cardId || 1);
+  const currentCardId = cardDisplayNumber(cardData);
   const currentGrowth = !bookletGrowth && cardData.days && cardData.weeks
     ? calculateScoresForData(cardData).totalScore
     : 0;
@@ -874,7 +878,7 @@ function buildChallengerCoverArt() {
 function buildBookletEvaluation(cards, profile, evaluations) {
   const bySession = {};
   for (const card of cards) {
-    bySession[card.currentCardId] = (bySession[card.currentCardId] || 0) + calculateScoresForData(card).totalScore;
+    bySession[cardDisplayNumber(card)] = (bySession[cardDisplayNumber(card)] || 0) + calculateScoresForData(card).totalScore;
   }
   return buildSessionEvaluationPrintHTML(evaluations, profile, bySession);
 }

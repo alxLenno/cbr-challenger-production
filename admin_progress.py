@@ -49,7 +49,7 @@ def iso_day(value):
 def clean_card(raw):
     """Return only card-printing data, never journal/prayer/CB narrative text."""
     card = {key: raw.get(key, '') for key in (
-        'instanceId', 'commencingDate', 'username', 'contact', 'church', 'peg', 'cohort', 'savedAt')}
+        'displayCardNumber', 'instanceId', 'commencingDate', 'username', 'contact', 'church', 'peg', 'cohort', 'savedAt')}
     card['currentCardId'] = max(1, number(raw.get('currentCardId') or raw.get('cardId'), 1))
     card['participationMode'] = 'course'
     card['round'] = max(1, number(raw.get('round'), 1))
@@ -68,12 +68,16 @@ def clean_card(raw):
 
 
 def live_card(user, board):
-    return clean_card(dict(
+    raw = dict(
         instanceId=board.active_instance_id, currentCardId=board.current_card_id,
         round=board.round, commencingDate=board.commencing_date, username=user.name or user.email,
         contact=board.contact, church=board.church, cohort=board.cohort, peg=board.peg,
         days=[{key: getattr(day, column) for key, column in DAY_FIELDS.items()} for day in board.days],
-        weeks=[dict(weekNumber=w.week_number, sharedFid=w.shared_fid) for w in board.weeks]))
+        weeks=[dict(weekNumber=w.week_number, sharedFid=w.shared_fid) for w in board.weeks])
+    from card_numbering import requested_card_label
+    display = requested_card_label(user, board.commencing_date, board.round)
+    if display: raw['displayCardNumber'] = display
+    return clean_card(raw)
 
 
 def score_card(card):
@@ -170,7 +174,7 @@ def member_report(user, board, archives, evaluations, today=None):
     barriers = sum(bool(d.get('cbId')) and not d.get('cbResolved') for d in current['days'])
     if barriers:
         flags.append(f'{barriers} unresolved barrier log' + ('s' if barriers != 1 else ''))
-    pending = sum(1 for n in {c['currentCardId'] for c in records} if 2 <= n <= 8 and not sessions.get(str(n - 1), {}).get('submittedAt'))
+    pending = sum(1 for n in {number(c.get('displayCardNumber') or c['currentCardId']) for c in records} if 2 <= n <= 8 and not sessions.get(str(n - 1), {}).get('submittedAt'))
     status = 'Not started' if not logged and not activity else 'Needs support' if missed or inactive or barriers else 'On track'
     metrics = {key: sum(bool(d.get(key)) for d in current['days']) for key in ['recitedMemory', 'fidJournaling', 'prayer10mins', 'dataValidity']}
     summary = dict(id=user.id, name=user.name or user.email, email=user.email,
