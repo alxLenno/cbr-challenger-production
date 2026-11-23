@@ -781,6 +781,11 @@ function getActiveData() {
 
 // Initialize static UI components like Bible Books drop-downs, sidebar data, etc.
 function initUI() {
+  const highest=Math.max(8,Number(appState?.currentCardId)||1,...(appState?.savedCards||[]).map(card=>Number(card.currentCardId||card.cardId)||1));
+  for(let id=9;id<=highest;id++)if(!CBR_DATA.cards.some(card=>card.cardId===id)){
+    CBR_DATA.cards.push({cardId:id,chaptersTarget:7,ertTarget:'04:15',description:`Card ${id}: 7 Chapters, Target Waking Time: 4:15 AM`});
+    const option=document.createElement('option');option.value=id;option.textContent=`Card ${id} — 7 Ch · 4:15 AM`;elements.cardSelector.append(option);
+  }
   const data = getActiveData();
 
   // The first paint already has this theme; keep the controls in sync.
@@ -2887,6 +2892,10 @@ async function refreshSavedCardsFromServer() {
 // jump into a different one (used when manually starting the next round).
 async function loadOrResetBoardForNewCard(newCardId, round, commencingDate) {
   const targetRound = round || appState.round || 1;
+  if(!CBR_DATA.cards.some(card=>card.cardId===newCardId)){
+    CBR_DATA.cards.push({cardId:newCardId,chaptersTarget:7,ertTarget:'04:15',description:`Card ${newCardId}: 7 Chapters, Target Waking Time: 4:15 AM`});
+    const option=document.createElement('option');option.value=newCardId;option.textContent=`Card ${newCardId} — 7 Ch · 4:15 AM`;elements.cardSelector.append(option);
+  }
 
   // Check for the most recently updated instance of this card within this round.
   let existingSave = findLatestSavedCard(newCardId, targetRound);
@@ -2957,6 +2966,7 @@ async function archiveActiveCard(silent = false) {
   const archiveInstance = {
     instanceId: instId,
     currentCardId: cId,
+    displayCardNumber: appState.displayCardNumber || undefined,
     cardId: cId,
     round: appState.round || 1,
     commencingDate: appState.commencingDate,
@@ -2992,38 +3002,18 @@ async function archiveActiveCard(silent = false) {
   
   if (!silent) {
     showToast("Card successfully archived to your library!", "success");
-    if (appState.currentCardId < 8) {
-      const upgrade = await showModal({
-        title: "Upgrade Card?",
-        subtitle: `Advance to Card ${appState.currentCardId + 1}`,
-        message: `Would you like to upgrade your active card to Card ${appState.currentCardId + 1}?`,
-        type: "info",
-        confirmText: `Upgrade to Card ${appState.currentCardId + 1}`,
-        cancelText: "Stay on Current"
-      });
-      if (upgrade) {
-        await loadOrResetBoardForNewCard(appState.currentCardId + 1);
-        renderAll();
-        return true;
-      }
-    } else {
-      // Card 8 archived — finishing a round is a milestone the trainee should
-      // decide on explicitly, not something that happens for them.
-      const currentRound = appState.round || 1;
-      const startNewRound = await showModal({
-        title: `Card archived · Round ${currentRound}`,
-        subtitle: `Start Round ${currentRound + 1}?`,
-        message: `Card 8 is archived. Start Round ${currentRound + 1} only if you have completed every Bible book from Genesis to Revelation. Otherwise, stay in this round and continue reading.`,
-        type: "info",
-        confirmText: `Start Round ${currentRound + 1}`,
-        cancelText: "Continue This Round"
-      });
-      if (startNewRound) {
-        await loadOrResetBoardForNewCard(1, currentRound + 1);
-        renderAll();
-        return true;
-      }
-    }
+    const currentRound = appState.round || 1;
+    const roundCards=(appState.savedCards||[]).filter(card=>Number(card.round||1)===Number(currentRound));
+    const coverage=bibleJourneyProgress({...appState,savedCards:roundCards},CBR_DATA.bibleBooks);
+    const complete=coverage.remaining===0;
+    const nextCard=Math.max(Number(appState.currentCardId),cardDisplayNumber(appState))+1;
+    const proceed=await showModal({
+      title:complete?'Bible reading round complete!':'Continue your reading',
+      subtitle:complete?`Start Round ${currentRound+1}?`:`Continue Round ${currentRound} · Card ${nextCard}`,
+      message:complete?'All chapters from Genesis through Revelation are recorded. Would you like to begin a new reading round?':`Your reading round continues until every Bible chapter, including Revelation 22, is complete. Continue with Card ${nextCard} in this round?`,
+      type:'info',confirmText:complete?'Start next round':`Continue to Card ${nextCard}`,cancelText:'Stay on current card'
+    });
+    if(proceed){await loadOrResetBoardForNewCard(complete?1:nextCard,complete?currentRound+1:currentRound);renderAll();return true;}
     renderAll();
   }
   return true;

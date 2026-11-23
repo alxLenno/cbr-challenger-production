@@ -134,13 +134,15 @@ def get_state():
     
     archives = ArchivedCard.query.filter_by(user_id=current_user.id).order_by(ArchivedCard.id.desc()).all()
     for arch in archives:
-        snap = arch.snapshot_data
+        snap = dict(arch.snapshot_data or {})
         c_id = snap.get("currentCardId") or snap.get("cardId") or arch.card_id or 1
         if "currentCardId" not in snap:
             snap["currentCardId"] = c_id
         inst_id = arch.instance_id or snap.get("instanceId") or f"card_{c_id}_{arch.id}"
         snap["instanceId"] = inst_id
         snap["round"] = arch.round or snap.get("round") or 1
+        label = requested_card_label(current_user, arch.commencing_date, arch.round)
+        if label: snap['displayCardNumber'] = label
         state["savedCards"].append(snap)
     if any(card.get('displayCardNumber') for card in state['savedCards']) and (card_state.round or 1) == 1:
         state['evaluationSessionStart'] = 2
@@ -294,6 +296,9 @@ def save_state():
     snapshot["totalScore"] = snapshot.get("totalScore") or 0
     snapshot["totalLaxity"] = snapshot.get("totalLaxity") or 0
     snapshot["round"] = snapshot.get("round") or card_state.round or 1
+    from card_numbering import requested_card_label
+    label=requested_card_label(current_user,card_state.commencing_date,card_state.round)
+    if label: snapshot['displayCardNumber']=label
     snapshot["courseId"] = card_state.course_id
     snapshot["participationMode"] = participation_data()["mode"]
     snapshot["cohort"] = card_state.cohort
@@ -487,7 +492,7 @@ def get_leaderboard():
             continue
         
         c_id = c_state.current_card_id or 1
-        targets = CARD_TARGETS.get(c_id, CARD_TARGETS[1])
+        targets = CARD_TARGETS.get(c_id, CARD_TARGETS[8] if c_id > 8 else CARD_TARGETS[1])
         target_chap = targets["chapters"]
         target_ert = targets["ert"]
         
